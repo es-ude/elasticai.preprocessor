@@ -1,9 +1,21 @@
 [project]
 name = "elastic-ai-preprocessing"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python Extension for Hardware-Aware Signal Processing"
 readme = "README.md"
+license="MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
+keywords = [
+    "signal preprocessing",
+    "hardware-software co-design",
+    "embedded hardware",
+    "quantization"
+]
+authors = [
+    { name = "Andreas Erbsloeh", email = "andreas.erbsloeh@uni-due.de" },
+    { name = "Florian Hettstedt", email = "florian.hettstedt@uni-due.de" }
+]
 dependencies = [
     "fxpmath>=0.4.10",
     "numpy>=2.4.6",
@@ -17,4 +29,22 @@ dev = [
     "hypothesis>=6.152.9",
     "matplotlib>=3.10.9",
     "pytest>=9.0.3",
+    "elasticai-creator",
+    "build>=1.2.2.post1",
+    "coverage>=7.11.3",
+    "pre-commit>=4.0.1",
+    "tach>=0.23.0"
 ]
+test = [
+    "cocotb>=2.0.1",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+
+[tool.uv]
+default-groups = ["dev", "test"]
+
+[tool.uv.sources]
+elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git" }
