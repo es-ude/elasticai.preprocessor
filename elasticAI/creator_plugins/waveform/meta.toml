@@ -1,0 +1,8 @@
+[[plugins]]
+name = 'memory'
+version = '0.1'
+api_version = '0.1'
+target_runtime = 'verilog'
+target_platform = 'FPGA'
+generated = ["waveform_lut_full", "waveform_lut_opt", "waveform_ram_full", "waveform_ram_opt"]
+static_files = []
