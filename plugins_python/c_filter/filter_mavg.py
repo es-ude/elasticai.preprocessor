@@ -2,14 +2,23 @@ from datetime import datetime
 from os.path import dirname, abspath
 
 import plugins_c.filter_data as design_plugin
-from elasticai.preprocessing import get_path_to_project
-from elasticai.preprocessing.thresholding import SettingsThreshold, Thresholding
-from elasticai.preprocessing.translation.ir2c import get_embedded_datatype, replace_variables_with_parameters, generate_c_files
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.ir2c import (
+    get_embedded_datatype,
+    replace_variables_with_parameters,
+    generate_c_files,
+)
 
 
-def build_filter_moving_average(bitwidth: int, signed: bool,
-                                filter_order: int, sampling_rate: float, module_id: str='0',
-                                path2save: str=get_path_to_project("build"), define_path: str='src') -> None:
+def build_filter_moving_average(
+    bitwidth: int,
+    signed: bool,
+    filter_order: int,
+    sampling_rate: float,
+    module_id: str = "0",
+    path2save: str = get_path_to_project("build"),
+    define_path: str = "src",
+) -> None:
     """Generating C files for moving average on microcontroller
     Args:
         bitwidth:       Used quantization level for data stream
@@ -24,28 +33,28 @@ def build_filter_moving_average(bitwidth: int, signed: bool,
     """
     assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
 
-    module_id_used = f'{module_id.lower()}'
+    module_id_used = f"{module_id.lower()}"
     data_type_filter = get_embedded_datatype(bitwidth, signed)
     params = {
-        'datetime_created':     datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        'path2include':         define_path,
-        'template_name':        'filter_mavg_template.h',
-        'device_id':            module_id_used.upper(),
-        'data_type':            data_type_filter,
-        'fs':                   f'{sampling_rate}',
-        'filter_order':         str(filter_order),
-        'filter_coeff':         str(1/filter_order)
+        "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "path2include": define_path,
+        "template_name": "filter_mavg_template.h",
+        "device_id": module_id_used.upper(),
+        "data_type": data_type_filter,
+        "fs": f"{sampling_rate}",
+        "filter_order": str(filter_order),
+        "filter_coeff": str(1 / filter_order),
     }
 
     template_c = __generate_filter_mavg_template()
     generate_c_files(
         path2save=path2save,
         template_name=params["template_name"],
-        file_name='filter_mavg',
+        file_name="filter_mavg",
         module_id=module_id_used,
-        proto_file=replace_variables_with_parameters(template_c['head'], params),
-        impl_file=replace_variables_with_parameters(template_c['func'], params),
-        path2template=dirname(abspath(design_plugin.__file__))
+        proto_file=replace_variables_with_parameters(template_c["head"], params),
+        impl_file=replace_variables_with_parameters(template_c["func"], params),
+        path2template=dirname(abspath(design_plugin.__file__)),
     )
 
 
@@ -57,19 +66,19 @@ def __generate_filter_mavg_template() -> dict:
         Dictionary with infos for prototype ['head'], implementation ['func'] and used parameters ['params']
     """
     header_temp = [
-        f'// --- Generating a moving average',
-        '// Copyright @ UDE-IES',
-        '// Code generated on: {$datetime_created}',
-        '// Params: N = {$filter_order}, f_s = {$fs} Hz',
+        "// --- Generating a moving average",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: N = {$filter_order}, f_s = {$fs} Hz",
         '# include "{$path2include}/{$template_name}"',
-        'DEF_NEW_MAVG_FILTER_PROTO({$device_id}, {$data_type})'
+        "DEF_NEW_MAVG_FILTER_PROTO({$device_id}, {$data_type})",
     ]
     func_temp = [
-        f'// --- Generating a moving average filter',
-        '// Copyright @ UDE-IES',
-        '// Code generated on: {$datetime_created}',
-        '// Params: N = {$filter_order}, f_s = {$fs} Hz',
+        "// --- Generating a moving average filter",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: N = {$filter_order}, f_s = {$fs} Hz",
         '# include "{$path2include}/{$template_name}"',
-        'DEF_NEW_MAVG_FILTER_IMPL({$device_id}, {$data_type}, {$filter_order}, {$filter_coeff})'
+        "DEF_NEW_MAVG_FILTER_IMPL({$device_id}, {$data_type}, {$filter_order}, {$filter_coeff})",
     ]
-    return {'head': header_temp, 'func': func_temp, 'params': []}
+    return {"head": header_temp, "func": func_temp, "params": []}

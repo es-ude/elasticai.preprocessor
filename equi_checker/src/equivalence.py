@@ -43,20 +43,33 @@ def compare_values(
             return ok, "both NaN" if ok else f"NaN mismatch: py={py_val}, c={c_val}"
 
         if math.isinf(py_val) or math.isinf(c_val):
-            same_sign_inf = math.isinf(py_val) and math.isinf(c_val) and (py_val > 0) == (c_val > 0)
+            same_sign_inf = (
+                math.isinf(py_val) and math.isinf(c_val) and (py_val > 0) == (c_val > 0)
+            )
             ok = inf_equal and same_sign_inf
-            return ok, "both Inf (same sign)" if ok else f"Inf mismatch: py={py_val}, c={c_val}"
+            return (
+                ok,
+                "both Inf (same sign)"
+                if ok
+                else f"Inf mismatch: py={py_val}, c={c_val}",
+            )
 
         diff = abs(py_val - c_val)
         tol = max(abs_tol, rel_tol * max(abs(py_val), abs(c_val)))
         ok = diff <= tol
         if ok:
             return True, f"float within tolerance (diff={diff:.3e}, tol={tol:.3e})"
-        return False, f"float mismatch (diff={diff:.3e}, tol={tol:.3e}, py={py_val}, c={c_val})"
+        return (
+            False,
+            f"float mismatch (diff={diff:.3e}, tol={tol:.3e}, py={py_val}, c={c_val})",
+        )
 
     # Fallback exact comparison for same-type non-floats
     if type(py_val) is type(c_val):
         ok = py_val == c_val
-        return ok, "values equal" if ok else f"value mismatch: py={py_val!r}, c={c_val!r}"
+        return (
+            ok,
+            "values equal" if ok else f"value mismatch: py={py_val!r}, c={c_val!r}",
+        )
 
     return False, f"type mismatch: py={type(py_val).__name__}, c={type(c_val).__name__}"

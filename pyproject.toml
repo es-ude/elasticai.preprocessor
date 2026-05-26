@@ -1,5 +1,5 @@
 [project]
-name = "elastic-ai-preprocessing"
+name = "elastic-ai-preprocessor"
 version = "0.1.0"
 description = "Python Extension for Hardware-Aware Signal Processing"
 readme = "README.md"
@@ -33,18 +33,22 @@ dev = [
     "build>=1.2.2.post1",
     "coverage>=7.11.3",
     "pre-commit>=4.0.1",
-    "tach>=0.23.0"
+    "tach>=0.23.0",
 ]
 test = [
     "cocotb>=2.0.1",
 ]
+lint = [
+    "ruff>=0.15.14",
+]
+
 
 [tool.hatch.version]
 source = "vcs"
 
 
 [tool.uv]
-default-groups = ["dev", "test"]
+default-groups = ["dev", "test", "lint"]
 
 [tool.uv.sources]
-elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git" }
+elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="add-string-conversion-array" }

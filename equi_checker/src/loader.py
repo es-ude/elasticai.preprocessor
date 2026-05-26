@@ -2,40 +2,43 @@ import importlib.util
 import os
 from cffi import FFI
 
+
 class Loader:
     def __init__(self):
-        self._ffi = FFI() # FFI is the C Foreign Function Interface from cffi
+        self._ffi = FFI()  # FFI is the C Foreign Function Interface from cffi
         self._lib = None
 
     def load(self):
         raise NotImplementedError
-    
+
     def ffi(self):
         self.ensure_loaded()
         return self._ffi
-    
+
     def lib(self):
         self.ensure_loaded()
         return self._lib
-    
+
     def get(self, name):
         self.ensure_loaded()
         return getattr(self._lib, name)
-    
+
     def has(self, name):
         self.ensure_loaded()
         return hasattr(self._lib, name)
-    
+
     def functions(self):
         self.ensure_loaded()
         return [name for name in dir(self._lib) if callable(getattr(self._lib, name))]
-    
+
     def ensure_loaded(self):
         if self._lib is None:
             raise RuntimeError("C library not loaded. Call load() first.")
 
+
 class CompileLoader(Loader):
     """Loader that compiles C source files using cffi in API mode."""
+
     def __init__(
         self,
         headers,
@@ -56,7 +59,11 @@ class CompileLoader(Loader):
         """
         super().__init__()
         # make relative paths for headers absolute based on the current working directory
-        self._headers = [os.path.abspath(hdr) for hdr in headers] if isinstance(headers, list) else os.path.abspath(headers)
+        self._headers = (
+            [os.path.abspath(hdr) for hdr in headers]
+            if isinstance(headers, list)
+            else os.path.abspath(headers)
+        )
         # make relative paths for sources absolute based on the current working directory
         self._sources = [os.path.abspath(src) for src in sources]
         self._module_name = module_name
@@ -64,7 +71,7 @@ class CompileLoader(Loader):
 
     def load(self):
         """Compiles the C sources and loads the resulting library.
-        
+
         Returns:
             The loaded C library.
         """
@@ -120,8 +127,10 @@ class CompileLoader(Loader):
         spec.loader.exec_module(module)
         return module
 
+
 class PrecompiledLoader(Loader):
     """Loader that loads a precompiled C library using cffi in ABI mode."""
+
     def __init__(self, library_path, headers):
         """
         Parameters:

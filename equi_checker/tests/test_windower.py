@@ -39,9 +39,8 @@ def test_windower_simple_equivalence():
     windower_push = loader.get("windower_push")
     windower_is_full = loader.get("windower_is_full")
     windower_get_window = loader.get("windower_get_window")
-    windower_reset = loader.get("windower_reset")
+    loader.get("windower_reset")
     ffi = loader.ffi()
-
 
     # Initialize C windower and Python windower with the same window size
     window_size = 5
@@ -88,7 +87,6 @@ def test_windower_reset_equivalence():
     windower_get_window = loader.get("windower_get_window")
     windower_reset = loader.get("windower_reset")
     ffi = loader.ffi()
-
 
     # Initialize C windower and Python windower with the same window size
     window_size = 5
