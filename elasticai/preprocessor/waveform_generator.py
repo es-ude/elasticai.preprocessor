@@ -3,7 +3,7 @@ from logging import Logger, getLogger
 from typing import Callable
 
 import numpy as np
-from fxpmath import Config, Fxp
+from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from scipy import signal
 
 from elasticai.preprocessor._check_funcs import check_keylist_elements_any
@@ -250,29 +250,24 @@ class WaveformGenerator:
             polarity_cathodic=polarity_cathodic,
         )
 
-        wvf_used = wvf_norm.signal / (wvf_norm.signal.max() - wvf_norm.signal.min()) + (
-            0 if signed or do_opt else 0.5
-        )
-        wvf_used = np.array(wvf_used * (2 ** (bitwidth - bitfrac)), dtype=np.int32)
-        if do_opt:
-            wvf_used = wvf_used[: wvf_norm.signal.argmax() + 1]
+        arith = FxpArithmetic(fxp_params=FxpParams(total_bits=bitwidth, frac_bits=bitfrac, signed=signed))
+        wvf_fxp = arith.round_to_rational(wvf_norm.signal.tolist())
+        wvf_fxp = np.asarray(wvf_fxp)
 
-        config_fxp = Config()
-        config_fxp.rounding = "around"
-        config_fxp.overflow = "saturate"
-        wvf_quant = Fxp(
-            val=wvf_used,
-            signed=signed,
-            n_word=bitwidth,
-            n_frac=bitfrac,
-            config=config_fxp,
-        ).get_val()
-        return WaveformSignal(
-            time=wvf_norm.time,
-            signal=wvf_quant,
-            fs=wvf_norm.fs,
-            rms=wvf_norm.rms,
-        )
+        if do_opt:
+            return WaveformSignal(
+                time=wvf_norm.time[: int(wvf_fxp.size / 4) + 1],
+                signal=wvf_fxp[: int(wvf_fxp.size / 4) + 1],
+                fs=wvf_norm.fs,
+                rms=wvf_norm.rms,
+            )
+        else:
+            return WaveformSignal(
+                time=wvf_norm.time,
+                signal=wvf_fxp,
+                fs=wvf_norm.fs,
+                rms=wvf_norm.rms,
+            )
 
     def generate_biphasic_waveform(
         self,

@@ -244,7 +244,7 @@ dependencies = [
 [[package]]
 name = "elasticai-creator"
 version = "0.68.0"
-source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#9c8e0531d9d46030a02c58dc7eb3d5b33f7b673a" }
+source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#cf06d54586e50edcce9752e0a340f7fa85a5529c" }
 dependencies = [
     { name = "cocotb" },
     { name = "numpy" },
