@@ -28,7 +28,6 @@ dev = [
     "cffi>=2.0.0",
     "hypothesis>=6.152.9",
     "matplotlib>=3.10.9",
-    "pytest>=9.0.3",
     "elasticai-creator",
     "build>=1.2.2.post1",
     "coverage>=7.11.3",
@@ -36,19 +35,115 @@ dev = [
     "tach>=0.23.0",
 ]
 test = [
+    "pytest>=9.0.3",
     "cocotb>=2.0.1",
 ]
 lint = [
     "ruff>=0.15.14",
+    "ty>=0.0.41",
 ]
+
+
+[build-system]
+requires = ["hatch-vcs", "hatchling", "wheel"]
+build-backend = "hatchling.build"
 
 
 [tool.hatch.version]
 source = "vcs"
 
 
+[tool.hatch.build.targets.sdist]
+#where = ["."]
+include = ["elasticai"]
+exclude = [
+  ".venv",
+  "build*",
+  "equi_checker",
+  "plugins_c",
+  "plugins_python",
+  "**/*_test.py"
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["elasticai"]
+exclude = [
+  ".venv",
+  "build*",
+  "equi_checker",
+  "plugins_c",
+  "plugins_python",
+  "**/*_test.py"
+]
+#only-packages = true
+
+
+[tool.ruff]
+include = [
+  "pyproject.toml",
+  "elasticai/**/*.py",
+]
+exclude = [
+  ".venv",
+  "build*",
+  "equi_checker",
+  "plugins_c",
+  "plugins_python"
+]
+# Same as Black.
+line-length = 106
+indent-width = 4
+target-version = "py312"
+
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["D101", "D102", "E741", "E721", "E722"]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+
+[tool.ty.src]
+include = [
+    "elasticai"
+]
+exclude = [
+    "denspp/**/*_test.py"
+]
+
+
 [tool.uv]
 default-groups = ["dev", "test", "lint"]
 
+
 [tool.uv.sources]
-elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="add-string-conversion-array" }
+elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="main" }
+
+
+[tool.pytest]
+#addopts = ["--import-mode=importlib"]
+markers = [
+  "simulation: a slow simulation test",
+]
+minversion = "9.0"
+python_files = ["*_test.py"]
+pythonpath = ["."]
+testpaths = [
+  "elasticai/*"
+]

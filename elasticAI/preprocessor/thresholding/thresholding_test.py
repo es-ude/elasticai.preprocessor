@@ -19,17 +19,13 @@ class ThresholdingTest(TestCase):
     def setUp(self):
         self.set0: SettingsThreshold = deepcopy(DefaultSettingsThreshold)
         t_end = 1.0
-        time = np.linspace(
-            start=0, stop=t_end, num=int(t_end * self.set0.sampling_rate), endpoint=True
-        )
+        time = np.linspace(start=0, stop=t_end, num=int(t_end * self.set0.sampling_rate), endpoint=True)
         self.signal_in = np.sin(2 * np.pi * time * 10.0)
 
     def test_indices_event_detection(self):
         stimuli = np.array([3, 4, 5, 18, 19, 20, 33, 34, 35, 37])
         chck = np.array([3, 18, 33, 37])
-        rslt = Thresholding(settings=self.set0)._get_values_non_incremented_change(
-            stimuli
-        )
+        rslt = Thresholding(settings=self.set0)._get_values_non_incremented_change(stimuli)
         self.assertEqual(set(rslt), set(chck))
 
     def test_getting_overview(self):
@@ -43,9 +39,7 @@ class ThresholdingTest(TestCase):
         rslt = Thresholding(settings=self.set0).get_threshold_position(
             xin=self.signal_in, do_abs=False, thr_val=0.5
         )
-        chck = np.array(
-            [167, 2167, 4167, 6167, 8167, 10167, 12167, 14166, 16166, 18166]
-        )
+        chck = np.array([167, 2167, 4167, 6167, 8167, 10167, 12167, 14166, 16166, 18166])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_negative_normal(self):
@@ -53,9 +47,7 @@ class ThresholdingTest(TestCase):
         rslt = Thresholding(settings=self.set0).get_threshold_position(
             xin=self.signal_in, do_abs=False, thr_val=-0.5
         )
-        chck = np.array(
-            [1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166]
-        )
+        chck = np.array([1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_positive_pretime(self):
@@ -63,9 +55,9 @@ class ThresholdingTest(TestCase):
         rslt = Thresholding(settings=self.set0).get_threshold_position(
             xin=self.signal_in, pre_time=0.05, do_abs=False, thr_val=-0.5
         )
-        chck = np.array(
-            [1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166]
-        ) - int(0.05 * self.set0.sampling_rate)
+        chck = np.array([1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166]) - int(
+            0.05 * self.set0.sampling_rate
+        )
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_absolute(self):

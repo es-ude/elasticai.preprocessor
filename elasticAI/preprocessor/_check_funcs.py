@@ -55,11 +55,7 @@ def check_elem_unique(elements: list) -> bool:
     from collections import Counter
     from itertools import chain
 
-    chck = (
-        elements
-        if not type(elements[0]) == list
-        else list(chain.from_iterable(elements))
-    )
+    chck = elements if not type(elements[0]) == list else list(chain.from_iterable(elements))
     return all(cnt == 1 for cnt in Counter(chck).values())
 
 
@@ -99,9 +95,7 @@ class MetricTimestamps:
     FN: int
 
 
-def compare_timestamps(
-    true_labels: list, pred_labels: list, window: int = 2
-) -> MetricTimestamps:
+def compare_timestamps(true_labels: list, pred_labels: list, window: int = 2) -> MetricTimestamps:
     """This function compares the timestamps of the predicted classes and the true classes and returns TP, FP, FN and
     new arrays which only contain the classes that have matched timestamps in both arrays. The function should be used
     before plotting a confusion matrix of the classes when working with actual data from the pipeline.
@@ -140,6 +134,4 @@ def compare_timestamps(
     true_positive = true_positive_same + true_positive_diff
 
     f1_score = true_positive / (true_positive + false_positive + false_negative)
-    return MetricTimestamps(
-        f1_score=f1_score, FN=false_negative, FP=false_positive, TP=true_positive
-    )
+    return MetricTimestamps(f1_score=f1_score, FN=false_negative, FP=false_positive, TP=true_positive)

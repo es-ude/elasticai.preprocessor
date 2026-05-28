@@ -28,9 +28,7 @@ def generate_test_data(
     return data
 
 
-def generate_reference_array(
-    data_array: np.ndarray | list, index_array: str = "check"
-) -> str:
+def generate_reference_array(data_array: np.ndarray | list, index_array: str = "check") -> str:
     """Function for generating a reference array to load into the testbench
     :param data_array:  numpy array or list with data
     :param index_array: index name of data array for testing
@@ -56,9 +54,7 @@ class TestHelper(TestCase):
         local_vars = {}
         exec(result, {}, local_vars)
 
-        np.testing.assert_array_equal(
-            np.array(test_data), np.array(local_vars["check"])
-        )
+        np.testing.assert_array_equal(np.array(test_data), np.array(local_vars["check"]))
 
     def test_generate_reference_integer(self):
         test_data = [idx for idx in range(10)]
@@ -86,9 +82,7 @@ class TestHelper(TestCase):
             num_window_size=self.num_window_size,
             do_tensor=True,
         )
-        self.assertEqual(
-            test_data.shape, torch.Size([self.num_input, self.num_window_size])
-        )
+        self.assertEqual(test_data.shape, torch.Size([self.num_input, self.num_window_size]))
 
     def test_generate_testdata_type_numpy(self):
 

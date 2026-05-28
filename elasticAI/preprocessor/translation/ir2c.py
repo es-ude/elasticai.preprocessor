@@ -1,7 +1,8 @@
-import numpy as np
 from os import makedirs
 from os.path import join
 from shutil import copyfile
+
+import numpy as np
 
 
 def get_embedded_datatype(bitwidth: int, signed: bool) -> str:
@@ -60,9 +61,7 @@ def generate_c_files(
     """
     print(path2save)
     makedirs(name=path2save, exist_ok=True)
-    copyfile(
-        src=join(path2template, template_name), dst=join(path2save, f"{template_name}")
-    )
+    copyfile(src=join(path2template, template_name), dst=join(path2save, f"{template_name}"))
 
     with open(join(path2save, f"{file_name}_{module_id.lower()}.h"), "w") as hndl:
         for line in proto_file:

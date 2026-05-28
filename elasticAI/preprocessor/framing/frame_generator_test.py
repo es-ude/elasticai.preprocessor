@@ -3,8 +3,8 @@ from copy import deepcopy
 
 import numpy as np
 
-from elasticai.preprocessor.waveform_generator import WaveformGenerator
 from elasticai.preprocessor._check_funcs import compare_timestamps
+from elasticai.preprocessor.waveform_generator import WaveformGenerator
 
 from .frame_generator import (
     DefaultSettingsFrame,
@@ -14,14 +14,16 @@ from .frame_generator import (
 
 
 def _build_spike_waveform(sampling_rate: float) -> np.ndarray:
-    return WaveformGenerator(
-        sampling_rate=sampling_rate, add_noise=False
-    ).generate_waveform(
-        time_points=[0.0],
-        time_duration=[1.6e-3],
-        waveform_select=["EAP"],
-        polarity_cathodic=[False],
-    ).signal
+    return (
+        WaveformGenerator(sampling_rate=sampling_rate, add_noise=False)
+        .generate_waveform(
+            time_points=[0.0],
+            time_duration=[1.6e-3],
+            waveform_select=["EAP"],
+            polarity_cathodic=[False],
+        )
+        .signal
+    )
 
 
 def _build_spike_signal(
@@ -32,18 +34,14 @@ def _build_spike_signal(
     do_noise: bool = True,
 ) -> tuple[np.ndarray, np.ndarray]:
     t_end_sim = float(pos_spike[-1] + 3.2e-3)
-    time = np.linspace(
-        start=0.0, stop=t_end_sim, num=int(t_end_sim * sampling_rate), endpoint=True
-    )
+    time = np.linspace(start=0.0, stop=t_end_sim, num=int(t_end_sim * sampling_rate), endpoint=True)
     spike_signal = np.zeros_like(time)
     spike_pos = np.zeros_like(pos_spike, dtype=np.int32)
     spike_template = _build_spike_waveform(sampling_rate)
     for idx, pos in enumerate(pos_spike):
         pos_start = int(pos * sampling_rate)
         pos_end = pos_start + spike_template.size
-        scale_pp = (scale_pp_range[1] - scale_pp_range[0]) * np.random.rand(
-            1
-        ) + scale_pp_range[0]
+        scale_pp = (scale_pp_range[1] - scale_pp_range[0]) * np.random.rand(1) + scale_pp_range[0]
 
         spike_signal[pos_start:pos_end] = scale_pp * spike_template
         spike_pos[idx] = pos_start + int(spike_template.size / 2)
@@ -56,12 +54,8 @@ def _build_spike_signal(
     return spike_signal, spike_pos
 
 
-def _build_sorted_timestamps(
-    count: int, min_gap: float = 0.002, max_gap: float = 0.01
-) -> list:
-    return WaveformGenerator(
-        sampling_rate=0.0, add_noise=False
-    ).build_random_timestamps(
+def _build_sorted_timestamps(count: int, min_gap: float = 0.002, max_gap: float = 0.01) -> list:
+    return WaveformGenerator(sampling_rate=0.0, add_noise=False).build_random_timestamps(
         count=count,
         min_gap=min_gap,
         max_gap=max_gap,
@@ -141,9 +135,7 @@ class TestSettingsFrameGenerator(unittest.TestCase):
         self.set0.offset_sec = 0.2e-3
 
         rslt = self.set0.length_total_frame
-        chck = int(
-            self.set0.sampling_rate * (2 * self.set0.offset_sec + self.set0.window_sec)
-        )
+        chck = int(self.set0.sampling_rate * (2 * self.set0.offset_sec + self.set0.window_sec))
         self.assertEqual(rslt, chck)
 
 
@@ -159,10 +151,7 @@ class TestFrameGenerator(unittest.TestCase):
             do_noise=True,
         )
         self.frames_eap = np.array(
-            [
-                _build_spike_waveform(sampling_rate=self.set0.sampling_rate)
-                for _ in range(10)
-            ]
+            [_build_spike_waveform(sampling_rate=self.set0.sampling_rate) for _ in range(10)]
         )
 
     def test_methods_overview_frame_aligning(self):
@@ -173,17 +162,13 @@ class TestFrameGenerator(unittest.TestCase):
 
     def test_get_threshold_with_constant(self):
         self.set0.mode_thr = "const"
-        rslt = FrameGenerator(self.set0).get_threshold(
-            self.signal_eap[0], thr_val=-60e-6
-        )
+        rslt = FrameGenerator(self.set0).get_threshold(self.signal_eap[0], thr_val=-60e-6)
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         np.testing.assert_array_equal(rslt, np.zeros_like(self.signal_eap[0]) - 60e-6)
 
     def test_get_threshold_position_with_constant(self):
         self.set0.mode_thr = "const"
-        rslt = FrameGenerator(self.set0).get_threshold_position(
-            self.signal_eap[0], thr_val=-60e-6
-        )
+        rslt = FrameGenerator(self.set0).get_threshold_position(self.signal_eap[0], thr_val=-60e-6)
         self.assertTrue(
             rslt.size
             in [
@@ -306,10 +291,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.assertGreater(rslt_pos.f1_score, 0.99)
         self.assertEqual(
             np.argmin(np.diff(rslt.waveform), axis=1).tolist(),
-            [
-                self.set0.length_align_position - 1
-                for _ in range(rslt.waveform.shape[0])
-            ],
+            [self.set0.length_align_position - 1 for _ in range(rslt.waveform.shape[0])],
         )
 
     def test_frame_generation_position_ptp(self):
@@ -327,10 +309,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.assertGreater(rslt_pos.f1_score, 0.99)
         self.assertEqual(
             np.argmax(np.diff(rslt.waveform), axis=1).tolist(),
-            [
-                self.set0.length_align_position - 1
-                for _ in range(rslt.waveform.shape[0])
-            ],
+            [self.set0.length_align_position - 1 for _ in range(rslt.waveform.shape[0])],
         )
 
     def test_frame_generation_normal_const(self):

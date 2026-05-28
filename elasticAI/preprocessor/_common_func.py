@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
-from fxpmath import Config, Fxp
+from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
 
 class CommonAnalogFunctions:
@@ -24,9 +24,7 @@ class CommonDigitalFunctions:
     _bitwidth: list = (2, 0)
     _bitsigned: bool = False
 
-    def define_limits(
-        self, bit_signed: bool, total_bitwidth: int, frac_bitwidth: int
-    ) -> np.ndarray:
+    def define_limits(self, bit_signed: bool, total_bitwidth: int, frac_bitwidth: int) -> np.ndarray:
         """Defining the digital limitation values
         :param bit_signed:      Integer data type (unsigned: False, signed: True)
         :param total_bitwidth:  Total bitwidth
@@ -48,9 +46,7 @@ class CommonDigitalFunctions:
         :return:        Output data stream
         """
         xout = deepcopy(xin)
-        np.clip(
-            xout, a_min=self._digital_border[0], a_max=self._digital_border[1], out=xout
-        )
+        np.clip(xout, a_min=self._digital_border[0], a_max=self._digital_border[1], out=xout)
         return xout
 
     def _quantize_fxp(self, xin: float | np.ndarray) -> np.ndarray:
@@ -58,19 +54,24 @@ class CommonDigitalFunctions:
         :param xin:     Input data stream
         :return:        Quantized output data stream
         """
-        config_fxp = Config()
-        config_fxp.rounding = "around"
-        config_fxp.overflow = "saturate"
-        config_fxp.underflow = "saturate"
+        arith = FxpArithmetic(
+            FxpParams(
+                total_bits=self._bitwidth[0],
+                frac_bits=self._bitwidth[1],
+                signed=self._bitsigned,
+            )
+        )
 
-        val = Fxp(
-            val=xin,
-            signed=self._bitsigned,
-            n_word=self._bitwidth[0],
-            n_frac=self._bitwidth[1],
-            config=config_fxp,
-        ).get_val()
-        return val if not type(xin) == float else float(val)
+        out = list()
+        for val in xin:
+            if val == np.inf:
+                out.append(arith.maximum_as_rational)
+            elif val == -np.inf:
+                out.append(arith.minimum_as_rational)
+            else:
+                out.append(arith.cut_as_integer(val) * arith._config.minimum_step_as_rational)
+        out = np.asarray(out)
+        return np.asarray(out) if not type(xin) == float else float(out)
 
     @staticmethod
     def _extract_rising_edge(trigger: np.ndarray) -> list:

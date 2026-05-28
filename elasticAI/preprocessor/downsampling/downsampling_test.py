@@ -22,9 +22,7 @@ class TestDownSampling(TestCase):
     def setUp(self):
         self.sets: SettingsDownSampling = deepcopy(DefaultSettingsDownSampling)
         self.sets.sampling_rate = 40e3
-        time = np.linspace(
-            0, 1, int(self.sets.sampling_rate) + 1, endpoint=True, dtype=float
-        )
+        time = np.linspace(0, 1, int(self.sets.sampling_rate) + 1, endpoint=True, dtype=float)
         self.input = 0.75 * inp_samp(time)
 
     def test_output_sampling_rate(self):

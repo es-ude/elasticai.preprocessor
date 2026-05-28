@@ -115,9 +115,7 @@ class DownSampling:
         uout = np.array(uout)
         return uout
 
-    def do_decimation_polyphase(
-        self, uin: np.ndarray, take_first_order: bool = False
-    ) -> np.ndarray:
+    def do_decimation_polyphase(self, uin: np.ndarray, take_first_order: bool = False) -> np.ndarray:
         """Performing Non-Recursive Polyphase Decimation on input (depends on DSR)
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)

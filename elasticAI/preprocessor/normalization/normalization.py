@@ -7,9 +7,7 @@ class DataNormalization:
     __params: dict = {}
     __extract_peak_mode: int = 2
 
-    def __init__(
-        self, method: str, do_global_scaling: bool = False, peak_mode: int = 2
-    ):
+    def __init__(self, method: str, do_global_scaling: bool = False, peak_mode: int = 2):
         """Normalizing the input data to enhance classification performance.
         Parameters:
             method (str):               The normalization method ["minmax", "norm", "zscore", "medianmad", or "meanmad"]
@@ -64,9 +62,7 @@ class DataNormalization:
 
     @staticmethod
     def _generate_tensor_full(data: torch.Tensor, num_repeats: int) -> torch.Tensor:
-        test = torch.repeat_interleave(
-            torch.unsqueeze(data, dim=-1), num_repeats, dim=-1
-        )
+        test = torch.repeat_interleave(torch.unsqueeze(data, dim=-1), num_repeats, dim=-1)
         return test
 
     @staticmethod
@@ -109,35 +105,23 @@ class DataNormalization:
         self.__params = {"scale_used": scale}
 
     ################################ IMPLEMENTED METHODS ################################
-    def _normalize_zeroone(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_zeroone(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_norm = self._generate_numpy_full(
-                2 * self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_numpy_full(2 * self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = 0.5 + dataset / scale_norm
         else:
-            scale_norm = self._generate_tensor_full(
-                2 * self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_tensor_full(2 * self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = torch.add(0.5, torch.divide(dataset, scale_norm))
         return dataset_norm
 
-    def _normalize_minmax(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_minmax(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_norm = self._generate_numpy_full(
-                self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = dataset / scale_norm
         else:
-            scale_norm = self._generate_tensor_full(
-                self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_tensor_full(self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = torch.divide(dataset, scale_norm)
         return dataset_norm
 
@@ -148,19 +132,13 @@ class DataNormalization:
             scale = torch.norm(raw_dataset, dim=-1)
         self.__params = {"scale_used": scale}
 
-    def _normalize_norm(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_norm(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_norm(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_norm = self._generate_numpy_full(
-                self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = dataset / scale_norm
         else:
-            scale_norm = self._generate_tensor_full(
-                self.__params["scale_used"], dataset.shape[-1]
-            )
+            scale_norm = self._generate_tensor_full(self.__params["scale_used"], dataset.shape[-1])
             dataset_norm = torch.divide(dataset, scale_norm)
         return dataset_norm
 
@@ -189,25 +167,15 @@ class DataNormalization:
             )
         self.__params = {"scale_std": scale_std, "scale_mean": scale_mean}
 
-    def _normalize_zscore(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_zscore(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_zscore(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_mean = self._generate_numpy_full(
-                self.__params["scale_mean"], dataset.shape[-1]
-            )
-            scale_std = self._generate_numpy_full(
-                self.__params["scale_std"], dataset.shape[-1]
-            )
+            scale_mean = self._generate_numpy_full(self.__params["scale_mean"], dataset.shape[-1])
+            scale_std = self._generate_numpy_full(self.__params["scale_std"], dataset.shape[-1])
             dataset_norm = (dataset - scale_mean) / scale_std
         else:
-            scale_mean = self._generate_tensor_full(
-                self.__params["scale_mean"], dataset.shape[-1]
-            )
-            scale_std = self._generate_tensor_full(
-                self.__params["scale_std"], dataset.shape[-1]
-            )
+            scale_mean = self._generate_tensor_full(self.__params["scale_mean"], dataset.shape[-1])
+            scale_std = self._generate_tensor_full(self.__params["scale_std"], dataset.shape[-1])
             dataset_norm = torch.divide(torch.sub(dataset, scale_mean), scale_std)
 
         self.__params["scale_used"] = scale_mean / scale_std
@@ -220,17 +188,14 @@ class DataNormalization:
             scale_median = (
                 np.zeros((raw_dataset.shape[0],)) + np.median(raw_dataset)
                 if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],))
-                + torch.median(raw_dataset).values
+                else torch.zeros((raw_dataset.shape[0],)) + torch.median(raw_dataset).values
             )
             scale_mad = (
                 np.zeros((raw_dataset.shape[0],))
                 + np.median(np.abs(raw_dataset - np.median(raw_dataset)))
                 if isinstance(raw_dataset, np.ndarray)
                 else torch.zeros((raw_dataset.shape[0],))
-                + torch.median(
-                    torch.abs(raw_dataset - torch.median(raw_dataset).values)
-                ).values
+                + torch.median(torch.abs(raw_dataset - torch.median(raw_dataset).values)).values
             )
         else:
             scale_median = (
@@ -242,9 +207,7 @@ class DataNormalization:
                 np.median(
                     np.abs(
                         raw_dataset
-                        - self._generate_numpy_full(
-                            np.median(raw_dataset, axis=1), raw_dataset.shape[-1]
-                        )
+                        - self._generate_numpy_full(np.median(raw_dataset, axis=1), raw_dataset.shape[-1])
                     ),
                     axis=-1,
                 )
@@ -262,25 +225,15 @@ class DataNormalization:
             )
         self.__params = {"scale_mad": scale_mad, "scale_median": scale_median}
 
-    def _normalize_medianmad(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_medianmad(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_medianmad(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_median = self._generate_numpy_full(
-                self.__params["scale_median"], dataset.shape[-1]
-            )
-            scale_mad = self._generate_numpy_full(
-                self.__params["scale_mad"], dataset.shape[-1]
-            )
+            scale_median = self._generate_numpy_full(self.__params["scale_median"], dataset.shape[-1])
+            scale_mad = self._generate_numpy_full(self.__params["scale_mad"], dataset.shape[-1])
             dataset_norm = (dataset - scale_median) / scale_mad
         else:
-            scale_median = self._generate_tensor_full(
-                self.__params["scale_median"], dataset.shape[-1]
-            )
-            scale_mad = self._generate_tensor_full(
-                self.__params["scale_mad"], dataset.shape[-1]
-            )
+            scale_median = self._generate_tensor_full(self.__params["scale_median"], dataset.shape[-1])
+            scale_mad = self._generate_tensor_full(self.__params["scale_mad"], dataset.shape[-1])
             dataset_norm = torch.divide(torch.sub(dataset, scale_median), scale_mad)
 
         self.__params["scale_used"] = scale_median / scale_mad
@@ -293,17 +246,13 @@ class DataNormalization:
             scale_mean = (
                 np.zeros((raw_dataset.shape[0],)) + np.mean(raw_dataset)
                 if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],))
-                + torch.mean(raw_dataset).values
+                else torch.zeros((raw_dataset.shape[0],)) + torch.mean(raw_dataset).values
             )
             scale_mad = (
-                np.zeros((raw_dataset.shape[0],))
-                + np.mean(np.abs(raw_dataset - np.mean(raw_dataset)))
+                np.zeros((raw_dataset.shape[0],)) + np.mean(np.abs(raw_dataset - np.mean(raw_dataset)))
                 if isinstance(raw_dataset, np.ndarray)
                 else torch.zeros((raw_dataset.shape[0],))
-                + torch.mean(
-                    torch.abs(raw_dataset - torch.mean(raw_dataset).values)
-                ).values
+                + torch.mean(torch.abs(raw_dataset - torch.mean(raw_dataset).values)).values
             )
         else:
             scale_mean = (
@@ -315,9 +264,7 @@ class DataNormalization:
                 np.mean(
                     np.abs(
                         raw_dataset
-                        - self._generate_numpy_full(
-                            np.mean(raw_dataset, axis=1), raw_dataset.shape[-1]
-                        )
+                        - self._generate_numpy_full(np.mean(raw_dataset, axis=1), raw_dataset.shape[-1])
                     ),
                     axis=-1,
                 )
@@ -334,25 +281,15 @@ class DataNormalization:
             )
         self.__params = {"scale_mad": scale_mad, "scale_mean": scale_mean}
 
-    def _normalize_meanmad(
-        self, dataset: np.ndarray | torch.Tensor
-    ) -> np.ndarray | torch.Tensor:
+    def _normalize_meanmad(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         self._get_scaling_value_meanmad(dataset)
         if isinstance(dataset, np.ndarray):
-            scale_mean = self._generate_numpy_full(
-                self.__params["scale_mean"], dataset.shape[-1]
-            )
-            scale_mad = self._generate_numpy_full(
-                self.__params["scale_mad"], dataset.shape[-1]
-            )
+            scale_mean = self._generate_numpy_full(self.__params["scale_mean"], dataset.shape[-1])
+            scale_mad = self._generate_numpy_full(self.__params["scale_mad"], dataset.shape[-1])
             dataset_norm = (dataset - scale_mean) / scale_mad
         else:
-            scale_mean = self._generate_tensor_full(
-                self.__params["scale_mean"], dataset.shape[-1]
-            )
-            scale_mad = self._generate_tensor_full(
-                self.__params["scale_mad"], dataset.shape[-1]
-            )
+            scale_mean = self._generate_tensor_full(self.__params["scale_mean"], dataset.shape[-1])
+            scale_mad = self._generate_tensor_full(self.__params["scale_mad"], dataset.shape[-1])
             dataset_norm = torch.divide(torch.sub(dataset, scale_mean), scale_mad)
 
         self.__params["scale_used"] = scale_mean / scale_mad

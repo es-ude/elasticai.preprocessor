@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as scft
-from fxpmath import Fxp
+from elasticai.creator.arithmetic import FxpArithmetic, FxpConverter, FxpParams
 
+import elasticai.creator_plugins.filter_data as hw_filters
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 from elasticai.preprocessor._plot_helper import (
     get_plot_color,
@@ -36,12 +38,12 @@ class SettingsFilter:
         f_filt:     List with filter frequencies [Hz] (low/high-pass: only one value - rest: two values)
         type:       String with selected filter algorithm ['iir', 'fir']
         f_type:     String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
-        b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
+        b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass', 'simple_low']
     """
 
-    gain: int
+    gain: float
     fs: float
-    n_order: int | float
+    n_order: int
     f_filt: list
     type: str
     f_type: str
@@ -49,7 +51,7 @@ class SettingsFilter:
 
 
 DefaultSettingsFilter = SettingsFilter(
-    gain=1,
+    gain=1.0,
     fs=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
@@ -69,6 +71,7 @@ class Filtering(CommonDigitalFunctions):
         "bandstop",
         "notch",
         "allpass",
+        "simple_low",
     ]
     _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
@@ -88,32 +91,58 @@ class Filtering(CommonDigitalFunctions):
         self.__process_filter()
 
     def get_coeffs(self) -> FilterCoeffs:
-        """Getting the filter coefficients"""
+        """Getting the filter coefficients
+        :return:            dataclass FilterCoeffs with filter coefficients
+        """
         return FilterCoeffs(
             b=self._coeff_b.tolist(),
             a=self._coeff_a.tolist(),
         )
 
-    def get_coeffs_quantized(
-        self, bit_size: int, bit_frac: int, signed: bool = True
-    ) -> tuple[FilterCoeffs, dict]:
+    def get_coeffs_quantized(self, bit_size: int) -> tuple[FilterCoeffs, FilterCoeffs]:
         """Quantize the coefficients with given bit fraction for adding into hardware designs
         :param bit_size:    Integer with total bitwidth
-        :param bit_frac:    Integer with fraction width
-        :param signed:      Boolean with whether to sign the coefficients
-        :return:            Dictionary with quantized coefficients
+        :return:            dataclass FilterCoeffs with quantized filter coefficients
         """
         self.define_limits(
-            bit_signed=signed, total_bitwidth=bit_size, frac_bitwidth=bit_frac
+            total_bitwidth=bit_size,
+            frac_bitwidth=bit_size - (1 if self._settings.type == "fir" else 2),
+            bit_signed=True,
         )
-        quant_a = Fxp(self._coeff_a, signed=signed, n_word=bit_size, n_frac=bit_frac)
-        error_a = self._coeff_a - quant_a.all()
-        quant_b = Fxp(self._coeff_b, signed=signed, n_word=bit_size, n_frac=bit_frac)
-        error_b = self._coeff_b - quant_b.all()
+        arith = FxpArithmetic(
+            FxpParams(
+                total_bits=bit_size,
+                frac_bits=bit_size - (1 if self._settings.type == "fir" else 2),
+                signed=True,
+            )
+        )
+        if self._settings.type.lower() == "fir":
+            quant_a = [1.0]
+        else:
+            quant_a = arith.cut_as_integer(self._coeff_a.tolist())
+            quant_a = [arith._config.minimum_step_as_rational * val for val in quant_a]
+        error_a = self._coeff_a - np.asarray(quant_a)
+
+        quant_b = list()
+        quant_b.extend(arith.cut_as_integer(self._coeff_b.tolist()))
+        quant_b = [arith._config.minimum_step_as_rational * val for val in quant_b]
+        error_b = self._coeff_b - np.asarray(quant_b)
         return FilterCoeffs(
-            b=quant_b.tolist(),
-            a=quant_a.tolist(),
-        ), {"b": error_b, "a": error_a}
+            b=quant_b,
+            a=quant_a,
+        ), FilterCoeffs(b=error_b.tolist(), a=error_a.tolist())
+
+    def get_coeffs_verilog_string(self, bitwidth: int, only_half_fir: bool = False) -> str:
+        params: FilterCoeffs = self.get_coeffs_quantized(bit_size=bitwidth)[0]
+        if self._settings.type.lower() == "fir":
+            conv = FxpConverter(FxpParams(total_bits=bitwidth, frac_bits=bitwidth - 1, signed=True))
+            used_params = params.b[: int(len(params.b) / 2 + 1)] if only_half_fir else params.b.copy()
+            return conv.rational_to_hex_string_array_verilog(used_params)
+        else:
+            conv = FxpConverter(FxpParams(total_bits=bitwidth, frac_bits=bitwidth - 2, signed=True))
+            used_params = params.b.copy()
+            used_params.extend([-val for val in params.a[1:]])
+            return conv.rational_to_hex_string_array_verilog(used_params)
 
     def __extract_filter_coeffs_iir(self) -> None:
         frange = np.array(self._settings.f_filt)
@@ -182,6 +211,9 @@ class Filtering(CommonDigitalFunctions):
                     gain=gain,
                     fs=self._settings.fs,
                 )
+            case "simple_low":
+                self._coeff_a = np.array(1.0)
+                self._coeff_b = np.array([0.5, 0.5])
             case "allpass":
                 self._coeff_b = self._coeff_a
             case _:
@@ -212,31 +244,27 @@ class Filtering(CommonDigitalFunctions):
         elif self._settings.type.lower() == "fir":
             self.__extract_filter_coeffs_fir()
 
-    def filter(self, xin: np.ndarray) -> np.ndarray:
+    def filt(self, xin: np.ndarray) -> np.ndarray:
         """Apply filter structure on transient input data
         :param xin:     Numpy array with transient input data
         :return:        Numpy array with filtered data
         """
-        if (
-            self._settings.type.lower() == "fir"
-            and self._settings.b_type.lower() == "allpass"
-        ):
+        if self._settings.type.lower() == "fir" and self._settings.b_type.lower() == "allpass":
             mat = np.zeros(shape=(self._settings.n_order,), dtype=float)
-            xout = np.concatenate(
-                (mat, xin[0 : xin.size - self._settings.n_order]), axis=None
-            )
+            xout = np.concatenate((mat, xin[0 : xin.size - self._settings.n_order]), axis=None)
+
         elif not self.__use_filtfilt:
-            xout = self._settings.gain * scft.lfilter(
-                b=self._coeff_b, a=self._coeff_a, x=xin
-            )
+            xout = self._settings.gain * scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
         else:
-            xout = self._settings.gain * scft.filtfilt(
-                b=self._coeff_b, a=self._coeff_a, x=xin
-            )
+            xout = self._settings.gain * scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
         return xout
 
-    def filter_fxp(
-        self, xin: np.ndarray, total_bitwidth: int, fraction_width: int, is_signed: bool
+    def filt_quantized(
+        self,
+        xin: np.ndarray,
+        total_bitwidth: int,
+        fraction_width: int,
+        is_signed: bool = True,
     ) -> np.ndarray:
         """Apply filter structure on transient input data
         :param xin:                 Numpy array with transient data
@@ -250,12 +278,23 @@ class Filtering(CommonDigitalFunctions):
             total_bitwidth=total_bitwidth,
             frac_bitwidth=fraction_width,
         )
-        xin_fxp = self._quantize_fxp(xin)
-        return self._clamp_digital(self.filter(xin_fxp))
+        if self._settings.type.lower() == "fir" and self._settings.b_type.lower() == "allpass":
+            xin_fxp = self._quantize_fxp(xin)
+            xout = self.filt(xin_fxp)
+        else:
+            params = self.get_coeffs_quantized(bit_size=total_bitwidth)[0]
+            self._coeff_b = np.asarray(params.b)
+            self._coeff_a = np.asarray(params.a)
 
-    def __get_frequency_behaviour(
-        self, num_points: int = 1001
-    ) -> tuple[np.ndarray, np.ndarray]:
+            xin_fxp = self._quantize_fxp(xin)
+            filt = self.filt(xin_fxp)
+            xout = (
+                self._quantize_fxp(filt)
+                - (3 if self._settings.type.lower() == "iir" else (filt < 0)) * 2**-fraction_width
+            )
+        return xout
+
+    def __get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
         if self._settings.type == "iir":
             frange = np.array(self._settings.f_filt)
             filter = scft.iirfilter(
@@ -298,9 +337,7 @@ class Filtering(CommonDigitalFunctions):
 
         phase = np.angle(h, deg=True)
         plt.semilogx(f, phase, color=get_plot_color(1), label="Phase", alpha=0.6)
-        plt.ylabel(
-            r"Phase $\alpha$ (°)", size=get_textsize_paper(), color=get_plot_color(1)
-        )
+        plt.ylabel(r"Phase $\alpha$ (°)", size=get_textsize_paper(), color=get_plot_color(1))
         plt.tight_layout()
         if path2save:
             save_figure(plt, path2save, "freq_response")
@@ -324,3 +361,130 @@ class Filtering(CommonDigitalFunctions):
         plt.grid()
         plt.tight_layout()
         plt.show(block=show_plot)
+
+    def create_design(self, target: str, bitwidth: int, id: str, path2save: Path) -> None:
+        """Creating the hardware design for executing on specific target
+        :param target:      String with target name ["mcu", "pc", "fpga"]
+        :param bitwidth:    Integer with total bitwidth
+        :param id:          String with unique identifier of device (appended to the name)
+        :param path2save:   Path to save the hardware files
+        :return:            None
+        """
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c()
+        else:
+            self._create_design_verilog(id=id, bitwidth=bitwidth, path2save=path2save, num_mult=1)
+
+    def _create_iir_biquad_verilog(
+        self, id: str, bitwidth: int, use_dsp_mult: bool, num_mult: int = 1
+    ) -> dict:
+        filt_params = self.get_coeffs_verilog_string(bitwidth=bitwidth, only_half_fir=True)
+        return {
+            "type": "biquad_df1",
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+                "LENGTH": self._settings.n_order,
+                "NUM_MULT": num_mult,
+                "FILT_COEFFS": filt_params,
+            },
+            "add_ringbuffer": False,
+            "add_mac": True,
+            "use_dsp_mult": use_dsp_mult,
+        }
+
+    def _create_fir_delay_verilog(self, id: str, bitwidth: int) -> dict:
+        return {
+            "type": "fir_delay",
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+                "LENGTH": self._settings.n_order,
+            },
+            "add_ringbuffer": True,
+            "add_mac": False,
+            "use_dsp_mult": False,
+        }
+
+    def _create_fir_full_verilog(
+        self, id: str, bitwidth: int, use_dsp_mult: bool, num_mult: int = 1
+    ) -> dict:
+        filt_params = self.get_coeffs_verilog_string(bitwidth=bitwidth, only_half_fir=False)
+        return {
+            "type": "fir_full",
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+                "LENGTH": self._settings.n_order,
+                "NUM_MULT": num_mult,
+                "FILT_COEFFS": filt_params,
+            },
+            "add_ringbuffer": True,
+            "add_mac": True,
+            "use_dsp_mult": use_dsp_mult,
+        }
+
+    def _create_fir_half_verilog(
+        self, id: str, bitwidth: int, use_dsp_mult: bool, num_mult: int = 1
+    ) -> dict:
+        filt_params = self.get_coeffs_verilog_string(bitwidth=bitwidth, only_half_fir=True)
+        return {
+            "type": "fir_half",
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+                "LENGTH": int(self._settings.n_order / 2) + 1,
+                "NUM_MULT": num_mult,
+                "FILT_COEFFS": filt_params,
+            },
+            "add_ringbuffer": True,
+            "add_mac": True,
+            "use_dsp_mult": use_dsp_mult,
+        }
+
+    def _create_fir_simple_lowpass_verilog(self, id: str, bitwidth: int) -> dict:
+        return {
+            "type": "fir_low",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth},
+            "add_ringbuffer": False,
+            "add_mac": False,
+            "use_dsp_mult": False,
+        }
+
+    def _create_design_verilog(self, id: str, bitwidth: int, path2save: Path, num_mult: int = 1) -> None:
+        if self._settings.type.lower() == "iir":
+            if self._settings.n_order not in [2]:
+                raise ValueError(
+                    f"IIR filter order {self._settings.n_order} is not supported for biquad filter"
+                )
+            if self._settings.b_type.lower() in ["simple_lowpass"]:
+                raise ValueError(
+                    f"IIR filter type {self._settings.b_type} is not supported for biquad filter"
+                )
+            params = self._create_iir_biquad_verilog(
+                id=id, bitwidth=bitwidth, use_dsp_mult=True, num_mult=num_mult
+            )
+        elif self._settings.type.lower() == "fir":
+            if self._settings.b_type.lower() not in ["allpass", "simple_low"]:
+                if self._settings.n_order % 2 == 1:
+                    params = self._create_fir_half_verilog(id, bitwidth, True, num_mult)
+                else:
+                    params = self._create_fir_full_verilog(id, bitwidth, True, num_mult)
+            else:
+                if self._settings.b_type.lower() == "allpass":
+                    params = self._create_fir_delay_verilog(id, bitwidth)
+                elif self._settings.b_type.lower() == "simple_low":
+                    params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
+                else:
+                    raise ValueError(f"FIR filter type {self._settings.b_type} is not supported")
+        else:
+            raise ValueError(f"Filter type {self._settings.type} is not supported")
+
+        hw_filters.load_and_plugin(packages=["filter_data"], path2save=path2save, **params)
+
+    def _create_design_c(self) -> None:
+        raise NotImplementedError

@@ -1,3 +1,3 @@
+from .ir2c import generate_c_files as generate_c_files
 from .ir2c import get_embedded_datatype as get_embedded_datatype
 from .ir2c import replace_variables_with_parameters as replace_variables_with_parameters
-from .ir2c import generate_c_files as generate_c_files
