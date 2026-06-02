@@ -1,11 +1,12 @@
 from copy import deepcopy
+from typing import overload
 
 import numpy as np
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
 
 class CommonAnalogFunctions:
-    _range: list = (-5.0, 5.0)
+    _range: list = [-5.0, 5.0]
 
     def define_voltage_range(self, volt_hgh: float, volt_low: float) -> list:
         """Defining the voltage range values"""
@@ -21,7 +22,7 @@ class CommonAnalogFunctions:
 
 class CommonDigitalFunctions:
     _digital_border: np.ndarray
-    _bitwidth: list = (2, 0)
+    _bitwidth: list = [2, 0]
     _bitsigned: bool = False
 
     def define_limits(self, bit_signed: bool, total_bitwidth: int, frac_bitwidth: int) -> np.ndarray:
@@ -49,7 +50,16 @@ class CommonDigitalFunctions:
         np.clip(xout, a_min=self._digital_border[0], a_max=self._digital_border[1], out=xout)
         return xout
 
-    def _quantize_fxp(self, xin: float | np.ndarray) -> np.ndarray:
+    @overload
+    def _quantize_fxp(self, xin: float) -> np.ndarray: ...
+
+    @overload
+    def _quantize_fxp(self, xin: np.ndarray) -> np.ndarray: ...
+
+    @overload
+    def _quantize_fxp(self, xin: list[int | float]) -> np.ndarray: ...
+
+    def _quantize_fxp(self, xin: float | list[int | float] | np.ndarray) -> np.ndarray:
         """Do signed quantization of input with full precision
         :param xin:     Input data stream
         :return:        Quantized output data stream
@@ -61,9 +71,13 @@ class CommonDigitalFunctions:
                 signed=self._bitsigned,
             )
         )
+        if isinstance(xin, (float, int)):
+            values = [xin]
+        else:
+            values = xin
 
         out = list()
-        for val in xin:
+        for val in values:
             if val == np.inf:
                 out.append(arith.maximum_as_rational)
             elif val == -np.inf:
@@ -71,7 +85,7 @@ class CommonDigitalFunctions:
             else:
                 out.append(arith.cut_as_integer(val) * arith._config.minimum_step_as_rational)
         out = np.asarray(out)
-        return np.asarray(out) if not type(xin) == float else float(out)
+        return np.asarray(out)
 
     @staticmethod
     def _extract_rising_edge(trigger: np.ndarray) -> list:

@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +32,7 @@ def cm_to_inch(value: float) -> float:
     return value / 2.54
 
 
-def save_figure(fig, path: str, name: str, formats: list = ("pdf", "svg")) -> None:
+def save_figure(fig, path: str, name: str, formats: list = ["pdf", "svg"]) -> None:
     """Saving figure in given format
     Args:
         fig:        Matplot which will be saved
@@ -160,7 +161,7 @@ def _autoscale(ax=None, axis: str = "y", margin: float = 0.1):
         ax = plt.gca()
     newlow, newhigh = np.inf, -np.inf
 
-    for artist in ax.collections + ax.lines:
+    for artist in chain(ax.collections, ax.lines):
         x, y = _get_xy(artist)
         if axis == "y":
             setlim = ax.set_ylim

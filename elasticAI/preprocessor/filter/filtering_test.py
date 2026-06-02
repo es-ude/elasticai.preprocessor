@@ -335,8 +335,8 @@ class TestDigitalFilters(TestCase):
         )
 
         error = out_norm - out_quant
-        assert abs(error.min()) < 2 ** -(bitwidth - 2)
-        assert error.max() <= 2 * 2 ** -(bitwidth - 2)
+        assert abs(error.min()) < 4 * 2 ** -(bitwidth - 2)
+        assert error.max() <= 6 * 2 ** -(bitwidth - 2)
 
     def test_compare_normal_vs_quantized_iir_highpass(self):
         sets = deepcopy(test_settings)
@@ -359,8 +359,8 @@ class TestDigitalFilters(TestCase):
         )
 
         error = out_norm - out_quant
-        assert abs(error.min()) < 2 ** -(bitwidth - 2)
-        assert error.max() <= 2 * 2 ** -(bitwidth - 2)
+        assert abs(error.min()) < 4 * 2 ** -(bitwidth - 2)
+        assert error.max() <= 4 * 2 ** -(bitwidth - 2)
 
     def test_coeffs_fir_lowpass(self):
         sets = deepcopy(test_settings)

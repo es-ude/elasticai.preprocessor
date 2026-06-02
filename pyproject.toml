@@ -124,7 +124,7 @@ include = [
     "elasticai"
 ]
 exclude = [
-    "denspp/**/*_test.py"
+    "elasticai/**/*_test.py"
 ]
 
 
