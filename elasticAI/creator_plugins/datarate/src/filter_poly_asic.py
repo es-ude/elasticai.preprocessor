@@ -1,16 +1,16 @@
 from collections.abc import Iterable
 from elasticai.creator.ir2verilog import (
     type_handler_iterable,
-    Implementation,
     Code,
     TemplateDirector,
 )
 from importlib import resources as res
+from elasticai.creator.hdl_ir import DataGraph
 
 
 @type_handler_iterable
-def filter_poly_asic(impl: Implementation) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.datarate"
+def filter_poly_asic(impl: DataGraph) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.filter"
     code = list()
 
     _template = (

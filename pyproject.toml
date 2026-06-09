@@ -51,4 +51,4 @@ source = "vcs"
 default-groups = ["dev", "test", "lint"]
 
 [tool.uv.sources]
-elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="add-string-conversion-array" }
+elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="main" }

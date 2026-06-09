@@ -1,16 +1,16 @@
 from collections.abc import Iterable
 from elasticai.creator.ir2verilog import (
     type_handler_iterable,
-    Implementation,
     Code,
     TemplateDirector,
 )
 from importlib import resources as res
+from elasticai.creator.hdl_ir import DataGraph
 
 
 @type_handler_iterable
-def filter_cic(impl: Implementation) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.datarate"
+def filter_cic(impl: DataGraph) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.filter"
     code = list()
 
     _template = (
@@ -39,3 +39,4 @@ def filter_cic(impl: Implementation) -> Iterable[Code]:
         tb_attributes = impl.attributes | dict(module_name=tb_name.upper())
         code.append((tb_name, _testbench.substitute(tb_attributes)))
     return code
+
