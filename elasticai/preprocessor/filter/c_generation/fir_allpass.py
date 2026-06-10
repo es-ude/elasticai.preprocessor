@@ -1,61 +1,56 @@
-from os.path import dirname, abspath
 from datetime import datetime
+from os.path import abspath, dirname
 
 import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.filter import SettingsFilter
 from elasticai.preprocessor.translation.ir2c import (
+    generate_c_files,
     get_embedded_datatype,
     replace_variables_with_parameters,
-    generate_c_files,
 )
 
 
-def build_filter_fir(
+def build_filter_fir_allpass(
     settings: SettingsFilter,
     bitwidth: int,
     signed: bool,
-    do_optimized: bool,
     filter_id: str = "0",
-    path2save: str = "",
+    path2save: str = get_path_to_project("build"),
     define_path: str = "src",
 ) -> None:
-    """Generating C files of a FIR (Finite Impuls Response) filter for using on microcontrollers
+    """Generating C files for IIR filtering on microcontroller
     Args:
         settings:       Settings filter
         bitwidth:       Used quantization level for data stream
         signed:         Decision if LUT values are signed [otherwise unsigned]
         filter_id:      ID of used filter structure
-        do_optimized:   Decision if LUT resources should be minimized [only quarter and mirroring]
         path2save:      Path for saving the verilog_filter output files
         define_path:    Path for loading the header file in IDE [Default: 'src']
     Return:
         None
     """
+    assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
+    assert settings.b_type.lower() == "allpass"
     assert settings.type.lower() == "fir", (
         f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
     )
-    assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
-    coeff_b = Filtering(setting=settings).get_coeffs().b
-    if do_optimized and len(coeff_b) % 2 == 0:
-        raise NotImplementedError("Please add an odd number to filter order!")
 
     module_id = f"{settings.b_type.lower().split('pass')[0]}{filter_id.lower()}"
-    coeff_used = coeff_b if not do_optimized else coeff_b[: int(len(coeff_b) / 2) + 1]
     data_type_filter = get_embedded_datatype(bitwidth, signed)
+    filter_order = int(settings.fs / settings.f_filt[0])
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
-        "template_name": "filter_fir_template.h",
+        "template_name": "filter_fir_all_template.h",
         "device_id": module_id.upper(),
         "data_type": data_type_filter,
         "fs": f"{settings.fs}",
-        "filter_type": f"{settings.b_type}, {settings.f_type}",
-        "filter_corner": ", ".join(map(str, settings.f_filt)),
-        "filter_order": str(len(coeff_b)),
-        "coeffs_string": ", ".join(map(str, coeff_used)),
+        "t_dly": str(filter_order / settings.fs * 1e6),
+        "filter_order": str(filter_order),
     }
 
-    template_c = __generate_filter_fir_template(do_optimized)
+    template_c = __generate_filter_fir_allpass_template()
     generate_c_files(
         path2save=path2save,
         template_name=params["template_name"],
@@ -67,30 +62,25 @@ def build_filter_fir(
     )
 
 
-def __generate_filter_fir_template(do_opt: bool) -> dict:
+def __generate_filter_fir_allpass_template() -> dict:
     """Generate the template for writing *.c and *.h file for generate a FIR filter on MCUs
-    Args:
-        do_opt:     Boolean decision if optimized version is used (odd version)
     Return:
         Dictionary with infos for prototype ['head'], implementation ['func'] and used parameters ['params']
     """
-    version_fir = "full" if not do_opt else "opt"
     header_temp = [
-        f"// --- Generating a FIR filter template ({version_fir})",
+        "// --- Generating a FIR-Allpass filter template",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: N = {$filter_order}, f_c = [{$filter_corner}] Hz @ {$fs} Hz ({$filter_type})",
-        "// Used filter coefficient order (b_0, b_1, b_2, ..., b_N)",
+        "// Params: N = {$filter_order}, t_dly = {$t_dly} us @ {$fs} Hz",
         '# include "{$path2include}/{$template_name}"',
-        "DEF_NEW_FIR_FILTER_PROTO({$device_id}, {$data_type})",
+        "DEF_NEW_FIR_ALL_FILTER_PROTO({$device_id}, {$data_type})",
     ]
     func_temp = [
-        f"// --- Generating a FIR filter template ({version_fir})",
+        "// --- Generating a FIR-Allpass filter template",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: N = {$filter_order}, f_c = [{$filter_corner}] Hz @ {$fs} Hz ({$filter_type})",
-        "// Used filter coefficient order (b_0, b_1, b_2, ..., b_N)",
+        "// Params: N = {$filter_order}, t_dly = {$t_dly} us @ {$fs} Hz",
         '# include "{$path2include}/{$template_name}"',
-        "DEF_NEW_FIR_FILTER_IMPL({$device_id}, {$data_type}, {$filter_order}, {$coeffs_string})",
+        "DEF_NEW_FIR_ALL_FILTER_IMPL({$device_id}, {$data_type}, {$filter_order})",
     ]
     return {"head": header_temp, "func": func_temp, "params": []}

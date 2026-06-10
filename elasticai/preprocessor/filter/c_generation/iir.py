@@ -1,14 +1,14 @@
 from datetime import datetime
-from os.path import dirname, abspath
+from os.path import abspath, dirname
 
+import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import SettingsFilter, Filtering
+from elasticai.preprocessor.filter import Filtering, SettingsFilter
 from elasticai.preprocessor.translation.ir2c import (
+    generate_c_files,
     get_embedded_datatype,
     replace_variables_with_parameters,
-    generate_c_files,
 )
-import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
 
 
 def build_filter_iir(
