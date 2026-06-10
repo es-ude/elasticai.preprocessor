@@ -125,9 +125,7 @@ class FrameGenerator:
     def get_methods_frame_aligning(self) -> list:
         """Function for getting a list with all methods for frame aligning"""
         split_key = "_frame_align_"
-        return [
-            method.split(split_key)[-1] for method in dir(self) if split_key in method
-        ]
+        return [method.split(split_key)[-1] for method in dir(self) if split_key in method]
 
     def get_aligning_position(self, frame_in: np.ndarray) -> int:
         """Extracting aligning position of spike frames
@@ -142,9 +140,7 @@ class FrameGenerator:
         return getattr(self, method)(frame_in)
 
     # --------- Frame Generation -------------
-    def get_threshold(
-        self, xin: np.ndarray, do_abs: bool = False, **kwargs
-    ) -> np.ndarray:
+    def get_threshold(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
         """Function for returning the threshold array in dependency of the transient input
         :param xin:     Numpy array with the transient raw input
         :param do_abs:  Boolean flag to apply absolute input for thresholding
@@ -152,9 +148,7 @@ class FrameGenerator:
         """
         return self._threshold.get_threshold(xin=xin, do_abs=do_abs, **kwargs)
 
-    def get_threshold_position(
-        self, xin: np.ndarray, do_abs: bool = False, **kwargs
-    ) -> np.ndarray:
+    def get_threshold_position(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
         """Function for returning the positions of the crossing-points between input and threshold
         :param xin:     Numpy array with the transient raw input
         :param do_abs:  Boolean flag to apply absolute input for thresholding
@@ -162,9 +156,7 @@ class FrameGenerator:
         """
         return self._threshold.get_threshold_position(xin=xin, do_abs=do_abs, **kwargs)
 
-    def __frame_extraction(
-        self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int = 0
-    ) -> FrameWaveform:
+    def __frame_extraction(self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int = 0) -> FrameWaveform:
         f0 = self._settings.length_offset_int
         f1 = f0 + int(self._settings.length_frame_int)
 

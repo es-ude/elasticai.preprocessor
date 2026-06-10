@@ -108,9 +108,7 @@ class SpikeDetection:
     def _sda_mteo(self, xin: np.ndarray) -> np.ndarray:
         x_mteo = np.zeros(shape=(len(self._settings_sda.dx_sda), xin.size))
         for idx, ksda0 in enumerate(self._settings_sda.dx_sda):
-            x0 = (
-                np.power(xin[ksda0:-ksda0,], 2) - xin[: -2 * ksda0,] * xin[2 * ksda0 :,]
-            )
+            x0 = np.power(xin[ksda0:-ksda0,], 2) - xin[: -2 * ksda0,] * xin[2 * ksda0 :,]
             x_mteo[idx, :] = np.concatenate([x0[:ksda0,], x0, x0[-ksda0:,]], axis=None)
         return np.max(x_mteo, axis=0)
 
@@ -150,9 +148,7 @@ class SpikeDetection:
     def get_methods_sda(self) -> list:
         """Function for getting a list with all methods for spike detection"""
         split_key = "_sda_"
-        return [
-            method.split(split_key)[-1] for method in dir(self) if split_key in method
-        ]
+        return [method.split(split_key)[-1] for method in dir(self) if split_key in method]
 
     def apply_spike_detection(self, xraw: np.ndarray, **kwargs) -> np.ndarray:
         """Applying spike detection algorithm (SDA) on transient raw signal
@@ -181,9 +177,7 @@ class SpikeDetection:
             )
         return getattr(self, method)(xraw, **kwargs)
 
-    def get_spike_waveforms(
-        self, xraw: np.ndarray, do_abs: bool, **kwargs
-    ) -> FrameWaveform:
+    def get_spike_waveforms(self, xraw: np.ndarray, do_abs: bool, **kwargs) -> FrameWaveform:
         """Function for extracting the spike waveforms from transient input
         :param xraw:    Numpy array with transient input
         :param do_abs:  Boolean for absolute threshold estimation
@@ -203,9 +197,7 @@ class SpikeDetection:
             kwargs_thr = dict()
 
         xsda = self.apply_spike_detection(xraw=xraw, **kwargs_sda)
-        return self._frame_generator.frame_generation(
-            xraw=xraw, xsda=xsda, do_abs=do_abs, **kwargs_thr
-        )
+        return self._frame_generator.frame_generation(xraw=xraw, xsda=xsda, do_abs=do_abs, **kwargs_thr)
 
     def get_spike_waveforms_from_positions(
         self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int
@@ -216,6 +208,4 @@ class SpikeDetection:
         :param xoffset: Integer for shifting the xpos values
         :return:        Class FrameWaveform with waveforms, labels and position
         """
-        return self._frame_generator.frame_generation_with_position(
-            xraw=xraw, xpos=xpos, xoffset=xoffset
-        )
+        return self._frame_generator.frame_generation_with_position(xraw=xraw, xpos=xpos, xoffset=xoffset)

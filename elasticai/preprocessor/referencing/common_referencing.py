@@ -64,33 +64,23 @@ class CommonReferencing:
         return signal - self.get_reference_map(signal, active)
 
     @staticmethod
-    def _calculate_reference_car_1d(
-        mea_signal: np.ndarray, mapp_used: np.ndarray
-    ) -> np.ndarray:
+    def _calculate_reference_car_1d(mea_signal: np.ndarray, mapp_used: np.ndarray) -> np.ndarray:
         if len(mea_signal.shape) >= 2:
             mapping = np.repeat(mapp_used[:, np.newaxis], mea_signal.shape[-1], axis=1)
         else:
             mapping = np.array([mapp_used] * mea_signal.size)
         return np.mean(mea_signal * mapping, axis=0)
 
-    def _calculate_reference_car_2d(
-        self, mea_signal: np.ndarray, mapp_used: np.ndarray
-    ) -> np.ndarray:
+    def _calculate_reference_car_2d(self, mea_signal: np.ndarray, mapp_used: np.ndarray) -> np.ndarray:
         if not len(mea_signal.shape) == 3:
-            raise NotImplementedError(
-                "The input numpy array has wrong size - Please check!"
-            )
+            raise NotImplementedError("The input numpy array has wrong size - Please check!")
         if self._settings.kernel_size == 1:
             raise ValueError("Kernel size must greater then 1")
         if self._settings.kernel_size % 2 == 0:
-            raise ValueError(
-                "Value for building the kernel in CAR algorithm must be odd-numbered!"
-            )
+            raise ValueError("Value for building the kernel in CAR algorithm must be odd-numbered!")
 
         # --- Generating the kernel
-        kernel = np.ones(
-            (self._settings.kernel_size, self._settings.kernel_size), dtype=float
-        )
+        kernel = np.ones((self._settings.kernel_size, self._settings.kernel_size), dtype=float)
         mid_number = int(np.floor(self._settings.kernel_size / 2))
         kernel[mid_number, mid_number] = 0.0
 
@@ -107,8 +97,6 @@ class CommonReferencing:
         for row in range(0, mea_signal.shape[0]):
             for col in range(0, mea_signal.shape[1]):
                 if not mapp_used[row, col]:
-                    data_out[row, col, :] = np.zeros(
-                        (mea_signal.shape[-1],), dtype=float
-                    )
+                    data_out[row, col, :] = np.zeros((mea_signal.shape[-1],), dtype=float)
 
         return data_out

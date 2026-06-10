@@ -4,11 +4,11 @@ from unittest import TestCase, main
 import numpy as np
 
 from elasticai.preprocessor._check_funcs import compare_timestamps
-
 from elasticai.preprocessor.framing.frame_generator_test import (
     _build_sorted_timestamps,
     _build_spike_signal,
 )
+
 from .sda import SettingsSDA, SpikeDetection
 
 TestSettings = SettingsSDA(
@@ -84,7 +84,7 @@ class TestSpikeDetection(TestCase):
             scale_noise=10e-6,
             pos_spike=_build_sorted_timestamps(count=20, min_gap=2e-3, max_gap=20e-3),
             sampling_rate=self.set0.sampling_rate,
-            do_noise=True
+            do_noise=True,
         )
 
     def test_methods_overview_sda(self):
@@ -97,9 +97,7 @@ class TestSpikeDetection(TestCase):
     def test_sda_none(self):
         self.set0.mode_sda = "none"
         try:
-            SpikeDetection(settings=self.set0).apply_spike_detection(
-                xraw=self.signal_eap[0]
-            )
+            SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         except:
             self.assertTrue(True)
         else:
@@ -107,54 +105,42 @@ class TestSpikeDetection(TestCase):
 
     def test_sda_normal(self):
         self.set0.mode_sda = "normal"
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         np.testing.assert_array_almost_equal(rslt, self.signal_eap[0])
 
     def test_sda_neo_ones(self):
         self.set0.mode_sda = "neo"
         self.set0.dx_sda = [1]
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         self.assertGreater(rslt.min(), -2.5e-9)
 
     def test_sda_neo_two(self):
         self.set0.mode_sda = "neo"
         self.set0.dx_sda = [2]
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         self.assertGreater(rslt.min(), -2e-9)
 
     def test_sda_mteo_two(self):
         self.set0.mode_sda = "mteo"
         self.set0.dx_sda = [1, 2, 3]
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         self.assertGreater(rslt.min(), -2e-9)
 
     def test_sda_ado_ones(self):
         self.set0.mode_sda = "ado"
         self.set0.dx_sda = [1]
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         self.assertGreater(rslt.min(), -2e-9)
 
     def test_sda_ado_threes(self):
         self.set0.mode_sda = "ado"
         self.set0.dx_sda = [3]
-        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(
-            xraw=self.signal_eap[0]
-        )
+        rslt = SpikeDetection(settings=self.set0).apply_spike_detection(xraw=self.signal_eap[0])
         self.assertEqual(rslt.size, self.signal_eap[0].size)
         self.assertGreater(rslt.min(), -2e-9)
 
@@ -246,9 +232,7 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = "rms_black"
         self.set0.mode_align = "min"
         self.set0.thr_gain = 1
-        rslt = SpikeDetection(self.set0).get_spike_waveforms(
-            xraw=self.signal_eap[0], do_abs=False
-        )
+        rslt = SpikeDetection(self.set0).get_spike_waveforms(xraw=self.signal_eap[0], do_abs=False)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -267,9 +251,7 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = "rms_black"
         self.set0.mode_align = "min"
         self.set0.thr_gain = 1
-        rslt = SpikeDetection(self.set0).get_spike_waveforms(
-            xraw=self.signal_eap[0], do_abs=False
-        )
+        rslt = SpikeDetection(self.set0).get_spike_waveforms(xraw=self.signal_eap[0], do_abs=False)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -284,9 +266,7 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = "rms_black"
         self.set0.mode_align = "min"
         self.set0.thr_gain = 1
-        rslt = SpikeDetection(self.set0).get_spike_waveforms(
-            xraw=self.signal_eap[0], do_abs=False
-        )
+        rslt = SpikeDetection(self.set0).get_spike_waveforms(xraw=self.signal_eap[0], do_abs=False)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -301,9 +281,7 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = "rms_black"
         self.set0.mode_align = "min"
         self.set0.thr_gain = 1
-        rslt = SpikeDetection(self.set0).get_spike_waveforms(
-            xraw=self.signal_eap[0], do_abs=False
-        )
+        rslt = SpikeDetection(self.set0).get_spike_waveforms(xraw=self.signal_eap[0], do_abs=False)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),

@@ -3,9 +3,7 @@ import numpy as np
 from elasticai.preprocessor.windower import transformation_window_method
 
 
-def do_fft(
-    y: np.ndarray, fs: float, method_window: str = "hamming"
-) -> tuple[np.ndarray, np.ndarray]:
+def do_fft(y: np.ndarray, fs: float, method_window: str = "hamming") -> tuple[np.ndarray, np.ndarray]:
     """Performing the Discrete Fast Fourier Transformation.
     :param y:               Transient input signal
     :param fs:              Sampling rate [Hz]
@@ -29,9 +27,7 @@ def do_fft(
     return freq, fft_out
 
 
-def do_fft_withimag(
-    y: np.ndarray, fs: float, method_window: str = ""
-) -> tuple[np.ndarray, np.ndarray]:
+def do_fft_withimag(y: np.ndarray, fs: float, method_window: str = "") -> tuple[np.ndarray, np.ndarray]:
     """Performing the Discrete Fast Fourier Transformation with imaginary part.
     :param y:   Transient input signal
     :param fs:  Sampling rate [Hz]

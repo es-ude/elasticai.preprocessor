@@ -1,0 +1,8 @@
+[[plugins]]
+name = 'datarate'
+version = '0.1'
+api_version = '0.1'
+target_runtime = 'verilog'
+target_platform = 'FPGA'
+generated = ["filter_cic", "filter_poly_fpga", "filter_poly_asic"]
+static_files = []

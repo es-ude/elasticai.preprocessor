@@ -131,9 +131,7 @@ class TestWindowSequencer(TestCase):
         set0 = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
-        stimuli = np.sin(
-            2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate)
-        )
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         sequence = WindowSequencer(set0).window_event_detected(
             signal=stimuli, thr=0.25, pre_time=0.01, do_abs=False
         )
@@ -145,9 +143,7 @@ class TestWindowSequencer(TestCase):
         set0 = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
-        stimuli = np.sin(
-            2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate)
-        )
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         sequence = WindowSequencer(set0).window_event_detected(
             signal=stimuli, thr=0.25, pre_time=0.01, do_abs=True
         )
@@ -159,12 +155,8 @@ class TestWindowSequencer(TestCase):
         set0 = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
-        stimuli = np.sin(
-            2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate)
-        )
-        sequence = WindowSequencer(set0).window_event_detected(
-            signal=stimuli, thr=0.25, pre_time=0.05
-        )
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
+        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.05)
         chck0 = np.sum(sequence[0, :] == sequence[0, 0])
         chck1 = np.sum(sequence[1, :] == sequence[1, 0])
         self.assertGreater(chck0, chck1)
@@ -173,9 +165,7 @@ class TestWindowSequencer(TestCase):
         set0 = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
-        stimuli = np.sin(
-            2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate)
-        )
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         stimuli[int(set0.window_length / 2)] = 1.5
         stimuli[-int(set0.window_length / 2)] = 1.5
         sequence = WindowSequencer(set0).window_event_detected(

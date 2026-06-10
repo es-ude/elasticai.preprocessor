@@ -1,0 +1,8 @@
+[[plugins]]
+name = 'filters'
+version = '0.1'
+api_version = '0.1'
+target_runtime = 'verilog'
+target_platform = 'FPGA'
+generated = ["fir_half", "fir_full", "fir_low", "fir_delay", "biquad_df1"]
+static_files = []
