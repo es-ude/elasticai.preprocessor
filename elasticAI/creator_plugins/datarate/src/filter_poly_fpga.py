@@ -1,37 +1,39 @@
 from collections.abc import Iterable
-from datetime import datetime
-
-from elasticai.creator.file_generation.resource_utils import read_text
-from elasticai.creator.hdl_ir import DataGraph
 from elasticai.creator.ir2verilog import (
-    Code,
-    Registry,
-    TemplateDirector,
     type_handler_iterable,
+    Code,
+    TemplateDirector,
 )
+from importlib import resources as res
+from elasticai.creator.hdl_ir import DataGraph
 
 
-@type_handler_iterable()
-def filter_poly_fpga(impl: DataGraph, _: Registry) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.datarate"
-    path2file = "verilog/filter_polydec_fpga.v"
+@type_handler_iterable
+def filter_poly_fpga(impl: DataGraph) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.filter"
+    code = list()
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
         .parameter("POLY_ORDER")
         .add_module_name()
-        .set_prototype("\n".join(read_text(package_path, path2file)))
+        .set_prototype(res.read_text(package_path, f"verilog/filter_polydec_fpga.v"))
         .build()
     )
-    code = list()
-    code.append(
-        (
-            impl.name,
-            _template.substitute(
-                date_copy_created=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-                **impl.attributes,
-            ),
+    code.append((impl.name, _template.substitute(impl.attributes)))
+
+    if impl.data['build_tb']:
+        _testbench = (
+            TemplateDirector()
+            .localparam("BITWIDTH")
+            .localparam("POLY_ORDER")
+            .replace_instance_name("FILTER_POLYDEC_FPGA", impl.name.upper())
+            .add_module_name()
+            .set_prototype(res.read_text(package_path, f"verilog/filter_polydec_fpga_tb.v"))
+            .build()
         )
-    )
+        tb_name = f"{impl.name}_tb"
+        tb_attributes = impl.attributes | dict(module_name=tb_name.upper())
+        code.append((tb_name, _testbench.substitute(tb_attributes)))
     return code

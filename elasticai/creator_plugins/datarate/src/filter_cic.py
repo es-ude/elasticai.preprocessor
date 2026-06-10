@@ -1,20 +1,17 @@
 from collections.abc import Iterable
-from datetime import datetime
-
-from elasticai.creator.file_generation.resource_utils import read_text
-from elasticai.creator.hdl_ir import DataGraph
 from elasticai.creator.ir2verilog import (
-    Code,
-    Registry,
-    TemplateDirector,
     type_handler_iterable,
+    Code,
+    TemplateDirector,
 )
+from importlib import resources as res
+from elasticai.creator.hdl_ir import DataGraph
 
 
-@type_handler_iterable()
-def filter_cic(impl: DataGraph, _: Registry) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.datarate"
-    path2file = "verilog/filter_cic.v"
+@type_handler_iterable
+def filter_cic(impl: DataGraph) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.filter"
+    code = list()
 
     _template = (
         TemplateDirector()
@@ -22,17 +19,23 @@ def filter_cic(impl: DataGraph, _: Registry) -> Iterable[Code]:
         .parameter("N_DEC")
         .parameter("DEC_RATE")
         .add_module_name()
-        .set_prototype("\n".join(read_text(package_path, path2file)))
+        .set_prototype(res.read_text(package_path, "verilog/filter_cic.v"))
         .build()
     )
-    code = list()
-    code.append(
-        (
-            impl.name,
-            _template.substitute(
-                date_copy_created=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-                **impl.attributes,
-            ),
+    code.append((impl.name, _template.substitute(impl.attributes)))
+
+    if impl.data['build_tb']:
+        _testbench = (
+            TemplateDirector()
+            .localparam("BITWIDTH")
+            .localparam("N_DEC")
+            .localparam("DEC_RATE")
+            .add_module_name()
+            .replace_instance_name("FILTER_CIC", impl.name.upper())
+            .set_prototype(res.read_text(package_path, "verilog/filter_cic_tb.v"))
+            .build()
         )
-    )
+        tb_name = f"{impl.name}_tb"
+        tb_attributes = impl.attributes | dict(module_name=tb_name.upper())
+        code.append((tb_name, _testbench.substitute(tb_attributes)))
     return code
