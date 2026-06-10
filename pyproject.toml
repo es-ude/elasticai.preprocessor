@@ -1,11 +1,11 @@
 [project]
-name = "elastic-ai-preprocessor"
+name = "elasticai.preprocessor"
 version = "0.1.0"
 description = "Python Extension for Hardware-Aware Signal Processing"
 readme = "README.md"
 license="MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.13"
+requires-python = ">=3.12, <3.14"
 keywords = [
     "signal preprocessing",
     "hardware-software co-design",
@@ -20,7 +20,6 @@ dependencies = [
     "fxpmath>=0.4.10",
     "numpy>=2.4.6",
     "scipy>=1.17.1",
-    "torch>=2.12.0",
 ]
 
 [dependency-groups]
@@ -33,6 +32,7 @@ dev = [
     "coverage>=7.11.3",
     "pre-commit>=4.0.1",
     "tach>=0.23.0",
+    "elastic-ai-equi-checker"
 ]
 test = [
     "pytest>=9.0.3",
@@ -134,6 +134,7 @@ default-groups = ["dev", "test", "lint"]
 
 [tool.uv.sources]
 elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch="main" }
+elastic-ai-equi-checker = { git = "https://github.com/es-ude/elastic-ai.equi-checker.git", branch="main" }
 
 
 [tool.pytest]

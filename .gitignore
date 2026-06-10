@@ -1,8 +1,11 @@
-**/.python-version
+**/.idea
+**/__pycache__
 elasticai/__init__.py
+
+**/.python-version
 **/build*
 
 **/.venv
 **/.env
 **/.devenv
-**/__pycache__
+
