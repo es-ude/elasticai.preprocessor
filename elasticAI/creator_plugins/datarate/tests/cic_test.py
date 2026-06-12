@@ -85,10 +85,9 @@ def test_filter_cic_build(
         path2save=build_dir,
     )
 
-    """testwidth = [1, 2, 3, 4]
-    cocotb_test_fixture.write( # write um Signale einzugeben
-        {"testwidth": testwidth}
-    )"""
+    
+    #cocotb_test_fixture.write()  write um Signale einzugeben
+
 
     cocotb_test_fixture.set_top_module_name("CIC_0")
     cocotb_test_fixture.clear_srcs()

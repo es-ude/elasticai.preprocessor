@@ -12,21 +12,24 @@ def load_and_plugin(
     id: str,
     params: dict[str, Any],
     packages: list,
-    path2save: str | Path = get_path_to_build() / "build",
+    path2save: Path = get_path_to_build() / "build",
 ) -> None:
-    design = _build_verilog_implementation(type=type, id=id, params=params)
+    def _load_and_plugin_design(
+        type: str, id: str, params: dict[str, Any], packages: list, path2save: Path
+    ) -> None:
+        design = _build_verilog_implementation(type=type, id=id, params=params)
 
-    build_dir = Path(f"{path2save}/")
-    build_dir.mkdir(exist_ok=True)
+        build_dir = Path(f"{path2save}/")
+        build_dir.mkdir(exist_ok=True)
 
-    translate = _prepare_translator(packages)
-    for name, content in translate(design, Registry()):
-        (build_dir / name).write_text("".join(content))
+        translate = _prepare_translator(packages)
+        for name, content in translate(design, Registry()):
+            (build_dir / name).write_text("".join(content))
+
+    _load_and_plugin_design(type, id, params, packages, path2save)
 
 
-def _build_verilog_implementation(
-    type: str, id: str, params: dict[str, Any]
-) -> ir.DataGraph:
+def _build_verilog_implementation(type: str, id: str, params: dict[str, Any]) -> ir.DataGraph:
     mod_name = f"{type}_{id}" if id else f"{type}"
     return factory.graph(
         attributes=attribute(**params),

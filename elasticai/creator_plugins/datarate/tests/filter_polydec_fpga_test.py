@@ -76,7 +76,7 @@ def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
     cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/filter_polydec_fpga.v")
     cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_FPGA")
     cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
-    
+
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, poly_order", [
@@ -102,8 +102,6 @@ def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
 def test_filter_polydec_fpga_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     artifact_dir = cocotb_test_fixture.get_artifact_dir()
     build_dir = artifact_dir / "verilog"
-    #build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    #id = f"{bitwidth}"
 
     load_and_plugin(
         type="filter_poly_fpga",
