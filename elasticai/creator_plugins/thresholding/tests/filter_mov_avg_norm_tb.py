@@ -4,31 +4,23 @@ from cocotb.triggers import RisingEdge, FallingEdge
 from pathlib import Path
 import numpy as np
 
-import pytest #add this
-from elasticai.creator.testing import CocotbTestFixture, eai_testbench
-from elasticai.creator_plugins.mac import load_and_plugin
-
 from elasticai.creator.testing.cocotb_runner import run_cocotb_sim_for_src_dir
 import elasticai.creator_plugins.filter_data as test_dut
 # from elasticai.creator_plugins.helper import calc_mavg
 
 
-# cocotb_settings = dict(
-#     src_files=["filter_mov_avg_norm.v"],
-#     top_module_name="MOVING_AVERAGE",
-#     cocotb_test_module="elasticai.creator_plugins.filters.tests.filter_mov_avg_norm_tb",
-#     path2src=Path(test_dut.__file__).parent / "verilog",
-#     params={"BITWIDTH": 8, "LENGTH": 4},
-# )
+cocotb_settings = dict(
+    src_files=["filter_mov_avg_norm.v"],
+    top_module_name="MOVING_AVERAGE",
+    cocotb_test_module="elasticai.creator_plugins.filters.tests.filter_mov_avg_norm_tb",
+    path2src=Path(test_dut.__file__).parent / "verilog",
+    params={"BITWIDTH": 8, "LENGTH": 4},
+)
 
 
 @cocotb.test()
-@eai_testbench  #add this
-async def filter_fir_mavg_pow2_test(
-    dut,
-    bitwidth: int,
-    length: int,
-    ):
+@eai_testbench #add this
+async def filter_fir_mavg_pow2_tb(dut):
     period_clk = 5
     period_data = 100
     num_repeats = 4
@@ -83,7 +75,7 @@ async def filter_fir_mavg_pow2_test(
         for val in data_in_array:
             await RisingEdge(dut.DO_CALC)
             dut.DATA_IN.value = val
-            test_val =  1 #calc_mavg(mavg_buffer, used_bitwidth, do_signed)
+            test_val = 1 # calc_mavg(mavg_buffer, used_bitwidth, do_signed)
             mavg_buffer[ite % used_adrwidth] = val
             ite += 1
 
@@ -97,51 +89,8 @@ async def filter_fir_mavg_pow2_test(
                 int(dut.DATA_OUT.value),
                 # calc_mavg(mavg_buffer, used_bitwidth, do_signed),
             )
-            assert dut.DATA_OUT.value == dut.DATA_OUT.value  # test_val
+            assert dut.DATA_OUT.value == test_val
 
 
-# if __name__ == "__main__":
-#     run_cocotb_sim_for_src_dir(**cocotb_settings)
-
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth", [8])
-@pytest.mark.parametrize("length", [4])
-def test_mov_avg_norm(
-    cocotb_test_fixture: CocotbTestFixture,
-    bitwidth: int,
-    length: int,
-	):
-	cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")
-	cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
-	cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
-	cocotb_test_fixture.run(params={
-        "BITWIDTH": bitwidth,
-        "LENGTH": length,
-    }, 
-    defines={}
-    )
-
-# @pytest.mark.simulation
-# @pytest.mark.parametrize("bitwidth", [4])
-# @pytest.mark.parametrize("length", [4])
-# def test_mov_avg_norm_build(
-#     cocotb_test_fixture: CocotbTestFixture,
-#     bitwidth: int,
-#     length: int,
-#     ):
-
-#     # Directory for artifact
-#     artifact_dir = cocotb_test_fixture.get_artifact_dir()
-#     build_dir = artifact_dir / "verilog"
-
-#     load_and_plugin(
-#         type="mov_avg_norm",
-#         id="",
-#         params={
-#             "BITWIDTH": bitwidth,
-#             "LENGTH": length,
-#         },
-#         packages=["thresholding"],
-#         path2save=build_dir,
-#     )
-
+if __name__ == "__main__":
+    run_cocotb_sim_for_src_dir(**cocotb_settings)
