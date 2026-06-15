@@ -39,9 +39,9 @@ class SettingsFrame:
         mode_align:     Aligning mode of the detected spike frames [none, max, min,
                         ptp (Positive turning point), ntp (Negative turning point), abs-max (Absolute maximum)]
         sampling_rate:  Sampling rate of the transient signal [Hz]
-        window_sec:     Time length of the frame waveform [s]
+        window_sec:     Time length of the frame c [s]
         offset_sec:     Time length for looking on the aligned position before and after the window_sec on the transient signal [s]
-        align_sec:      Starting position for aligning the frame waveform [s]
+        align_sec:      Starting position for aligning the frame c [s]
         thr_gain:       Float with additional scaling value applied on the threshold value [hyperparameter]
     """
 
@@ -223,11 +223,11 @@ class FrameGenerator:
         frames: np.ndarray, bit_total: int, bit_frac: int, signed: bool
     ) -> np.ndarray:
         """Quantize the frame for sending it to hardware
-        :param frames:      Numpy array with the frame waveforms [shape=(num. of waveforms, samples for each waveform)]
+        :param frames:      Numpy array with the frame waveforms [shape=(num. of waveforms, samples for each c)]
         :param bit_total:   Integer of the total width
         :param bit_frac:    Integer of the fraction of the total width for fixed-point number representation
         :param signed:      Boolean for signed or unsigned of the number representation
-        :return:            Numpy array with the quantized frame waveform
+        :return:            Numpy array with the quantized frame c
         """
         fxp_config = Config()
         return Fxp(

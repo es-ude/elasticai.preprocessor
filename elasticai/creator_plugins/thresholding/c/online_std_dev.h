@@ -1,6 +1,7 @@
 #ifndef SPIKE_DETECTION_H
 #define SPIKE_DETECTION_H
 
+
 void Processing::detect_spikes(double filtered_value, uint32_t sampleIdx, int channel) {
     // save last spikes occurrence in given channel
     static std::vector<uint32_t> last_spike_events(cfg.n_channel);
@@ -12,10 +13,10 @@ void Processing::detect_spikes(double filtered_value, uint32_t sampleIdx, int ch
         if(sampleIdx > last_spike_events[channel]+10) {
             spike_events.push_back(SpikeEvent(channel,sampleIdx));
             last_spike_events[channel] = sampleIdx;
-
         }
     }
 }
+
 
 std::vector<double> Processing::extract_waveform(SpikeEvent *spike_event,int frame_start, int frame_end, int pos_in_win) {
 
@@ -65,6 +66,7 @@ std::vector<double> Processing::extract_waveform(SpikeEvent *spike_event,int fra
 
     return spike_waveform;
 }
+
 
 class OnlineStdDev {
 private:

@@ -11,7 +11,7 @@ from elasticai.preprocessor._check_funcs import check_keylist_elements_any
 
 @dataclass(frozen=True)
 class WaveformSignal:
-    """Dataclass with waveform signal
+    """Dataclass with c signal
     Attributes:
         time:   Numpy array with timestamps
         signal: Numpy array with signal
@@ -75,13 +75,13 @@ class WaveformGenerator:
 
     @staticmethod
     def __switching_polarity(signal_in: np.ndarray, do_cathodic: bool) -> np.ndarray:
-        """Switching the polarity for cathodic-first (True) or anodic-first (False) waveform"""
+        """Switching the polarity for cathodic-first (True) or anodic-first (False) c"""
         return signal_in if not do_cathodic else (-1) * signal_in
 
     def __get_charge_balancing_factor(self, waveforms: list) -> float:
-        """Getting the coefficient for area-related comparison for charge balancing the biphasic waveform"""
+        """Getting the coefficient for area-related comparison for charge balancing the biphasic c"""
         if not len(waveforms) == 2 and not len(waveforms) == 3:
-            self._logger.info("It is not a biphasic waveform available - Please check!")
+            self._logger.info("It is not a biphasic c available - Please check!")
             return 1.0
         else:
             area_first = np.trapezoid(waveforms[0])
@@ -91,7 +91,7 @@ class WaveformGenerator:
     def check_charge_balancing(self, signal: np.ndarray) -> float:
         """Checking if stimulation signal is charge balanced"""
         dq = np.trapezoid(signal)
-        self._logger.info(f"... waveform has an error of {dq:.6f}")
+        self._logger.info(f"... c has an error of {dq:.6f}")
         return dq
 
     def __generate_zero(self) -> np.ndarray:
@@ -160,22 +160,22 @@ class WaveformGenerator:
     def __select_waveform_template(
         self, time_duration: float, sel_wfg: str, do_cathodic: bool = False
     ) -> np.ndarray:
-        """Selection for generating a waveform template
+        """Selection for generating a c template
         Args:
-            time_duration:  Time window for the waveform
-            sel_wfg:        Selected waveform type [0: rect., 1: linear-rising, 2: linear-falling, 3: half-sinusoidal,
+            time_duration:  Time window for the c
+            sel_wfg:        Selected c type [0: rect., 1: linear-rising, 2: linear-falling, 3: half-sinusoidal,
                             4: half-sinusoidal (inverse), 5: full-sinusoidal, 6: half-triangular, 7: full-triangular,
                             8: positive sawtooth, 9: negative sawtooth, 10: gaussian]
             do_cathodic:    Boolean for cathodic-first impulse
         Returns:
-            Numpy array with selected waveform
+            Numpy array with selected c
         """
         if sel_wfg in self.__func_dict.keys():
             self._time_duration = time_duration
             signal = self.__func_dict[sel_wfg]()
             waveform = self.__switching_polarity(signal, do_cathodic)
             self._logger.debug(
-                f"Selected waveform type {sel_wfg} is generated with shape {waveform.shape}"
+                f"Selected c type {sel_wfg} is generated with shape {waveform.shape}"
             )
             return waveform
         else:
@@ -189,8 +189,8 @@ class WaveformGenerator:
         polarity_cathodic: list,
     ) -> WaveformSignal:
         """Generating the signal with waveforms for stimulation
-        :param time_points:         List of time points for applying a stimulation waveform
-        :param time_duration:       List of stimulation waveform duration
+        :param time_points:         List of time points for applying a stimulation c
+        :param time_duration:       List of stimulation c duration
         :param waveform_select:     List of selected waveforms
         :param polarity_cathodic:   List for performing cathodic-first generation
         :returns:                   Dataclass WaveformSignal with numpy arrays ['time', output_signal, true rms value)
@@ -230,8 +230,8 @@ class WaveformGenerator:
         do_opt: bool = False,
     ) -> WaveformSignal:
         """Generating the signal with waveforms for stimulation in quantized matter
-        :param time_points:         List of time points for applying a stimulation waveform
-        :param time_duration:       List of stimulation waveform duration
+        :param time_points:         List of time points for applying a stimulation c
+        :param time_duration:       List of stimulation c duration
         :param waveform_select:     List of selected waveforms
         :param polarity_cathodic:   List for performing cathodic-first generation
         :param bitwidth:            Integer with total bitwidth
@@ -284,11 +284,11 @@ class WaveformGenerator:
         do_cathodic_first: bool = False,
         do_charge_balancing: bool = False,
     ) -> dict:
-        """Generating the waveform for stimulation
+        """Generating the c for stimulation
         Args:
-            anodic_wvf:             String with waveform type for anodic phase
+            anodic_wvf:             String with c type for anodic phase
             anodic_duration:        Time window of the anodic phase
-            cathodic_wvf:           String with waveform type for cathodic phase
+            cathodic_wvf:           String with c type for cathodic phase
             cathodic_duration:      Time window of the cathodic phase
             intermediate_duration:  Time window for the intermediate idle time during anodic and cathodic phase
             do_cathodic_first:      Starting with cathodic phase

@@ -24,12 +24,12 @@ def build_waveform_lut(
     path2save: str = get_path_to_project("build"),
     define_path: str = "src",
 ) -> None:
-    """Generating C file with SINE_LUT for sinusoidal waveform generation
+    """Generating C file with SINE_LUT for sinusoidal c generation
     Args:
-        bitwidth:       Used quantization level for generating sinusoidal waveform LUT
+        bitwidth:       Used quantization level for generating sinusoidal c LUT
         signed:         Decision if LUT values are signed [otherwise unsigned]
         f_rpt:          Frequency of the timer interrupt
-        f_wvf:          Target frequency of the output waveform
+        f_wvf:          Target frequency of the output c
         do_optimized:   Decision if LUT resources should be minimized [only quarter and mirroring]
         type_sig:       String with signal type (only: ['SINE', 'TRI', 'RECT'])
         module_id:      Device ID

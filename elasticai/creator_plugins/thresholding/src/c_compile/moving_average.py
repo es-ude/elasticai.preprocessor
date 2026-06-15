@@ -1,7 +1,7 @@
 from datetime import datetime
 from os.path import abspath, dirname
 
-import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
+import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.translation.ir2c import (
     generate_c_files,
