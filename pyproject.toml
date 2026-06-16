@@ -17,7 +17,6 @@ authors = [
     { name = "Florian Hettstedt", email = "florian.hettstedt@uni-due.de" }
 ]
 dependencies = [
-    "fxpmath>=0.4.10",
     "numpy>=2.4.6",
     "scipy>=1.17.1",
 ]

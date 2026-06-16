@@ -330,7 +330,7 @@ class Filtering(CommonDigitalFunctions):
             color=get_plot_color(0),
         )
         plt.xlabel(r"Frequency $f_\mathrm{sig}$ (Hz)", size=get_textsize_paper())
-        plt.xlim([f[0], f[-1]])
+        plt.xlim(left=f[0], right=f[-1])
 
         ax11.grid(True, which="both", ls="--")
         ax11.twinx()

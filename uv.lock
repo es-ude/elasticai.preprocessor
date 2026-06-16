@@ -258,7 +258,6 @@ name = "elasticai-preprocessor"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "fxpmath" },
     { name = "numpy" },
     { name = "scipy" },
 ]
@@ -286,7 +285,6 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fxpmath", specifier = ">=0.4.10" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "scipy", specifier = ">=1.17.1" },
 ]
@@ -362,18 +360,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d5/8d/1c51c094345df128ca4a990d633fe1a0ff28726c9e6b3c41ba65087bba1d/fsspec-2026.4.0.tar.gz", hash = "sha256:301d8ac70ae90ef3ad05dcf94d6c3754a097f9b5fe4667d2787aa359ec7df7e4", size = 312760, upload-time = "2026-04-29T20:42:38.635Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d5/0c/043d5e551459da400957a1395e0febbf771446ff34291afcbe3d8be2a279/fsspec-2026.4.0-py3-none-any.whl", hash = "sha256:11ef7bb35dab8a394fde6e608221d5cf3e8499401c249bebaeaad760a1a8dec2", size = 203402, upload-time = "2026-04-29T20:42:36.842Z" },
-]
-
-[[package]]
-name = "fxpmath"
-version = "0.4.10"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/02/b8/b163ee226eec243fe25d3b3abf30a16c6527cbce2c562135b1ec05040ff7/fxpmath-0.4.10.tar.gz", hash = "sha256:99d62140525d7dc424a54add55a30913b5ae9d718001f976535720d460f6b697", size = 81075, upload-time = "2026-03-24T02:53:30.377Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/e7/04aa7d95c229bcb5b28d3383c99e964f0445b0a0bc1d118d8e74a7a7098b/fxpmath-0.4.10-py3-none-any.whl", hash = "sha256:d72fe7ae495ba47fe969720acc723fd96b5d258709a5ab9cd04d9fbe1ae203b7", size = 53139, upload-time = "2026-03-24T02:53:28.636Z" },
 ]
 
 [[package]]

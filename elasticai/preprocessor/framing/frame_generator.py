@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from logging import Logger, getLogger
 
 import numpy as np
-from fxpmath import Config, Fxp
+from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
 from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
 
@@ -229,11 +229,8 @@ class FrameGenerator:
         :param signed:      Boolean for signed or unsigned of the number representation
         :return:            Numpy array with the quantized frame waveform
         """
-        fxp_config = Config()
-        return Fxp(
-            val=frames,
-            signed=signed,
-            n_word=bit_total,
-            n_frac=bit_frac,
-            fxp_config=fxp_config,
-        ).get_val()
+        arith = FxpArithmetic(
+            fxp_params=FxpParams(total_bits=bit_total, frac_bits=bit_frac, signed=signed)
+        )
+        out = arith.round_to_rational(frames.tolist())
+        return np.asarray(out)
