@@ -11,10 +11,7 @@ from elasticai.preprocessor.waveform_generator import WaveformGenerator
 
 
 def prepare_waveform(
-    waveform: str,
-    bitwidth: int,
-    num_params: int,
-    do_opt: bool = False,
+    waveform: str, bitwidth: int, num_params: int, do_opt: bool = False, is_signed: bool = True
 ) -> list[int]:
     params = num_params if not do_opt else 4 * num_params - 3
 
@@ -29,13 +26,13 @@ def prepare_waveform(
             bitwidth=bitwidth,
             bitfrac=bitwidth - 1,
             do_opt=do_opt,
-            signed=True,
+            signed=is_signed,
         )
         .signal.tolist()
     )
 
     if not do_opt:
-        sig.append(0.0)
+        sig.append(0.0 if is_signed else 0.5)
 
     sig = [arith.clamp(arith.cut_as_integer(val * arith.minimum_as_integer * (-1))) for val in sig]
     sig0 = sig.copy()

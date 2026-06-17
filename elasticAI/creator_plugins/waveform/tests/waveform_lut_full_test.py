@@ -7,7 +7,14 @@ from cocotb.triggers import RisingEdge
 from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
-from elasticai.creator_plugins.waveform.utils import load_and_plugin, prepare_waveform
+from elasticai.creator_plugins.waveform.utils import WaveformGenerator, load_and_plugin, prepare_waveform
+
+
+def reconstruct_signal(waveform: list[int], num_trials: int) -> list[int]:
+    check = [waveform[-1]]
+    for _ in range(num_trials):
+        check.extend(waveform[1:])
+    return check
 
 
 @cocotb.test()
@@ -107,12 +114,9 @@ def test_waveform_lut_full_normal_build(
         bitwidth=bitwidth,
         num_params=num_params,
     )
-
-    check = [data[0]]
     data0 = data.copy()
     data0.reverse()
-    for _ in range(num_trials):
-        check.extend(data0[1:])
+    check = reconstruct_signal(waveform=data0, num_trials=num_trials)
 
     build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     load_and_plugin(
@@ -129,6 +133,32 @@ def test_waveform_lut_full_normal_build(
 
     cocotb_test_fixture.write({"waveform": data0, "check": check})
     cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_0")
+    cocotb_test_fixture.clear_srcs()
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 21, 3)])
+def test_waveform_lut_full_normal_build2(
+    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int
+):
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
+    data0 = WaveformGenerator(100.0, False).create_design(
+        waveform="SINE_FULL",
+        num_params=num_params,
+        is_signed=True,
+        target="fpga",
+        bitwidth=bitwidth,
+        id="1",
+        path2save=build_dir,
+        use_bram=False,
+        do_opt=False,
+    )
+    data0.reverse()
+    check = reconstruct_signal(waveform=data0, num_trials=num_trials)
+    cocotb_test_fixture.write({"waveform": data0, "check": check})
+    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(params={}, defines={})

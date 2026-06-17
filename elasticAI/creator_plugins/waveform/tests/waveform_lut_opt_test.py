@@ -7,7 +7,7 @@ from cocotb.triggers import RisingEdge
 from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
-from elasticai.creator_plugins.waveform.utils import load_and_plugin, prepare_waveform
+from elasticai.creator_plugins.waveform.utils import WaveformGenerator, load_and_plugin, prepare_waveform
 
 
 def reconstruct_signal(waveform: list[int], bitwidth: int, is_signed: bool, num_trials: int) -> list[int]:
@@ -155,11 +155,43 @@ def test_waveform_lut_opt_normal_build(
             "SIGNED_OUT": 1 if is_signed else 0,
         },
         path2save=build_dir,
-        use_bram=False
+        use_bram=False,
     )
 
     cocotb_test_fixture.write({"waveform": waveform, "check": check})
     cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_0")
+    cocotb_test_fixture.clear_srcs()
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 5, 3)])
+@pytest.mark.parametrize("is_signed", [True, False])
+def test_waveform_lut_opt_normal_build2(
+    cocotb_test_fixture: CocotbTestFixture,
+    bitwidth: int,
+    num_params: int,
+    num_trials: int,
+    is_signed: bool,
+):
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
+    data0 = WaveformGenerator(100.0, False).create_design(
+        waveform="SINE_FULL",
+        num_params=num_params,
+        is_signed=is_signed,
+        target="fpga",
+        bitwidth=bitwidth,
+        id="1",
+        path2save=build_dir,
+        use_bram=False,
+        do_opt=True,
+    )
+    check = reconstruct_signal(
+        waveform=data0, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
+    )
+    cocotb_test_fixture.write({"waveform": data0, "check": check})
+    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(params={}, defines={})

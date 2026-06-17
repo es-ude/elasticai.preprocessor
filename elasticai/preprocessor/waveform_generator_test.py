@@ -2,6 +2,8 @@ from unittest import TestCase, main
 
 import numpy as np
 
+from elasticai.preprocessor import get_path_to_project
+
 from .waveform_generator import WaveformGenerator
 
 
@@ -522,6 +524,90 @@ class TestWaveformGenerator(TestCase):
             count=100, min_gap=0.002, max_gap=0.01
         )
         self.assertEqual(len(rslt), 100)
+
+    def test_create_verilog_waveform_lut_full(self):
+        path2save = get_path_to_project("build_files") / "waveform_lut_full"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        WaveformGenerator(100.0, False).create_design(
+            waveform="SINE_FULL",
+            num_params=21,
+            is_signed=False,
+            target="fpga",
+            bitwidth=8,
+            id="0",
+            path2save=path2save,
+            use_bram=False,
+            do_opt=False,
+        )
+        files_available = ["waveform_lut_full_0.v"]
+        for file in path2save.glob("*.v"):
+            assert file.exists()
+            assert file.name in files_available
+
+    def test_create_verilog_waveform_lut_opt(self):
+        path2save = get_path_to_project("build_files") / "waveform_lut_opt"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        WaveformGenerator(100.0, False).create_design(
+            waveform="SINE_FULL",
+            num_params=11,
+            is_signed=True,
+            target="fpga",
+            bitwidth=8,
+            id="0",
+            path2save=path2save,
+            use_bram=False,
+            do_opt=True,
+        )
+        files_available = ["waveform_lut_opt_0.v"]
+        for file in path2save.glob("*.v"):
+            assert file.exists()
+            assert file.name in files_available
+
+    def test_create_verilog_waveform_ram_full(self):
+        path2save = get_path_to_project("build_files") / "waveform_ram_full"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        WaveformGenerator(100.0, False).create_design(
+            waveform="SINE_FULL",
+            num_params=11,
+            target="fpga",
+            bitwidth=8,
+            is_signed=False,
+            id="0",
+            path2save=path2save,
+            use_bram=True,
+            do_opt=False,
+        )
+        files_check = ["waveform_ram_full_0.v", "data.mem", "bram_single_port_0.v"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
+
+    def test_create_verilog_waveform_ram_opt(self):
+        path2save = get_path_to_project("build_files") / "waveform_ram_opt"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        WaveformGenerator(100.0, False).create_design(
+            waveform="SINE_FULL",
+            num_params=11,
+            target="fpga",
+            bitwidth=8,
+            is_signed=False,
+            id="0",
+            path2save=path2save,
+            use_bram=True,
+            do_opt=True,
+        )
+        files_check = ["waveform_ram_opt_0.v", "data.mem", "bram_single_port_0.v"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
 
 
 if __name__ == "__main__":
