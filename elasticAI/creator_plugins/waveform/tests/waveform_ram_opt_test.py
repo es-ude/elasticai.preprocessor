@@ -10,7 +10,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 
 from elasticai.creator_plugins.waveform.tests.waveform_lut_opt_test import reconstruct_signal
-from elasticai.creator_plugins.waveform.utils import load_and_plugin
+from elasticai.creator_plugins.waveform.utils import WaveformGenerator, load_and_plugin
 
 
 @cocotb.test()
@@ -162,6 +162,33 @@ def test_waveform_ram_opt_normal_build(
 
     cocotb_test_fixture.write({"check": check})
     cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_OPT_0")
+    cocotb_test_fixture.clear_srcs()
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params", [(6, 5)])
+@pytest.mark.parametrize("is_signed", [True, False])
+def test_waveform_ram_opt_normal_build2(
+    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, is_signed: bool
+):
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
+    data0 = WaveformGenerator(100.0, False).create_design(
+        waveform="SINE_FULL",
+        num_params=num_params,
+        is_signed=is_signed,
+        target="fpga",
+        bitwidth=bitwidth,
+        id="1",
+        path2save=build_dir,
+        use_bram=True,
+        do_opt=True,
+    )
+    data0.reverse()
+    check = reconstruct_signal(waveform=data0, bitwidth=bitwidth, is_signed=is_signed, num_trials=1)
+    cocotb_test_fixture.write({"check": check})
+    cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_OPT_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(params={}, defines={})

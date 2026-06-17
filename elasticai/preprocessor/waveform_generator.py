@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
+from pathlib import Path
 from typing import Callable
 
 import numpy as np
-from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
+from elasticai.creator.arithmetic import FxpArithmetic, FxpParams, int_converter
+from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 from scipy import signal
 
+import elasticai.creator_plugins.waveform.utils as hw_utils
 from elasticai.preprocessor._check_funcs import check_keylist_elements_any
 
 
@@ -36,7 +39,6 @@ class WaveformGenerator:
         """Class for generating the transient stimulation signal
         :param sampling_rate:   Sampling rate of the signal
         :param add_noise:       Boolean for adding noise to output
-        :param settings_noise:  Settings noise to add to output
         """
         self._logger = getLogger(__name__)
         self.__add_noise: bool = add_noise
@@ -237,11 +239,12 @@ class WaveformGenerator:
         :param bitwidth:            Integer with total bitwidth
         :param bitfrac:             Integer with fraction bitwidth
         :param signed:              If quantized output should be signed integer
-        :param do_opt:              Boolean for taking quarter signal (optimzed version for hardware implementation)
+        :param do_opt:              Boolean for taking quarter signal (optimized version for hardware implementation)
         :returns:                   Dataclass WaveformSignal with quantized signals ['time', 'signal', 'fs', 'rms']
         """
-        assert check_keylist_elements_any(waveform_select, ["SINE_FULL", "RECT_FULL", "TRI_FULL"]), (
-            "Only 'waveform_select' with ['SINE_FULL', 'RECT_FULL', 'TRI_FULL'] are allowed!"
+        supported_waveform_types = ["SINE_FULL", "RECT_FULL", "TRI_FULL"]
+        assert check_keylist_elements_any(waveform_select, supported_waveform_types), (
+            f"Only 'waveform_select' with {supported_waveform_types} are allowed!"
         )
         wvf_norm = self.generate_waveform(
             time_points=time_points,
@@ -250,8 +253,11 @@ class WaveformGenerator:
             polarity_cathodic=polarity_cathodic,
         )
 
+        scale = 1.0 if signed else 0.5
+        offset = 0.0 if signed else 0.5
+        val_in = (wvf_norm.signal * scale + offset) if not do_opt else wvf_norm.signal
         arith = FxpArithmetic(fxp_params=FxpParams(total_bits=bitwidth, frac_bits=bitfrac, signed=signed))
-        wvf_fxp = arith.round_to_rational(wvf_norm.signal.tolist())
+        wvf_fxp = arith.round_to_rational(val_in.tolist())
         wvf_fxp = np.asarray(wvf_fxp)
 
         if do_opt:
@@ -332,3 +338,120 @@ class WaveformGenerator:
             else:
                 values.append(gap)
         return values
+
+    def create_design(
+        self,
+        waveform: str,
+        num_params: int,
+        is_signed: bool,
+        target: str,
+        bitwidth: int,
+        id: str,
+        path2save: Path,
+        use_bram: bool = False,
+        do_opt: bool = False,
+    ) -> list[int]:
+        """Creating the hardware design for executing on specific target
+        :param waveform:    String with waveform type for anodic phase
+        :param num_params:  Number of params for the waveform
+        :param is_signed:   Boolean indicating whether to use signed or not
+        :param target:      String with target name ["mcu", "pc", "fpga"]
+        :param bitwidth:    Integer with total bitwidth
+        :param id:          String with unique identifier of device (appended to the name)
+        :param path2save:   Path to save the hardware files
+        :param use_bram:    Boolean indicating whether to use bram or not
+        :param do_opt:      Boolean indicating whether to do opt or not
+        :return:            None
+        """
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        if target.lower() in ["mcu", "pc"]:
+            return self._create_design_c(
+                waveform=waveform,
+                num_params=num_params,
+                is_signed=is_signed,
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+                do_opt=do_opt,
+            )
+        else:
+            return self._create_design_verilog(
+                waveform=waveform,
+                num_params=num_params,
+                is_signed=is_signed,
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+                do_opt=do_opt,
+                use_bram=use_bram,
+            )
+
+    @staticmethod
+    def _create_design_verilog(
+        waveform: str,
+        num_params: int,
+        is_signed: bool,
+        id: str,
+        bitwidth: int,
+        path2save: Path,
+        do_opt: bool,
+        use_bram: bool,
+    ) -> list[int]:
+        path2save.mkdir(parents=True, exist_ok=True)
+        conv = int_converter(total_bits=bitwidth if not do_opt else bitwidth - 1, signed=not do_opt)
+        wvf = hw_utils.prepare_waveform(
+            waveform=waveform,
+            bitwidth=bitwidth,
+            num_params=num_params,
+            do_opt=do_opt,
+            is_signed=is_signed,
+        )
+
+        if use_bram:
+            path2mem = path2save / "data.mem"
+            if do_opt:
+                wvf.reverse()
+            write_mem_file(path=path2mem, data=wvf, bitwidth=bitwidth if do_opt else bitwidth - 1)
+            verilog_type = "waveform_ram_full" if not do_opt else "waveform_ram_opt"
+            params = {
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "RAMWIDTH": len(wvf),
+                "PATH2MEM": translate_path_to_int(path2mem),
+            }
+        else:
+            verilog_type = "waveform_lut_full" if not do_opt else "waveform_lut_opt"
+            params = {
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "LUTWIDTH": len(wvf),
+                "LUT_DATA": conv.integer_to_hex_string_array_verilog(wvf),
+            }
+
+        if do_opt:
+            params.update({"SIGNED_OUT": 1 if is_signed else 0})
+
+        hw_utils.load_and_plugin(
+            type=verilog_type,
+            id=id,
+            params=params,
+            packages=["waveform"],
+            path2save=path2save,
+            use_bram=use_bram,
+        )
+        return wvf
+
+    @staticmethod
+    def _create_design_c(
+        waveform: str,
+        num_params: int,
+        is_signed: bool,
+        id: str,
+        bitwidth: int,
+        path2save: Path,
+        do_opt: bool,
+    ) -> list[int]:
+        raise NotImplementedError
