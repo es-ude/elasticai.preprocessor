@@ -37,7 +37,7 @@ def test_equivalence_precompiled(build_path: Path, template_path: Path) -> None:
         library_path=precompiled_path.as_posix(),
         headers=header_files
     )
-    lib = loader.load()
+    loader.load()
     c_add = loader.get("add")
 
     a = 5
@@ -55,7 +55,7 @@ def test_equivalence_compiled(build_path: Path, template_path: Path):
         sources=source_files,
         build_dir=temp_dir.as_posix(),
     )
-    lib2 = compile_loader.load()
+    compile_loader.load()
     c_add2 = compile_loader.get("add")
 
     a = 10

@@ -609,6 +609,52 @@ class TestWaveformGenerator(TestCase):
         assert len(files_check) == len(files_avai)
         assert files_check == files_avai
 
+    def test_create_c_waveform_lut_full(self):
+        path2save = get_path_to_project("build_files") / "waveform_lut_full_c"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        wvf = WaveformGenerator(sampling_rate=1., add_noise=False).create_design(
+            waveform="SINE_FULL",
+            num_params=21,
+            target="mcu",
+            bitwidth=8,
+            is_signed=True,
+            id="0",
+            path2save=path2save,
+            use_bram=False,
+            do_opt=False,
+        )
+        files_check = ["waveform_lut_0.c", "waveform_lut_0.h", "waveform_lut_template.h"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
+
+    def test_create_c_waveform_lut_opt(self):
+        path2save = get_path_to_project("build_files") / "waveform_lut_opt_c"
+        path2save.mkdir(parents=True, exist_ok=True)
+
+        wvf = WaveformGenerator(sampling_rate=1., add_noise=False).create_design(
+            waveform="SINE_FULL",
+            num_params=11,
+            target="mcu",
+            bitwidth=8,
+            is_signed=True,
+            id="1",
+            path2save=path2save,
+            use_bram=False,
+            do_opt=True,
+        )
+        files_check = ["waveform_lut_1.c", "waveform_lut_1.h", "waveform_lut_template.h"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
+
 
 if __name__ == "__main__":
     main()

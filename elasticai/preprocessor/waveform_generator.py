@@ -3,13 +3,20 @@ from logging import Logger, getLogger
 from pathlib import Path
 from typing import Callable
 
+from datetime import datetime
 import numpy as np
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams, int_converter
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 from scipy import signal
 
 import elasticai.creator_plugins.waveform.utils as hw_utils
+from elasticai.creator_plugins.waveform.c.waveform_lut_c import generate_waveform_lut_template
 from elasticai.preprocessor._check_funcs import check_keylist_elements_any
+from elasticai.preprocessor.translation.ir2c import (
+    get_embedded_datatype,
+    replace_variables_with_parameters,
+    generate_c_files,
+)
 
 
 @dataclass(frozen=True)
@@ -88,13 +95,13 @@ class WaveformGenerator:
         else:
             area_first = np.trapezoid(waveforms[0])
             area_second = np.trapezoid(waveforms[-1])
-            return np.abs(area_first / area_second)
+            return float(np.abs(area_first / area_second))
 
     def check_charge_balancing(self, signal: np.ndarray) -> float:
         """Checking if stimulation signal is charge balanced"""
         dq = np.trapezoid(signal)
         self._logger.info(f"... waveform has an error of {dq:.6f}")
-        return dq
+        return float(dq)
 
     def __generate_zero(self) -> np.ndarray:
         out = np.zeros((self._num_samples,), dtype=float)
@@ -368,6 +375,8 @@ class WaveformGenerator:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
         if target.lower() in ["mcu", "pc"]:
+            if use_bram:
+                raise AttributeError("BRAM is not supported for MCU and PC")
             return self._create_design_c(
                 waveform=waveform,
                 num_params=num_params,
@@ -454,4 +463,40 @@ class WaveformGenerator:
         path2save: Path,
         do_opt: bool,
     ) -> list[int]:
-        raise NotImplementedError
+        # --- Step #1: Generating the waveform
+        datatype_data_ext = get_embedded_datatype(bitwidth=bitwidth, signed=is_signed)
+        bitwidth_mcu = int(datatype_data_ext.split("int")[-1].split("_")[0])
+        wvf = hw_utils.prepare_waveform(
+            waveform=waveform,
+            bitwidth=bitwidth_mcu,
+            num_params=num_params,
+            do_opt=do_opt,
+            is_signed=is_signed,
+        )
+        # --- Step #2: Generating the values for parameter dict
+        params = {
+            "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+            "path2include": "src",
+            "template_name": "waveform_lut_template.h",
+            "device_id": str(id.upper()),
+            "datatype_cnt": get_embedded_datatype(bitwidth=len(wvf), signed=False),
+            "datatype_int": get_embedded_datatype(bitwidth, signed=is_signed),
+            "num_lutsine": str(len(wvf)),
+            "lut_offset": str(
+                0 if not do_opt else (0 if is_signed else (2 ** (bitwidth_mcu - 1)))
+            ),
+            "lut_data": ", ".join(map(str, wvf))
+        }
+        # --- Step #3: Replace string parameters with real values
+        path2template = Path(hw_utils.__file__).parent / "c",
+        template = generate_waveform_lut_template(do_opt)
+        generate_c_files(
+            path2save=path2save.as_posix(),
+            template_name=params["template_name"],
+            file_name="waveform_lut",
+            module_id=id.lower(),
+            proto_file=replace_variables_with_parameters(template["head"], params),
+            impl_file=replace_variables_with_parameters(template["func"], params),
+            path2template=path2template[0].as_posix(),
+        )
+        return wvf
