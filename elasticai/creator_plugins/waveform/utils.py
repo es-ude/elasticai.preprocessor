@@ -7,12 +7,12 @@ from elasticai.creator.file_generation import find_project_root as get_path_to_b
 from elasticai.creator.ir import Registry, attribute
 from elasticai.creator.ir2verilog import Ir2Verilog, factory
 
-from elasticai.preprocessor.waveform_generator import WaveformGenerator
-
 
 def prepare_waveform(
     waveform: str, bitwidth: int, num_params: int, do_opt: bool = False, is_signed: bool = True
 ) -> list[int]:
+    from elasticai.preprocessor.waveform_generator import WaveformGenerator
+
     params = num_params if not do_opt else 4 * num_params - 3
 
     arith = int_arithmetic(total_bits=bitwidth, signed=True)
