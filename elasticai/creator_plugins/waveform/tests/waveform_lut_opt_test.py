@@ -7,7 +7,8 @@ from cocotb.triggers import RisingEdge
 from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
-from elasticai.creator_plugins.waveform.utils import WaveformGenerator, load_and_plugin, prepare_waveform
+from elasticai.creator_plugins.waveform.utils import load_and_plugin, prepare_waveform
+from elasticai.preprocessor.waveform_generator import WaveformGenerator
 
 
 def reconstruct_signal(waveform: list[int], bitwidth: int, is_signed: bool, num_trials: int) -> list[int]:

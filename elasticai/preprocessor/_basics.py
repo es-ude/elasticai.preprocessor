@@ -1,12 +1,12 @@
 from pathlib import Path
 
 
-def get_path_to_project(new_folder: str = "", max_levels: int = 5) -> Path:
+def get_path_to_project(new_folder: str = "") -> Path:
     """Function for getting the root path to of the project
-    :param new_folder:  New folder path
-    :param max_levels:  Max number of levels to get-out for finding pyproject.toml
+    :param new_folder:  String with new folder
     :return:            Path with absolute path to entry point of the project
     """
+    max_levels = 5
     cwd = Path(".").absolute()
     current = cwd
 
