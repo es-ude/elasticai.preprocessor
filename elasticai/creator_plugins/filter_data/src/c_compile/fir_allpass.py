@@ -30,7 +30,7 @@ def build_filter_fir_allpass(
     Return:
         None
     """
-    assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
+    assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
     assert settings.b_type.lower() == "allpass"
     assert settings.type.lower() == "fir", f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
 

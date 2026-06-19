@@ -40,19 +40,27 @@ INPUT_DATA = np.array(
     dtype=np.int8,
 )
 
+INTEGER_CONFIGS = [
+    pytest.param(8, np.int8, "signed char", id="int8"),
+    pytest.param(32, np.int32, "signed int", id="int32"),
+]
+
 
 def assert_c_filter_equivalent(
     settings: SettingsFilter,
     tmp_path: Path,
     source_name: str,
     function_name: str,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
 ) -> None:
     filtering = Filtering(settings)
     output_dir = tmp_path / "src"
-    filtering.create_design("mcu", 8, "0", output_dir, signed=True)
+    filtering.create_design("mcu", bitwidth, "0", output_dir, signed=True)
 
     adapter = tmp_path / "adapter.h"
-    adapter.write_text(f"signed char {function_name}(signed char data);\n")
+    adapter.write_text(f"{c_type} {function_name}({c_type} data);\n")
 
     loader = CompileLoader(
         headers=str(adapter),
@@ -63,7 +71,7 @@ def assert_c_filter_equivalent(
     loader.load()
     c_filter = loader.get(function_name)
 
-    expected = filtering.filt(INPUT_DATA.astype(float)).astype(np.int8)
+    expected = filtering.filt(INPUT_DATA.astype(float)).astype(numpy_dtype)
     for index, (input_value, python_value) in enumerate(zip(INPUT_DATA, expected, strict=True)):
         c_value = int(c_filter(int(input_value)))
         passed, reason = compare_values(int(python_value), c_value)
@@ -73,26 +81,77 @@ def assert_c_filter_equivalent(
         )
 
 
-def test_fir_full_c_matches_python(tmp_path: Path) -> None:
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+def test_fir_full_c_matches_python(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
     settings = SettingsFilter(1.0, 1000.0, 6, [100.0], "fir", "butter", "lowpass")
-    assert_c_filter_equivalent(settings, tmp_path, "filter_fir_low0.c", "calc_filter_fir_LOW0")
+    assert_c_filter_equivalent(
+        settings,
+        tmp_path,
+        "filter_fir_low0.c",
+        "calc_filter_fir_LOW0",
+        bitwidth,
+        numpy_dtype,
+        c_type,
+    )
 
 
-def test_fir_optimized_c_matches_python(tmp_path: Path) -> None:
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+def test_fir_optimized_c_matches_python(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
     settings = SettingsFilter(1.0, 1000.0, 7, [100.0], "fir", "butter", "lowpass")
-    assert_c_filter_equivalent(settings, tmp_path, "filter_fir_low0.c", "calc_filter_fir_LOW0")
+    assert_c_filter_equivalent(
+        settings,
+        tmp_path,
+        "filter_fir_low0.c",
+        "calc_filter_fir_LOW0",
+        bitwidth,
+        numpy_dtype,
+        c_type,
+    )
 
 
-def test_fir_allpass_c_matches_python(tmp_path: Path) -> None:
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+def test_fir_allpass_c_matches_python(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
     settings = SettingsFilter(1.0, 1000.0, 4, [50.0], "fir", "butter", "allpass")
     assert_c_filter_equivalent(
         settings,
         tmp_path,
         "filter_fir_all0.c",
         "calc_filter_fir_all_ALL0",
+        bitwidth,
+        numpy_dtype,
+        c_type,
     )
 
 
-def test_iir_c_matches_python(tmp_path: Path) -> None:
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+def test_iir_c_matches_python(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
     settings = SettingsFilter(1.0, 1000.0, 2, [100.0], "iir", "butter", "lowpass")
-    assert_c_filter_equivalent(settings, tmp_path, "filter_iir_low0.c", "calc_filter_iir_LOW0")
+    assert_c_filter_equivalent(
+        settings,
+        tmp_path,
+        "filter_iir_low0.c",
+        "calc_filter_iir_LOW0",
+        bitwidth,
+        numpy_dtype,
+        c_type,
+    )
