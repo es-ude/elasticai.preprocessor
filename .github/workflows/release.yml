@@ -12,11 +12,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup devenv
-        uses: ./.github/actions/setup-devenv
+      - name: Setup uv
+        uses: ./.github/actions/setup-uv
 
       - name: Build package
-        run: devenv tasks package:build
+        run: uv build
 
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
