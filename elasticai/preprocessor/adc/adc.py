@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from fractions import Fraction
 from logging import Logger, getLogger
+from pathlib import Path
 
 import numpy as np
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
+from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 from scipy.signal import resample_poly
 
+from elasticai.creator_plugins.player.utils import load_and_plugin
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
@@ -229,3 +232,38 @@ class TransientResampler:
         """
         xin = self._do_resample(data)
         return self._quantize_digital(xin, is_int_input=True, is_int_output=is_int_output)
+
+    def create_verilog_design(self, id: str, path2save: Path, data: np.ndarray, trgg: list = []) -> None:
+        """Function for creating the Verilog designs to use pre-recorded in simulations
+        :param id:          ID of Verilog designs
+        :param path2save:   Path to the saved Verilog designs
+        :param data:        Numpy array with transient data / frame used in Simulation [shape=(num_samples, ), type=int]
+        :param trgg:        List with trigger output (event detection, ...) used in Simulation [shape=(num_samples, ), type=int]
+        :return:            None
+        """
+        use_trgg = len(trgg) > 0
+        if "int" not in data.dtype.name:
+            raise ValueError("Type of input data is not 'int'")
+        print(data.shape)
+        if data.shape not in ((data.size,), (1, data.size)):
+            raise ValueError("shape")
+
+        path2data = path2save / f"replayer_{id}_data.mem"
+        write_mem_file(path=path2data, data=data.tolist(), bitwidth=self._settings.total_bits)
+        path2trgg = path2save / f"replayer_{id}_trgg.mem"
+        if use_trgg:
+            write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
+
+        load_and_plugin(
+            type="replayer",
+            id=id,
+            params={
+                "BITWIDTH": self._settings.total_bits,
+                "NUM_VALUES": data.size,
+                "PATH2DATA": translate_path_to_int(path2data),
+                "PATH2TRGG": translate_path_to_int(path2trgg),
+                "ADD_TRIGGER": use_trgg,
+            },
+            packages=["player"],
+            path2save=path2save,
+        )
