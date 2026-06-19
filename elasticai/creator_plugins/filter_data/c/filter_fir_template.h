@@ -14,7 +14,7 @@ typedef struct {
 
 #ifndef DEF_CALC_FIR
 #define DEF_CALC_FIR(id, input_type) \
-input_type calc_filter_fir_ ## id (input_type data, FirFilter *filter) { \
+input_type calc_next_datum_filter_fir_ ## id (input_type data, FirFilter *filter) { \
     uint16_t filter_tap_start = filter->tap_start; \
     float* filter_coeff = filter->coefficients; \
     uint16_t filter_coeff_length = filter->coefficient_length; \
@@ -55,7 +55,7 @@ input_type calc_filter_fir_ ## id (input_type data, FirFilter *filter) { \
             .tap_length = order, \
             .taps = filter_taps \
         }; \
-        return calc_filter_fir(data, & (settings)); \
+        return calc_next_datum_filter_fir_ ## id (data, & (settings)); \
     }
 #endif
 

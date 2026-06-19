@@ -1,5 +1,9 @@
 from copy import deepcopy
-from unittest import TestCase, main
+from pathlib import Path
+from shutil import which
+from subprocess import run
+from tempfile import TemporaryDirectory
+from unittest import TestCase, main, skipUnless
 
 import numpy as np
 from scipy.signal import find_peaks
@@ -35,6 +39,22 @@ class TestDigitalFilters(TestCase):
         dtype=float,
     )
     freq = [10.0, 20.0, 50.0, 100.0, 200.0]
+
+    def assert_c_compiles(self, project_dir: Path, source: Path) -> None:
+        run(
+            [
+                "cc",
+                "-std=c11",
+                f"-I{project_dir}",
+                "-c",
+                str(source),
+                "-o",
+                str(source.with_suffix(".o")),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
     def test_signal_generation(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
@@ -554,6 +574,98 @@ class TestDigitalFilters(TestCase):
         for file in path2save.glob("*.v"):
             assert file.exists()
             assert file.name in files_available
+
+    def test_create_c_filter_fir_full(self):
+        sets = deepcopy(test_settings)
+        sets.type = "fir"
+        sets.b_type = "lowpass"
+        sets.n_order = 20
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            Filtering(sets).create_design("mcu", 8, "0", path2save, signed=False)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "filter_fir_template.h",
+                "filter_fir_low0.h",
+                "filter_fir_low0.c",
+            }
+            assert "uint8_t" in (path2save / "filter_fir_low0.h").read_text()
+            assert "template (full)" in (path2save / "filter_fir_low0.c").read_text()
+
+    def test_create_c_filter_fir_optimized(self):
+        sets = deepcopy(test_settings)
+        sets.type = "fir"
+        sets.b_type = "lowpass"
+        sets.n_order = 21
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            Filtering(sets).create_design("mcu", 8, "0", path2save)
+
+            assert "template (opt)" in (path2save / "filter_fir_low0.c").read_text()
+
+    def test_create_c_filter_fir_allpass(self):
+        sets = deepcopy(test_settings)
+        sets.type = "fir"
+        sets.b_type = "allpass"
+        sets.n_order = 12
+        sets.f_filt = [50.0]
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            Filtering(sets).create_design("mcu", 8, "0", path2save)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "filter_fir_all_template.h",
+                "filter_fir_all0.h",
+                "filter_fir_all0.c",
+            }
+
+    def test_create_c_filter_iir(self):
+        sets = deepcopy(test_settings)
+        sets.type = "iir"
+        sets.b_type = "lowpass"
+        sets.n_order = 2
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            Filtering(sets).create_design("pc", 16, "0", path2save)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "filter_iir_template.h",
+                "filter_iir_low0.h",
+                "filter_iir_low0.c",
+            }
+
+    @skipUnless(which("cc"), "requires a C compiler")
+    def test_create_c_filter_fir_compiles(self):
+        sets = deepcopy(test_settings)
+        sets.type = "fir"
+        sets.b_type = "lowpass"
+        sets.n_order = 21
+
+        with TemporaryDirectory() as directory:
+            project_dir = Path(directory)
+            path2save = project_dir / "src"
+            Filtering(sets).create_design("mcu", 8, "0", path2save)
+
+            self.assert_c_compiles(project_dir, path2save / "filter_fir_low0.c")
+
+    @skipUnless(which("cc"), "requires a C compiler")
+    def test_create_c_filter_fir_allpass_compiles(self):
+        sets = deepcopy(test_settings)
+        sets.type = "fir"
+        sets.b_type = "allpass"
+        sets.n_order = 12
+        sets.f_filt = [50.0]
+
+        with TemporaryDirectory() as directory:
+            project_dir = Path(directory)
+            path2save = project_dir / "src"
+            Filtering(sets).create_design("mcu", 8, "0", path2save)
+
+            self.assert_c_compiles(project_dir, path2save / "filter_fir_all0.c")
 
 
 if __name__ == "__main__":

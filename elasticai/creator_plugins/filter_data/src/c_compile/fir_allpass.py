@@ -1,7 +1,7 @@
 from datetime import datetime
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 
-import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
+import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.filter import SettingsFilter
 from elasticai.preprocessor.translation.ir2c import (
@@ -32,13 +32,11 @@ def build_filter_fir_allpass(
     """
     assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
     assert settings.b_type.lower() == "allpass"
-    assert settings.type.lower() == "fir", (
-        f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
-    )
+    assert settings.type.lower() == "fir", f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
 
     module_id = f"{settings.b_type.lower().split('pass')[0]}{filter_id.lower()}"
     data_type_filter = get_embedded_datatype(bitwidth, signed)
-    filter_order = int(settings.fs / settings.f_filt[0])
+    filter_order = settings.n_order
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
@@ -58,7 +56,7 @@ def build_filter_fir_allpass(
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=dirname(abspath(design_plugin.__file__)),
+        path2template=join(dirname(abspath(design_plugin.__file__)), "c"),
     )
 
 

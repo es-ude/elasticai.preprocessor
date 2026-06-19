@@ -1,7 +1,7 @@
 from datetime import datetime
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 
-import elasticai.creator_plugins.plugins_c.filter_data as design_plugin
+import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.filter import Filtering, SettingsFilter
 from elasticai.preprocessor.translation.ir2c import (
@@ -30,9 +30,7 @@ def build_filter_iir(
     Return:
         None
     """
-    assert settings.type.lower() == "iir", (
-        f"Key 'type' must be 'iir' and not '{settings.type.lower()}'"
-    )
+    assert settings.type.lower() == "iir", f"Key 'type' must be 'iir' and not '{settings.type.lower()}'"
     assert bitwidth in range(2, 32), "Bitwidth must be between 2 and 32"
 
     coeff = Filtering(setting=settings).get_coeffs()
@@ -50,9 +48,7 @@ def build_filter_iir(
         "filter_order": str(settings.n_order),
         "coeff_order": str(len(coeff.a)),
         "tap_order": str(len(coeff.b) - 1),
-        "coeffs_string": ", ".join(map(str, coeff.a))
-        + ", "
-        + ", ".join(map(str, coeff.b)),
+        "coeffs_string": ", ".join(map(str, coeff.a)) + ", " + ", ".join(map(str, coeff.b)),
     }
 
     template_c = __generate_filter_iir_template()
@@ -63,7 +59,7 @@ def build_filter_iir(
         module_id=module_id_used,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=dirname(abspath(design_plugin.__file__)),
+        path2template=join(dirname(abspath(design_plugin.__file__)), "c"),
     )
 
 
