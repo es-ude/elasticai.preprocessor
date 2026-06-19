@@ -9,13 +9,14 @@ from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
+# Änderungen:
+# externe build_test_signal Funktion
+# umgestellt auf externen Input von Eingangssignal und Check Wert
+# Umstellung des der Pytests auf Vorgabe über cocotb_test_fixture.write()
+# Ich gebe das gleiche generierte Signal in die Testbench und in die Äquivalenzfunktion
 
-# Generierung von Testsignal in neue Funktion und dieses dann an cocotb testbench übergeben
-# bitwidth an buikd_test signal?
-# dann über write im jeweiligen test einfügen 
-# check wert dann entsprechend umbauen
 
-def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) -> list: # Vorher in cocotb-Testbench
+def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) -> list: # Vorher in cocotb-Testbench, Signal geht sowohl in TB als auch in Python_Funktion (Äquivalenz)
     mid_cm = 2 ** (bitwidth - 1)
 
     sig_in = mid_cm + (mid_cm - 2) * np.sin(
@@ -26,7 +27,7 @@ def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) 
 
 @cocotb.test()
 @eai_testbench
-async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in, check): # Neu: externes testsignal und Check Wert
+async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int], check: list[int]): # Neu: externes testsignal und Check Wert
     period_smp = 10
     gain_cic = 2**poly_order
 
@@ -48,7 +49,8 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in, check): 
     dut.DATA_IN.value = int(sig_in[0])
     dut.EN.value = 1
     cocotb.start_soon(Clock(dut.CLK_HGH, period_smp, unit="ns").start())
-    #for val in sig_in:
+
+    #for val in sig_in: 
     for val, expected in zip(sig_in, check):
         dut.DATA_IN.value = int(val)
 
@@ -57,8 +59,8 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in, check): 
             await FallingEdge(dut.CLK_LOW)
         if poly_order > 1:
             await FallingEdge(dut.CLK_LOW)
-        #assert dut.DATA_OUT.value in range(int(int(val) * gain_cic - 1), int(int(val) * gain_cic + 1)) # nur grober Check, jetzt genauer
-        assert abs(int(dut.DATA_OUT.value) - int(expected)) <= 1 # externer Check-Wert
+        #assert dut.DATA_OUT.value in range(int(int(val) * gain_cic - 1), int(int(val) * gain_cic + 1))    
+        assert abs(int(dut.DATA_OUT.value) - int(expected) * gain_cic) <= 1 # externer Check-Wert (genauer als vorher)
         
 
 
@@ -78,6 +80,7 @@ def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
     cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_asic.v")
     cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_ASIC")
     cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
+
 
 
 @pytest.mark.simulation
@@ -114,13 +117,14 @@ def test_filter_polydec_asic_build(
 def test_filter_polydec_asic_build_equal(
         cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
 ):
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     dut = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0, # Default Settings
             dsr=10,
         )
     )
-    # Test-Daten
+    # Test-Signal
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_periods=2,
@@ -128,21 +132,19 @@ def test_filter_polydec_asic_build_equal(
     )
     
     #Erwarteter Wert aus Python Funktion
-    data_checked = (dut.do_decimation_polyphase_order_two(  
-        uin=[1, 2, 3, 4, 5, 6, 7] # bitwidth = 3
+    data_checked = (dut.do_decimation_polyphase_order_two(  # sind momentan nicht äquivalent
+        uin=data_in
     )).tolist()
-    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=2, signed=True))
-    data_checked = arith_data.cut_as_integer(data_checked)
 
     load_and_plugin(
         type="polydec_asic",
         id="1",
         params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
         packages=["datarate"],
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
+        path2save=build_dir,
     )
     
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked}) # Eingangsdaten sind Test-Daten, Erwarteter Output ist Ergebnis der Python-Funktion
+    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked}) # Eingangsdaten sind Test-Daten, Erwarteter Output ist Ergebnis der Python-Funktion (Fehler bei assert in Testbench)
     cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -150,11 +152,4 @@ def test_filter_polydec_asic_build_equal(
         params={},
         defines={},
     )
-# über write wird Eingangssignal und Checkwert an die cocotb testbench weitergeben, diese verarbeitet die dann
-# ---> Wie gebe ich hier Eingangssignal und Check Wert an die testbench??
 
-    # offen:
-    # data und check? bei biquad df1 in cocotb testbench funktion
-    # wie build_testdata nutzen
-    # wo wird die Ausgabe von HW mit dem Ergebnis von Python Funktion verglichen?
-    # "key generated already exists" Fehler bei build und equal test
