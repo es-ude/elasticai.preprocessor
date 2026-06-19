@@ -49,8 +49,7 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
     dut.DATA_IN.value = int(sig_in[0])
     dut.EN.value = 1
     cocotb.start_soon(Clock(dut.CLK_HGH, period_smp, unit="ns").start())
-
-    #for val in sig_in: 
+ 
     for val, expected in zip(sig_in, check):
         dut.DATA_IN.value = int(val)
 
@@ -58,11 +57,12 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
         if poly_order > 0:
             await FallingEdge(dut.CLK_LOW)
         if poly_order > 1:
-            await FallingEdge(dut.CLK_LOW)
-        #assert dut.DATA_OUT.value in range(int(int(val) * gain_cic - 1), int(int(val) * gain_cic + 1))    
-        assert abs(int(dut.DATA_OUT.value) - int(expected) * gain_cic) <= 1 # externer Check-Wert (genauer als vorher)
+            await FallingEdge(dut.CLK_LOW)   
+        assert abs(int(dut.DATA_OUT.value) - int(expected) * gain_cic) <= 1 
         
 
+#  --------------- (1) Template Test ------------------
+# Funktioniert das Template überhaupt? Läuft es durch?
 
 @pytest.mark.simulation
 @pytest.mark.parametrize(
@@ -82,6 +82,7 @@ def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
     cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
 
 
+#  --------------- (2) Build Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, poly_order", [(4, 2)])
