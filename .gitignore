@@ -8,4 +8,4 @@ elasticai/__init__.py
 **/.venv
 **/.env
 **/.devenv
-
+**/docs
