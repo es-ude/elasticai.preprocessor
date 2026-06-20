@@ -65,6 +65,13 @@ in {
     "package:build" = {
       exec = "${uv_build}";
     };
+    "docs:check" = {
+      exec = ''
+        export LC_ALL=C  # necessary to run in github action
+        ${uv_run} sphinx-build -b singlehtml docs build/docs
+      '';
+      after = ["docs:clean"];
+    };
     "docs:build" = {
       exec = ''
         export LC_ALL=C  # necessary to run in github action
