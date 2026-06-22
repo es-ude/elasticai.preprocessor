@@ -80,7 +80,7 @@ in {
     "docs:check" = {
       exec = ''
         export LC_ALL=C  # necessary to run in github action
-        ${uv_run} sphinx-build -b singlehtml docs build/docs
+        ${uv_run} sphinx-build -b html docs build/docs
       '';
       after = ["docs:clean"];
     };

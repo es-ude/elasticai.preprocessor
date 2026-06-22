@@ -13,5 +13,5 @@ elasticai/__init__.py
 
 .coverage
 coverage.xml
-.testmondata
+.testmondata*
 
