@@ -362,19 +362,27 @@ class Filtering(CommonDigitalFunctions):
         plt.tight_layout()
         plt.show(block=show_plot)
 
-    def create_design(self, target: str, bitwidth: int, id: str, path2save: Path) -> None:
+    def create_design(
+        self, target: str, bitwidth: int, id: str, path2save: Path, signed: bool = True
+    ) -> None:
         """Creating the hardware design for executing on specific target
         :param target:      String with target name ["mcu", "pc", "fpga"]
         :param bitwidth:    Integer with total bitwidth
         :param id:          String with unique identifier of device (appended to the name)
         :param path2save:   Path to save the hardware files
+        :param signed:      Whether generated C designs use a signed integer data type
         :return:            None
         """
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if target.lower() in ["mcu", "pc"]:
-            self._create_design_c()
+            self._create_design_c(
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
         else:
             self._create_design_verilog(id=id, bitwidth=bitwidth, path2save=path2save, num_mult=1)
 
@@ -486,5 +494,39 @@ class Filtering(CommonDigitalFunctions):
 
         hw_filters.load_and_plugin(packages=["filter_data"], path2save=path2save, **params)
 
-    def _create_design_c(self) -> None:
-        raise NotImplementedError
+    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        from elasticai.creator_plugins.filter_data.src import c_compile
+
+        filter_type = self._settings.type.lower()
+        filter_structure = self._settings.b_type.lower()
+
+        if filter_type == "iir":
+            c_compile.build_filter_iir(
+                settings=self._settings,
+                bitwidth=bitwidth,
+                signed=signed,
+                filter_id=id,
+                path2save=path2save,
+                define_path=".",
+            )
+        elif filter_type == "fir" and filter_structure == "allpass":
+            c_compile.build_filter_fir_allpass(
+                settings=self._settings,
+                bitwidth=bitwidth,
+                signed=signed,
+                filter_id=id,
+                path2save=path2save,
+                define_path=".",
+            )
+        elif filter_type == "fir":
+            c_compile.build_filter_fir(
+                settings=self._settings,
+                bitwidth=bitwidth,
+                signed=signed,
+                do_optimized=len(self._coeff_b) % 2 == 1,
+                filter_id=id,
+                path2save=path2save,
+                define_path=".",
+            )
+        else:
+            raise ValueError(f"Filter type {self._settings.type} is not supported")
