@@ -175,6 +175,30 @@ class TestWindowSequencer(TestCase):
         chck1 = np.sum(sequence[-1, :] == sequence[-1, -1])
         self.assertGreater(chck1, chck0)
 
+    def test_window_event_detection_without_threshold(self):
+        set0 = deepcopy(self.sets)
+        set0.window_sec = 0.25
+        num_trials = 5
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
+        try:
+            WindowSequencer(set0).window_event_detected(
+                signal=stimuli, thr=-1.0, pre_time=0.01, do_abs=False
+            )
+        except ValueError:
+            assert True
+        else:
+            assert False
+
+    def test_window_event_detection_high_threshold(self):
+        set0 = deepcopy(self.sets)
+        set0.window_sec = 0.25
+        num_trials = 5
+        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
+        sequence = WindowSequencer(set0).window_event_detected(
+            signal=stimuli, thr=100.0, pre_time=0.01, do_abs=False
+        )
+        assert sequence == np.asarray([0])
+
 
 if __name__ == "__main__":
     main()

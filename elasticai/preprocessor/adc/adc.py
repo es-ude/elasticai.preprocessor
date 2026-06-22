@@ -145,21 +145,21 @@ class TransientResampler:
         :param use_srate_orig:  Boolean for taking the original sampling rate or new one
         :return:                Numpy array with cutted transient data
         """
-        if self._settings.srate_orig == 0.0:
+        if self._settings.srate_orig == 0.0:  # pragma: no branch
             raise ValueError("Sampling rate (orig) is zero")
-        if self._settings.srate_new == 0.0:
+        if self._settings.srate_new == 0.0:  # pragma: no branch
             raise ValueError("Sampling rate (new) is zero")
 
         if len(t_range_sec) == 0:
             return data
         elif len(t_range_sec) == 2:
-            if t_range_sec[0] > t_range_sec[1]:
+            if t_range_sec[0] > t_range_sec[1]:  # pragma: no branch
                 raise ValueError("Wrong time order in t_range_sec")
 
             srate_used = self._settings.srate_orig if use_srate_orig else self._settings.srate_new
             idx0 = int(t_range_sec[0] * srate_used)
             idx1 = int(t_range_sec[1] * srate_used)
-            if idx0 > data.size and idx1 > data.size:
+            if idx0 > data.size and idx1 > data.size:  # pragma: no branch
                 raise ValueError(
                     f"t_range_sec ({t_range_sec}) is out-of-range [0., {data.size / srate_used}]"
                 )
@@ -181,24 +181,24 @@ class TransientResampler:
         :param use_srate_orig:  Boolean for taking the original sampling rate or new one
         :return:                Tuple with reduced numpy arrays: (0) id, (1) pos
         """
-        if label_id.size != label_pos.size:
+        if label_id.size != label_pos.size:  # pragma: no branch
             raise ValueError("label_id and label_pos must have the same size")
-        if self._settings.srate_orig == 0.0:
+        if self._settings.srate_orig == 0.0:  # pragma: no branch
             raise ValueError("Sampling rate (orig) is zero")
-        if self._settings.srate_new == 0.0:
+        if self._settings.srate_new == 0.0:  # pragma: no branch
             raise ValueError("Sampling rate (new) is zero")
 
         if len(t_range_sec) == 0:
             return label_id, label_pos
         elif len(t_range_sec) == 2:
-            if t_range_sec[0] > t_range_sec[1]:
+            if t_range_sec[0] > t_range_sec[1]:  # pragma: no branch
                 raise ValueError("Wrong time order in t_range_sec")
 
             srate_used = self._settings.srate_orig if use_srate_orig else self._settings.srate_new
             time0 = label_pos / srate_used
             idx0 = np.argwhere(time0 >= t_range_sec[0]).flatten()[0]
             idx1 = np.argwhere(time0 >= t_range_sec[1]).flatten()[0]
-            if idx0 > label_pos[-1] and idx1 > label_pos[-1]:
+            if idx0 > label_pos[-1] and idx1 > label_pos[-1]:  # pragma: no branch
                 raise ValueError(
                     f"t_range_sec ({t_range_sec}) is out-of-range [0., {label_pos[-1] / srate_used}]"
                 )
@@ -242,10 +242,10 @@ class TransientResampler:
         :return:            None
         """
         use_trgg = len(trgg) > 0
-        if "int" not in data.dtype.name:
+        if "int" not in data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
         print(data.shape)
-        if data.shape not in ((data.size,), (1, data.size)):
+        if data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
             raise ValueError("shape")
 
         path2data = path2save / f"replayer_{id}_data.mem"

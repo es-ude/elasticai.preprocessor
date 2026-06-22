@@ -105,7 +105,7 @@ class WindowSequencer:
         :param do_abs:      Boolean for applying absolute signal to threshold calculation
         :return:            Numpy array of sequence signals with shape=(M, window length)
         """
-        if thr < 0:
+        if thr < 0.0:
             raise ValueError("Threshold must be positive")
 
         xpos_event = Thresholding(settings=self._settings_thr).get_threshold_position(
@@ -113,7 +113,7 @@ class WindowSequencer:
         )
 
         if not xpos_event.tolist():
-            return np.empty((1, 1))
+            return np.zeros((1, 1))
         else:
             sequence_window = np.zeros((len(xpos_event), self._settings.window_length))
             num_samples_pre = int(pre_time * self._settings.sampling_rate)

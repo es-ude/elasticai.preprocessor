@@ -286,6 +286,10 @@ class TestFrameGenerator(unittest.TestCase):
             pred_labels=rslt.xpos.tolist(),
             window=25,
         )
+        self.assertEqual(rslt.waveform.shape[0], rslt.num_samples)
+        self.assertEqual(rslt.waveform.shape[1], rslt.length)
+        self.assertEqual(rslt.is_data_labeled, False)
+
         self.assertEqual(rslt.waveform.shape[0], self.signal_eap[1].size)
         self.assertEqual(rslt.waveform.shape[1], self.set0.length_frame_int)
         self.assertGreater(rslt_pos.f1_score, 0.99)

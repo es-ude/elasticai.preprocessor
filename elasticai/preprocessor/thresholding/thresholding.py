@@ -61,9 +61,6 @@ class Thresholding:
         avai_methods = [key.lower() for key in self._methods.keys()]
         return avai_methods
 
-    def print_overview(self) -> None:
-        self._logger.info(f"Available Thresholding methods: {self.get_overview()}")
-
     def get_threshold(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
         """Function for getting the thresholding value from input
         :param xin:     Numpy array with transient raw signal
