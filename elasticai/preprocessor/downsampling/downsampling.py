@@ -82,7 +82,7 @@ class DownSampling:
         return np.array(output_transient)
 
     @staticmethod
-    def do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
+    def _do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
         """Performing first order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
@@ -98,7 +98,7 @@ class DownSampling:
         return uout
 
     @staticmethod
-    def do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
+    def _do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
         """Performing second order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
@@ -115,18 +115,19 @@ class DownSampling:
         uout = np.array(uout)
         return uout
 
-    def do_decimation_polyphase(self, uin: np.ndarray, take_first_order: bool = False) -> np.ndarray:
+    def do_decimation_polyphase(self, uin: np.ndarray, take_first_order: bool) -> np.ndarray:
         """Performing Non-Recursive Polyphase Decimation on input (depends on DSR)
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
         """
-        if self._settings.dsr % 2 == 0:
+        val = np.log2(self._settings.dsr)
+        if not np.log2(self._settings.dsr).is_integer():
             raise ValueError("self._settings.dsr should be 2^x")
 
         x = uin
-        for _ in range(int(np.log2(self._settings.dsr))):
+        for _ in range(int(val)):
             if take_first_order:
-                x = self.do_decimation_polyphase_order_one(x)
+                x = self._do_decimation_polyphase_order_one(x)
             else:
-                x = self.do_decimation_polyphase_order_two(x)
+                x = self._do_decimation_polyphase_order_two(x)
         return x

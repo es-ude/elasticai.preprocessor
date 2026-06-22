@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from logging import Logger, getLogger
 
 import numpy as np
-from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
 from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
 
@@ -217,20 +216,3 @@ class FrameGenerator:
 
         """
         return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=xoffset)
-
-    @staticmethod
-    def do_frame_quantization(
-        frames: np.ndarray, bit_total: int, bit_frac: int, signed: bool
-    ) -> np.ndarray:
-        """Quantize the frame for sending it to hardware
-        :param frames:      Numpy array with the frame waveforms [shape=(num. of waveforms, samples for each waveform)]
-        :param bit_total:   Integer of the total width
-        :param bit_frac:    Integer of the fraction of the total width for fixed-point number representation
-        :param signed:      Boolean for signed or unsigned of the number representation
-        :return:            Numpy array with the quantized frame waveform
-        """
-        arith = FxpArithmetic(
-            fxp_params=FxpParams(total_bits=bit_total, frac_bits=bit_frac, signed=signed)
-        )
-        out = arith.round_to_rational(frames.tolist())
-        return np.asarray(out)

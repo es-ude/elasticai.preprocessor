@@ -48,4 +48,6 @@ def do_fft_inverse(y: np.ndarray, len_original: int) -> np.ndarray:
     :param len_original:    Length of original time domain signal
     :return:                Time domain signal
     """
+    if "complex" not in y.dtype.name:
+        raise ValueError("Only complex numpy arrays numbers are allowed")
     return np.fft.irfft(y, n=len_original)

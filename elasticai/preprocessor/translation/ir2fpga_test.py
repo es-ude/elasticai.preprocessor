@@ -27,5 +27,7 @@ def test_load_and_build_form_plugin(path_to_build: Path) -> None:
     )
 
     files_check = ["adder_half.v", "adder_ripple_carry_signed_0.v", "adder_full.v"]
+    files_check.sort()
     files_avai = [file.name for file in path_to_build.glob("*.*")]
+    files_avai.sort()
     assert files_avai == files_check

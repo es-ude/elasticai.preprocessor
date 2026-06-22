@@ -4052,6 +4052,8 @@ class TestDownSampling(TestCase):
         self.assertEqual(type(results), np.ndarray)
 
     def test_polyphase_one(self):
+        sets: SettingsDownSampling = deepcopy(self.sets)
+        sets.dsr = 2
         check = [
             0.023782064257008607,
             0.11844605225874726,
@@ -24054,19 +24056,21 @@ class TestDownSampling(TestCase):
             -0.16517603538878334,
             -0.07125326561763741,
         ]
-        results = DownSampling(self.sets).do_decimation_polyphase_order_one(self.input)
+        results = DownSampling(sets).do_decimation_polyphase(self.input, take_first_order=True)
         np.testing.assert_array_almost_equal(results, np.array(check), decimal=15)
 
     def test_polyphase_one_size(self):
         check = int((self.input.size - 1) / 2)
-        results = DownSampling(self.sets).do_decimation_polyphase_order_one(self.input)
+        results = DownSampling(self.sets)._do_decimation_polyphase_order_one(self.input)
         self.assertEqual(results.size, check)
 
     def test_polyphase_one_type(self):
-        results = DownSampling(self.sets).do_decimation_polyphase_order_one(self.input)
+        results = DownSampling(self.sets)._do_decimation_polyphase_order_one(self.input)
         self.assertEqual(type(results), np.ndarray)
 
     def test_polyphase_two(self):
+        sets: SettingsDownSampling = deepcopy(self.sets)
+        sets.dsr = 2
         check = [
             0.023782064257008607,
             0.18969931787638333,
@@ -44069,16 +44073,16 @@ class TestDownSampling(TestCase):
             -0.3764366880771571,
             -0.18969931787645283,
         ]
-        results = DownSampling(self.sets).do_decimation_polyphase_order_two(self.input)
+        results = DownSampling(sets).do_decimation_polyphase(self.input, take_first_order=False)
         np.testing.assert_array_almost_equal(results, np.array(check), decimal=15)
 
     def test_polyphase_two_size(self):
         check = int((self.input.size - 1) / 2)
-        results = DownSampling(self.sets).do_decimation_polyphase_order_two(self.input)
+        results = DownSampling(self.sets)._do_decimation_polyphase_order_two(self.input)
         self.assertEqual(results.size, check)
 
     def test_polyphase_two_type(self):
-        results = DownSampling(self.sets).do_decimation_polyphase_order_two(self.input)
+        results = DownSampling(self.sets)._do_decimation_polyphase_order_two(self.input)
         self.assertEqual(type(results), np.ndarray)
 
 
