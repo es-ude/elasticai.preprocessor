@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -59,6 +61,42 @@ class DataNormalization:
             return self.__list_norm_methods[self.__method](dataset)
         else:
             raise NotImplementedError("Selected mode is not available.")
+
+    def create_design(
+        self,
+        target: str,
+        bitwidth: int,
+        id: str,
+        path2save: Path,
+        signed: bool = True,
+    ) -> None:
+        """Generate a C design for the configured normalization method."""
+        supported_targets = ["mcu", "pc", "fpga"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if target == "fpga":
+            raise NotImplementedError("FPGA normalization generation is not implemented")
+        if self.__method != "minmax":
+            raise NotImplementedError("C generation currently supports only minmax normalization")
+        if self.__extract_peak_mode != 2:
+            raise NotImplementedError("C generation currently supports only peak_mode=2")
+        if self._do_global:
+            raise NotImplementedError("C generation does not support global scaling")
+
+        self._create_design_c(id=id, bitwidth=bitwidth, signed=signed, path2save=path2save)
+
+    @staticmethod
+    def _create_design_c(id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        from elasticai.creator_plugins.normalization.src import c_compile
+
+        c_compile.build_normalization_minmax(
+            bitwidth=bitwidth,
+            signed=signed,
+            normalization_id=id,
+            path2save=path2save,
+            define_path=".",
+        )
 
     @staticmethod
     def _generate_tensor_full(data: torch.Tensor, num_repeats: int) -> torch.Tensor:
