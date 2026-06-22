@@ -244,7 +244,6 @@ class TransientResampler:
         use_trgg = len(trgg) > 0
         if "int" not in data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
-        print(data.shape)
         if data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
             raise ValueError("shape")
 

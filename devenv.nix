@@ -45,7 +45,17 @@ in {
     serve_docs = {
       exec = "${uv_run} sphinx-autobuild -j auto docs build/docs/";
     };
-    fix_all = {
+    run_tests_all = {
+        exec = ''
+            devenv tasks run test:changes
+        '';
+    };
+    run_tests_local = {
+        exec = ''
+            devenv tasks run check:local
+        '';
+    };
+    fix_linting = {
       exec = ''
         ${uv_run} ruff format
         ${uv_run} ruff check --fix
@@ -90,7 +100,7 @@ in {
     };
     "test:changes" = {
       exec = ''
-        ${uv_run} pytest --testmon
+        ${uv_run} pytest --testmon --reruns 3
       '';
     };
     "test:fast" = {
