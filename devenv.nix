@@ -42,9 +42,6 @@ in {
     alej_run = "${pkgs.alejandra}/bin/alejandra";
     tombi_run = "${pkgs.tombi}/bin/tombi";
   in {
-    serve_docs = {
-      exec = "${uv_run} sphinx-autobuild -j auto docs build/docs/";
-    };
     run_tests_all = {
         exec = ''
             devenv tasks run test:changes

@@ -33,7 +33,7 @@ extensions = [
     "sphinx_design",
     "autodoc2",
     "sphinxext.opengraph",
-    "sphinxcontrib.mermaid"
+    "sphinxcontrib.mermaid",
 ]
 
 templates_path = ['_templates']
