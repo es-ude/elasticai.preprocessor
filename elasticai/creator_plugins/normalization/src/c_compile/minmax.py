@@ -1,5 +1,5 @@
 from datetime import datetime
-from os.path import abspath, dirname, join
+from pathlib import Path
 
 import elasticai.creator_plugins.normalization as design_plugin
 from elasticai.preprocessor.translation.ir2c import (
@@ -12,8 +12,8 @@ from elasticai.preprocessor.translation.ir2c import (
 def build_normalization_minmax(
     bitwidth: int,
     signed: bool,
+    path2save: Path,
     normalization_id: str = "0",
-    path2save: str = "",
     define_path: str = "src",
 ) -> None:
     """Generate C files for frame-wise minmax normalization."""
@@ -35,7 +35,7 @@ def build_normalization_minmax(
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=join(dirname(abspath(design_plugin.__file__)), "c"),
+        path2template=Path(design_plugin.__file__).parent / "c",
     )
 
 

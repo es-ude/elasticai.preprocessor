@@ -487,12 +487,12 @@ class WaveformGenerator:
         self._logger.debug(f"Building C design at {path2save.as_posix()}")
         template = generate_waveform_lut_template(do_opt)
         generate_c_files(
-            path2save=path2save.as_posix(),
+            path2save=path2save,
             template_name=params["template_name"],
             file_name="waveform_lut",
             module_id=id.lower(),
             proto_file=replace_variables_with_parameters(template["head"], params),
             impl_file=replace_variables_with_parameters(template["func"], params),
-            path2template=path2template.as_posix(),
+            path2template=path2template,
         )
         return wvf

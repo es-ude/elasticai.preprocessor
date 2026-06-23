@@ -1,5 +1,5 @@
 from datetime import datetime
-from os.path import abspath, dirname, join
+from pathlib import Path
 
 import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
@@ -16,7 +16,7 @@ def build_filter_fir_allpass(
     bitwidth: int,
     signed: bool,
     filter_id: str = "0",
-    path2save: str = get_path_to_project("build"),
+    path2save: Path = get_path_to_project("build"),
     define_path: str = "src",
 ) -> None:
     """Generating C files for IIR filtering on microcontroller
@@ -56,7 +56,7 @@ def build_filter_fir_allpass(
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=join(dirname(abspath(design_plugin.__file__)), "c"),
+        path2template=Path(design_plugin.__file__).parent / "c",
     )
 
 
