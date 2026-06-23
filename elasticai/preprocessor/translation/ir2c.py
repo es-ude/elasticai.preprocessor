@@ -1,5 +1,4 @@
-from os import makedirs
-from os.path import join
+from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
@@ -41,13 +40,13 @@ def replace_variables_with_parameters(string_input: list, parameters: dict) -> l
 
 
 def generate_c_files(
-    path2save: str,
+    path2save: Path,
     template_name: str,
     file_name: str,
     module_id: str,
     proto_file: list,
     impl_file: list,
-    path2template: str = "./../c",
+    path2template: Path = Path("./../c").absolute(),
 ) -> None:
     """Function for generating the C files
     :param path2save:       Path to save C files
@@ -59,17 +58,20 @@ def generate_c_files(
     :param path2template:   Path to template file
     :return:                None
     """
-    print(path2save)
-    makedirs(name=path2save, exist_ok=True)
-    copyfile(src=join(path2template, template_name), dst=join(path2save, f"{template_name}"))
+    path2save.mkdir(parents=True, exist_ok=True)
+    copyfile(
+        src=(path2template / template_name).as_posix(), dst=(path2save / f"{template_name}").as_posix()
+    )
 
-    with open(join(path2save, f"{file_name}_{module_id.lower()}.h"), "w") as hndl:
+    file2proto = path2save / f"{file_name}_{module_id.lower()}.h"
+    with open(file2proto.as_posix(), "w") as hndl:
         for line in proto_file:
             hndl.write(line + "\n")
     hndl.close()
     del hndl
 
-    with open(join(path2save, f"{file_name}_{module_id.lower()}.c"), "w") as hndl:
+    file2header = path2save / f"{file_name}_{module_id.lower()}.c"
+    with open(file2header.as_posix(), "w") as hndl:
         for line in impl_file:
             hndl.write(line + "\n")
     hndl.close()

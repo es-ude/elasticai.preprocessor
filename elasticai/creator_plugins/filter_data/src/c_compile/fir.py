@@ -1,5 +1,5 @@
 from datetime import datetime
-from os.path import abspath, dirname, join
+from pathlib import Path
 
 import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor.filter import Filtering, SettingsFilter
@@ -15,8 +15,8 @@ def build_filter_fir(
     bitwidth: int,
     signed: bool,
     do_optimized: bool,
+    path2save: Path,
     filter_id: str = "0",
-    path2save: str = "",
     define_path: str = "src",
 ) -> None:
     """Generating C files of a FIR (Finite Impuls Response) filter for using on microcontrollers
@@ -61,7 +61,7 @@ def build_filter_fir(
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=join(dirname(abspath(design_plugin.__file__)), "c"),
+        path2template=Path(design_plugin.__file__).parent / "c",
     )
 
 

@@ -2,7 +2,7 @@ from elasticai.preprocessor import get_path_to_project
 
 
 def test_path_to_project() -> None:
-    checks = ["elastic-ai", "hw-measurements"]
+    checks = ["elastic-ai", "preprocessor"]
     rslt = get_path_to_project()
 
     assert rslt.is_dir()
@@ -10,7 +10,7 @@ def test_path_to_project() -> None:
 
 
 def test_path_to_project_ref() -> None:
-    checks = ["elastic-ai", "hw-measurements", "test"]
+    checks = ["elastic-ai", "preprocessor", "test"]
     rslt = get_path_to_project(new_folder=checks[2])
 
     assert not rslt.exists()
