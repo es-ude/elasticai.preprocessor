@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -106,7 +107,12 @@ class DownSampling:
         return:             Numpy array with transient signal output (low sampling rate)
         """
         output_transient = list()
-        gain = (self._settings.dsr * 1) ** num_stages
+        dsr = self._settings.dsr
+        gain = dsr ** num_stages
+
+        growth_bits = math.ceil(num_stages * math.log2(dsr))
+        frac_bits = max(62 - growth_bits, 1)
+        Q = 1 << frac_bits
 
         class integrator:
             def __init__(self):
@@ -131,15 +137,14 @@ class DownSampling:
         intes = [integrator() for a in range(num_stages)]
         combs = [comb() for a in range(num_stages)]
         for s, v in enumerate(uin):
-            z = v
+            z = round(v * Q)
             for i in range(num_stages):
                 z = intes[i].update(z)
 
-            if (s % self._settings.dsr) == 0:
-                for c in range(num_stages):
-                    z = combs[c].update(z)
-                    j = z
-                output_transient.append(j / gain)
+            if s % dsr == 0:
+                for c in combs:
+                    z = c.update(z)
+                output_transient.append(z / (Q * gain))
         return np.array(output_transient)
 
     @staticmethod
