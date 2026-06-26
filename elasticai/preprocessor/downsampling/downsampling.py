@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -60,6 +61,35 @@ class DownSampling:
             return data
         padding = np.zeros(data.shape[:-1] + (pad_length,), dtype=data.dtype)
         return np.concatenate([data, padding], axis=-1)
+
+    def create_design(
+        self,
+        target: str,
+        bitwidth: int,
+        id: str,
+        path2save: Path,
+        signed: bool = True,
+    ) -> None:
+        """Generate a C design for subsampling."""
+        supported_targets = ["mcu", "pc", "fpga"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if target == "fpga":
+            raise NotImplementedError("FPGA downsampling generation is not implemented")
+        self._create_design_c(id=id, bitwidth=bitwidth, signed=signed, path2save=path2save)
+
+    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        from elasticai.creator_plugins.downsampling.src import c_compile
+
+        c_compile.build_downsampling_subsampling(
+            downsampling_ratio=self._settings.dsr,
+            bitwidth=bitwidth,
+            signed=signed,
+            downsampling_id=id,
+            path2save=path2save,
+            define_path=".",
+        )
 
     def do_simple(self, uin: np.ndarray) -> np.ndarray:
         """Performing a simple downsampling of the adc data stream
