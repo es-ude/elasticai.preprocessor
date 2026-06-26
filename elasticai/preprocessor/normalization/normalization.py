@@ -77,24 +77,34 @@ class DataNormalization:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if target == "fpga":
             raise NotImplementedError("FPGA normalization generation is not implemented")
-        if self.__method != "minmax":
-            raise NotImplementedError("C generation currently supports only minmax normalization")
-        if self.__extract_peak_mode != 2:
-            raise NotImplementedError("C generation currently supports only peak_mode=2")
+        if self.__method not in ("minmax", "zscore"):
+            raise NotImplementedError("C generation currently supports only minmax and zscore normalization")
         if self._do_global:
             raise NotImplementedError("C generation does not support global scaling")
+        if self.__method == "minmax" and self.__extract_peak_mode != 2:
+            raise NotImplementedError("C generation currently supports only peak_mode=2")
 
-        self._create_design_c(id=id, bitwidth=bitwidth, signed=signed, path2save=path2save)
-
-    @staticmethod
-    def _create_design_c(id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
-        from elasticai.creator_plugins.normalization.src import c_compile
-
-        c_compile.build_normalization_minmax(
+        self._create_design_c(
+            method=self.__method,
+            id=id,
             bitwidth=bitwidth,
             signed=signed,
-            normalization_id=id,
             path2save=path2save,
+        )
+
+    @staticmethod
+    def _create_design_c(method: str, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        from elasticai.creator_plugins.normalization.src import c_compile
+
+        builders = {
+            "minmax": c_compile.build_normalization_minmax,
+            "zscore": c_compile.build_normalization_zscore,
+        }
+        builders[method](
+            bitwidth=bitwidth,
+            signed=signed,
+            path2save=path2save,
+            normalization_id=id,
             define_path=".",
         )
 

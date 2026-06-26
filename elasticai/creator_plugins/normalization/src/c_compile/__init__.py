@@ -1,1 +1,2 @@
 from .minmax import build_normalization_minmax as build_normalization_minmax
+from .zscore import build_normalization_zscore as build_normalization_zscore
