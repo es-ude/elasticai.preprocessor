@@ -12,25 +12,25 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def ring_buffer(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def windower_evnt(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.windower"
-    path2file = "verilog/ring_buffer.v"
+    path2file = "verilog/windower_evnt.v"
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
         .parameter("SAMPLES")
+        .parameter("NUM_SHIFT")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()
     )
-
     code = list()
     code.append(
         (
             impl.name,
             _template.substitute(
-                module_name=impl.name.upper(),
+                module_name="EVENT_WINDOWER",
                 date_copy_created=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 **impl.attributes,
             ),

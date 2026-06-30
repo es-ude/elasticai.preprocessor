@@ -4,5 +4,5 @@ version = "0.1"
 api_version = "0.1"
 target_runtime = "verilog"
 target_platform = "FPGA"
-generated = ["ring_buffer"]
+generated = ["ring_buffer", "shift_register", "windower", "windower_evnt"]
 static_files = []

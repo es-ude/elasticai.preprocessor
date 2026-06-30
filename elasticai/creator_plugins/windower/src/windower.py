@@ -12,14 +12,15 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def ring_buffer(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def windower(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.windower"
-    path2file = "verilog/ring_buffer.v"
+    path2file = "verilog/windower.v"
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
         .parameter("SAMPLES")
+        .parameter("NUM_SHIFT")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()

@@ -12,9 +12,9 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def ring_buffer(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def shift_register(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.windower"
-    path2file = "verilog/ring_buffer.v"
+    path2file = "verilog/shift_register.v"
 
     _template = (
         TemplateDirector()
