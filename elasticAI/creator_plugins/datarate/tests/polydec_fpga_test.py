@@ -47,7 +47,7 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
     dut.DATA_IN.value = int(sig_in[0])
     dut.EN.value = 1
     cocotb.start_soon(Clock(dut.CLK_HGH, period_smp, unit="ns").start())
-    #for val in sig_in:
+    errors = []
     for val, expected in zip(sig_in, check):
         dut.DATA_IN.value = int(val)
 
@@ -56,10 +56,16 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
             await FallingEdge(dut.CLK_LOW)
         if poly_order > 1:
             await FallingEdge(dut.CLK_LOW)
-        #assert dut.DATA_OUT.value in range(int(int(val) * gain_cic - 1), int(int(val) * gain_cic + 1))
-        assert abs(int(dut.DATA_OUT.value) - int(expected) * gain_cic) <= 1
+        input = int(dut.DATA_IN.value)    
+        actual = int(dut.DATA_OUT.value)
+        target = int(expected) * gain_cic 
+        error = abs(actual - target)
+        errors.append(error)
+        assert error <= 1, (
+            f"input={val:4d}, DATA_IN={input:4d}, DATA_OUT={actual:4d}, expected={expected:4d}, erwartet={target:4d}, Fehler={error:4d}, check={check[0]:4d}"
+        )
+    print(errors)
         
-
 
 @pytest.mark.simulation
 @pytest.mark.parametrize(
@@ -154,6 +160,7 @@ def test_filter_polydec_fpga_build_equal(
     data_checked = (dut.do_decimation_polyphase_order_two(  # sind momentan nicht äquivalent
         uin=data_in
     )).tolist()
+    print("Check-Ausgangsdaten:", data_checked)
 
     load_and_plugin(
         type="polydec_fpga",

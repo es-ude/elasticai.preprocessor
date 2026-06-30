@@ -1,6 +1,6 @@
-from .filter_cic import filter_cic as filter_cic
-from .filter_poly_asic import filter_poly_asic as filter_poly_asic
-from .filter_poly_fpga import filter_poly_fpga as filter_poly_fpga
+from .cic import cic as cic
+from .polydec_asic import polydec_asic as polydec_asic
+from .polydec_fpga import polydec_fpga as polydec_fpga
 
 
 ___all___ = [

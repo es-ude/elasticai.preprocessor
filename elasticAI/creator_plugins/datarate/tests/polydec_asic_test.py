@@ -9,25 +9,20 @@ from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
-# Änderungen:
-# externe build_test_signal Funktion
-# umgestellt auf externen Input von Eingangssignal und Check Wert
-# Umstellung des der Pytests auf Vorgabe über cocotb_test_fixture.write()
-# Ich gebe das gleiche generierte Signal in die Testbench und in die Äquivalenzfunktion
 
-
-def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) -> list: # Vorher in cocotb-Testbench, Signal geht sowohl in TB als auch in Python_Funktion (Äquivalenz)
+def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) -> list: 
     mid_cm = 2 ** (bitwidth - 1)
 
     sig_in = mid_cm + (mid_cm - 2) * np.sin(
         np.linspace(0, num_periods * 2 * np.pi, n_samples, dtype=float)
     )
     return sig_in.astype(int).tolist()
+    
 
 
 @cocotb.test()
 @eai_testbench
-async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int], check: list[int]): # Neu: externes testsignal und Check Wert
+async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int], check: list[int]):
     period_smp = 10
     gain_cic = 2**poly_order
 
@@ -49,16 +44,24 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
     dut.DATA_IN.value = int(sig_in[0])
     dut.EN.value = 1
     cocotb.start_soon(Clock(dut.CLK_HGH, period_smp, unit="ns").start())
- 
-    for val, expected in zip(sig_in, check):
-        dut.DATA_IN.value = int(val)
-
+    errors = []
+    for val, expected in zip(sig_in, check):   
+        dut.DATA_IN.value = int(val)            
         await FallingEdge(dut.CLK_LOW)
         if poly_order > 0:
             await FallingEdge(dut.CLK_LOW)
         if poly_order > 1:
-            await FallingEdge(dut.CLK_LOW)   
-        assert abs(int(dut.DATA_OUT.value) - int(expected) * gain_cic) <= 1 
+            await FallingEdge(dut.CLK_LOW)
+        input = int(dut.DATA_IN.value)    
+        actual = int(dut.DATA_OUT.value)
+        target = int(expected) * gain_cic 
+        error = abs(actual - target)
+        errors.append(error)
+        assert error <= 1, (
+            f"input={val:4d}, DATA_IN={input:4d}, DATA_OUT={actual:4d}, expected={expected:4d}, erwartet={target:4d}, Fehler={error:4d}, check={check[0]:4d}"
+        )
+    print(errors)
+
         
 
 #  --------------- (1) Template Test ------------------
@@ -75,7 +78,7 @@ def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
         num_periods=2,
         n_samples=22,
     )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in}) # Hier check = Eingangssignal
+    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in}) 
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_asic.v")
     cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_ASIC")
@@ -131,11 +134,13 @@ def test_filter_polydec_asic_build_equal(
         num_periods=2,
         n_samples=22,
     )
+    print("Eingangsdaten:",data_in)
     
     #Erwarteter Wert aus Python Funktion
     data_checked = (dut.do_decimation_polyphase_order_two(  # sind momentan nicht äquivalent
         uin=data_in
     )).tolist()
+    print("Check-Ausgangsdaten:", data_checked)
 
     load_and_plugin(
         type="polydec_asic",
