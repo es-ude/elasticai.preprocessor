@@ -10,7 +10,7 @@ def get_embedded_datatype(bitwidth: int, signed: bool) -> str:
     :param signed:      Boolean if datatype is signed or unsigned
     :return:            String with datatype in C
     """
-    assert bitwidth in range(33), "Allowed range of bitwidth should be >0 and <=32"
+    assert bitwidth in range(1,65), "Allowed range of bitwidth should be >0 and <=32"
     bit_compare = np.array((8, 16, 32, 64))
     used_bitval = np.argwhere((bit_compare / bitwidth) - 1 >= 0).flatten()[0]
     return ("" if signed else "u") + "int" + f"{bit_compare[used_bitval]}" + "_t"
@@ -70,8 +70,8 @@ def generate_c_files(
     hndl.close()
     del hndl
 
-    file2header = path2save / f"{file_name}_{module_id.lower()}.c"
-    with open(file2header.as_posix(), "w") as hndl:
+    file2impl = path2save / f"{file_name}_{module_id.lower()}.c"
+    with open(file2impl.as_posix(), "w") as hndl:
         for line in impl_file:
             hndl.write(line + "\n")
     hndl.close()
