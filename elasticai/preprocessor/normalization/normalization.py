@@ -78,7 +78,9 @@ class DataNormalization:
         if target == "fpga":
             raise NotImplementedError("FPGA normalization generation is not implemented")
         if self.__method not in ("minmax", "zscore"):
-            raise NotImplementedError("C generation currently supports only minmax and zscore normalization")
+            raise NotImplementedError(
+                "C generation currently supports only minmax and zscore normalization"
+            )
         if self._do_global:
             raise NotImplementedError("C generation does not support global scaling")
         if self.__method == "minmax" and self.__extract_peak_mode != 2:
