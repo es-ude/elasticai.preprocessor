@@ -405,7 +405,9 @@ class WaveformGenerator:
     ) -> list[int]:
         self._logger.debug("Creating Verilog design for Waveform Player")
         path2save.mkdir(parents=True, exist_ok=True)
-        conv = int_converter(total_bits=bitwidth if not do_opt else bitwidth - 1, signed=not do_opt)
+        conv = int_converter(
+            total_bits=bitwidth if not do_opt else bitwidth - 1, signed=is_signed if not do_opt else False
+        )
         wvf = hw_utils.prepare_waveform(
             waveform=waveform,
             bitwidth=bitwidth,
