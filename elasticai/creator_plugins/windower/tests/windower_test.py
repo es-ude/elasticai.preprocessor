@@ -92,6 +92,11 @@ async def check_transfer_function(dut, bitwidth: int, samples: int, num_shift: i
         await RisingEdge(dut.CLK_SYS)
         await collect_if_valid()
 
+    print("out first window:", data_buf_out[0])
+    print("check first window:", check[0])
+    print("out second window:", data_buf_out[1])
+    print("check second window:", check[1])
+
     if not data_in == check:
         assert data_buf_out == check
 
@@ -159,7 +164,7 @@ def test_windower_build(
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("samples", [32])
 @pytest.mark.parametrize("num_shift", [4])
-def test_windower_build_equal(
+def test_sliding_windower_build_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     samples: int,
@@ -183,6 +188,54 @@ def test_windower_build_equal(
     )
 
     data_checked = dut.slide(signal).tolist()
+
+    load_and_plugin(
+        type="windower",
+        id="",
+        params={"BITWIDTH": bitwidth, "SAMPLES": samples, "NUM_SHIFT": num_shift,},
+        packages=["windower"],
+        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
+        add_ringbuffer=True,
+    )
+
+    cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
+    cocotb_test_fixture.set_top_module_name("WINDOWER")
+    cocotb_test_fixture.clear_srcs()
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.run(
+        params={}, 
+        defines={},
+    )
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth", [8])
+@pytest.mark.parametrize("samples", [32])
+@pytest.mark.parametrize("num_shift", [32])
+def test_sequence_windower_build_equal(
+    cocotb_test_fixture: CocotbTestFixture,
+    bitwidth: int,
+    samples: int,
+    num_shift: int,
+):
+    sampling_rate = 100
+    dut = WindowSequencer(
+        SettingsWindow(
+            sampling_rate=sampling_rate,
+            window_sec=samples / sampling_rate,
+            overlap_sec=(samples - num_shift) / sampling_rate,
+        )
+    )
+
+    data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
+
+    signal = np.pad(
+        np.asarray(data_in),
+        (samples - num_shift, 0),
+        mode="constant",
+    )
+
+    data_checked = dut.sequence(signal).tolist()
 
     load_and_plugin(
         type="windower",
