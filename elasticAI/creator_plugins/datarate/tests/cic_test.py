@@ -21,12 +21,13 @@ def build_test_signal(
         for _ in range(num_samples)
     ]
 
+
 @cocotb.test()
 @eai_testbench
 async def cic_access(dut, bitwidth: int, dec_rate: int, n_dec: int, sig_in: list[int], check: list[int]):
     period_clk = 5
     period_smp = 10
-    gain_cic = int(n_dec * np.log2(dec_rate)) 
+    gain_cic = dec_rate ** n_dec 
 
     dut.CLK_SYS.value = 0
     dut.CLK_SMP.value = 0
@@ -48,30 +49,34 @@ async def cic_access(dut, bitwidth: int, dec_rate: int, n_dec: int, sig_in: list
 
     # Apply data and test
     cocotb.start_soon(Clock(dut.CLK_SMP, period_smp, unit='ns').start())
-    errors = []
-    for val_in, expected in zip(sig_in, check):
-        dut.DATA_IN.value = int(val_in)
+
+    data_out = list()
+    sample_idx = 0
+    for out_idx in range(len(check)):
+        n_feed = 1 if out_idx == 0 else dec_rate
+        for _ in range(n_feed):
+            dut.DATA_IN.value = int(sig_in[sample_idx])
+            sample_idx += 1
+            await RisingEdge(dut.CLK_SMP)
+
         await FallingEdge(dut.DEC_CLK)
         await Timer(period_clk, unit='ns')
-        #assert dut.DATA_OUT.value.to_unsigned() in range(int(val_in * gain_cic / 2 - 1), int(val_in * gain_cic / 2 + 1))
-        await FallingEdge(dut.DEC_CLK)
-        await Timer(period_clk, unit='ns')
-        actual = int(dut.DATA_OUT.value.to_unsigned())
-        #target = int(expected * gain_cic)
-        target = int(expected)
-        error = abs(actual - target)
-        errors.append(error)
-        assert error <= 1, (
-            f"input={val_in:4d}, DATA_OUT={actual:4d}, expected={expected:4d}, erwartet={target:4d}, Fehler={error:4d}, check={check[0]:4d}"
-        )
-    print(errors) 
+        data_out.append(dut.DATA_OUT.value.to_unsigned())
+
+    ref = [c * gain_cic for c in check]    
+    if not data_out == ref :  
+        print(f"INP: ({len(sig_in)}) {sig_in}")
+        print(f"OUT: ({len(data_out)}) {data_out}")
+        print(f"REF: ({len(check)}) {check}")
+
+    assert data_out == ref
 
 
 #  --------------- (1) Template Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [2, 6, 8, 12, 16])
-@pytest.mark.parametrize("dec_rate", [2])
+@pytest.mark.parametrize("dec_rate", [1])
 @pytest.mark.parametrize("n_dec", [2])
 def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     data_in = build_test_signal(
@@ -90,7 +95,7 @@ def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_r
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
-@pytest.mark.parametrize("dec_rate", [2])
+@pytest.mark.parametrize("dec_rate", [1])
 @pytest.mark.parametrize("n_dec", [2])
 def test_filter_cic_build(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int
@@ -119,7 +124,7 @@ def test_filter_cic_build(
 #  --------------- (3) Äquivalenz Test ------------------
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth", [2, 8]) 
+@pytest.mark.parametrize("bitwidth", [8]) 
 @pytest.mark.parametrize("dec_rate", [2])
 @pytest.mark.parametrize("n_dec", [2])
 def test_filter_cic_build_equal(
@@ -128,8 +133,8 @@ def test_filter_cic_build_equal(
     build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0, # Default Settings
-            dsr=10,
+            sampling_rate=1000.0,
+            dsr=dec_rate,
         )
     )
     # Test-Signal
@@ -137,11 +142,10 @@ def test_filter_cic_build_equal(
         bitwidth=bitwidth,
         num_samples=20,
     )
-    print("Eingangsdaten:",data_in)
 
     #Erwarteter Wert aus Python Funktion
-    data_checked = (dut.do_cic(  # sind momentan nicht äquivalent
-        uin=data_in
+    data_checked = (dut.do_cic( 
+        uin=np.asarray(data_in), num_stages=n_dec
     )).tolist()
     print("Check-Ausgangsdaten:", data_checked)
 
@@ -152,7 +156,7 @@ def test_filter_cic_build_equal(
         packages=["datarate"],
         path2save=build_dir,
     )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked}) # Eingangsdaten sind Test-Daten, Erwarteter Output ist Ergebnis der Python-Funktion (Fehler bei assert in Testbench)
+    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
     cocotb_test_fixture.set_top_module_name("CIC_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")

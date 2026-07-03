@@ -37,7 +37,7 @@ module FILTER_POLYDEC_ASIC#(
 
 	// --- Control sequence
 	integer i0;
-	always@(posedge CLK_HGH) begin
+	always@(posedge CLK_HGH or negedge RSTN) begin
 		if(~RSTN) begin
 		     clk_half <= 1'd0;
 			 din_dly_hgh <= 'd0;
@@ -45,25 +45,29 @@ module FILTER_POLYDEC_ASIC#(
 			    din_dly_low[i0] <= 'd0;
 			 end
 			 DATA_OUT <= 'd0;
-		end else begin
+		end else if(EN) begin  // Neu: if(EN)
 			// Clock Generation
 			clk_half <= ~clk_half;
 			
 			// Data ProcessingSampling the data input on high sampling rate and Data calculating on low level
 			din_dly_hgh <= DATA_IN;
-			case(POLY_ORDER)
-			   2'd1: begin
-			       DATA_OUT <= DATA_IN + din_dly_hgh;
+            case(POLY_ORDER)
+               2'd1: begin
+                   if(clk_half) DATA_OUT <= DATA_IN + din_dly_hgh;
                end
                2'd2: begin
-                   DATA_OUT <= DATA_IN + {din_dly_hgh, 1'd0} + din_dly_low[0];
-                   din_dly_low[0] <= DATA_IN;
-               end
-               default: begin
-                   DATA_OUT <= DATA_IN;
-               end
-			endcase
+                   if(clk_half) begin
+                       DATA_OUT <= DATA_IN + {din_dly_hgh, 1'd0} + din_dly_low[0];
+                       din_dly_low[0] <= din_dly_hgh;
+                   end
+                end
+                default: begin
+                    DATA_OUT <= DATA_IN;   // keine Gate-Bedingung -> volle Rate
+                end
+            endcase
+			end
 		end
-	end
-
 endmodule
+
+
+	

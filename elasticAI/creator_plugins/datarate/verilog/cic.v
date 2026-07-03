@@ -29,15 +29,38 @@ module FILTER_CIC#(
     input wire               				RSTN,
     input wire                              EN,
     input wire [BITWIDTH-'d1:0]                         DATA_IN,
-    output wire [BITWIDTH+N_DEC*$clog2(DEC_RATE)-'d2:0] DATA_OUT,
+    output wire [BITWIDTH+N_DEC*$clog2(DEC_RATE)-'d1:0] DATA_OUT,
     output wire 			 				DEC_CLK
 );
 
-    localparam BIT_OVR = N_DEC*$clog2(DEC_RATE)-'d1;
+    localparam BIT_OVR = N_DEC*$clog2(DEC_RATE);
 
-    // Integrator stage registers
-    reg [BIT_OVR+BITWIDTH-'d1:0] dhigh, dout;
+    // Integrator stage registers: N_DEC kaskadierte Integratoren statt nur einem
+    reg [BIT_OVR+BITWIDTH-'d1:0] dhigh [N_DEC-'d1:0];
     reg [BIT_OVR+BITWIDTH-'d1:0] dlow [N_DEC-'d1:0];
+    reg [BIT_OVR+BITWIDTH-'d1:0] dout;
+
+    // Kombinatorische Integrator-Kaskade: alle N_DEC Stufen im selben Sample
+    // (analog zu "for i in range(num_stages): z = intes[i].update(z)")
+    wire [BIT_OVR+BITWIDTH-'d1:0] integ_chain [N_DEC:0];
+    assign integ_chain[0] = DATA_IN;
+    genvar gi;
+    generate
+        for (gi = 0; gi < N_DEC; gi = gi + 1) begin: integ_stage
+            assign integ_chain[gi+1] = dhigh[gi] + integ_chain[gi];
+        end
+    endgenerate
+
+    // Kombinatorische Comb-Kaskade: alle N_DEC Stufen im selben Takt
+    // (analog zu "for c in range(num_stages): z = combs[c].update(z)")
+    wire [BIT_OVR+BITWIDTH-'d1:0] comb_chain [N_DEC:0];
+    assign comb_chain[0] = dhigh[N_DEC-'d1];
+    genvar gc;
+    generate
+        for (gc = 0; gc < N_DEC; gc = gc + 1) begin: comb_stage
+            assign comb_chain[gc+1] = comb_chain[gc] - dlow[gc];
+        end
+    endgenerate
 
     // Control signals
     reg shift_clk_hgh;
@@ -54,36 +77,38 @@ module FILTER_CIC#(
         if(!EN || !RSTN) begin
             count <= 'd0;
             shift_clk_hgh <= 'd0;
-            dhigh <= 'd0;
             for (i0 = 0; i0 < N_DEC; i0 = i0 + 'd1) begin
+                dhigh[i0] <= 'd0;
                 dlow[i0] <= 'd0;
             end
             dout <= 'd0;
             v_comb <= 1'd0;
         end else begin
             shift_clk_hgh <= CLK_SMP;
-            // Decimation decision
-            if (count == DEC_RATE) begin
-                count <= 'd0;
-                v_comb <= 1'b1;
+
+            // Decimation decision: Trigger bei sample_index % DEC_RATE == 0
+            // (analog zu "if (s % dsr) == 0" in do_cic, inkl. dem allerersten Sample)
+            if (do_dec) begin
+                v_comb <= (count == 'd0) ? 1'b1 : 1'b0;
+                count <= (count == DEC_RATE-'d1) ? 'd0 : count + 8'd1;
             end else begin
-                count <= count + ((do_dec) ? 8'd1 : 8'd0);
                 v_comb <= 1'b0;
             end
 
-            // Integrator section running at sampling clock
+            // Integrator section running at sampling clock (N_DEC Stufen kaskadiert)
             if(do_dec) begin
-                dhigh <= dhigh + DATA_IN;
-            end else begin
-                dhigh <= dhigh;
+                for (i0 = 0; i0 < N_DEC; i0 = i0 + 1) begin
+                    dhigh[i0] <= integ_chain[i0+1];
+                end
             end
 
-            // Comb section running at output rate
-            dlow[0] <= (v_comb) ? dhigh : dlow[0];
-            for (i0 = 1; i0 < N_DEC; i0 = i0 + 'd1) begin
-                dlow[i0] <= (v_comb) ? dlow[i0-1] : dlow[i0];
+            // Comb section running at output rate (N_DEC Stufen kaskadiert)
+            if (v_comb) begin
+                for (i0 = 0; i0 < N_DEC; i0 = i0 + 1) begin
+                    dlow[i0] <= comb_chain[i0];
+                end
             end
-            dout <= (v_comb) ? (dhigh - dlow[N_DEC-'d1]) : dout;
+            dout <= (v_comb) ? comb_chain[N_DEC] : dout;
         end
     end
 endmodule

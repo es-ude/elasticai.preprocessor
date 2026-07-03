@@ -19,6 +19,20 @@ def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) 
     return sig_in.astype(int).tolist()
 
 
+def build_expected(sig_in: list[int], poly_order: int) -> list[int]:
+    dut = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0, # Default Settings
+            dsr=10,
+        ))
+    if poly_order == 1:
+        return dut.do_decimation_polyphase_order_one(np.array(sig_in)).astype(int).tolist()
+    elif poly_order == 2:
+        return dut.do_decimation_polyphase_order_two(np.array(sig_in)).astype(int).tolist()
+    else:
+        return sig_in 
+
+
 @cocotb.test()
 @eai_testbench
 async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int], check: list[int]):
@@ -84,7 +98,9 @@ def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
         num_periods=2,
         n_samples=22,
     )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
+    check = build_expected(data_in, poly_order)
+
+    cocotb_test_fixture.write({"sig_in": data_in, "check": check})
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_fpga.v")
     cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_FPGA")
@@ -95,8 +111,8 @@ def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
 @pytest.mark.parametrize(
     "bitwidth, poly_order",
     [
-        (4, 2),
-        (16, 3),
+        (4, 1),
+        (16, 2),
     ],
 )
 def test_filter_polydec_fpga_build(
@@ -117,7 +133,9 @@ def test_filter_polydec_fpga_build(
         packages=["datarate"],
         path2save=build_dir,
     )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
+    check = build_expected(data_in, poly_order)
+
+    cocotb_test_fixture.write({"sig_in": data_in, "check": check})
     cocotb_test_fixture.set_top_module_name("POLYDEC_FPGA_0")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
