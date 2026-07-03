@@ -11,7 +11,7 @@ def load_and_plugin(
     type: str,
     id: str,
     params: dict[str, Any],
-    packages: list,
+    packages: list = ["windower"],
     path2save: Path = get_path_to_build() / "build",
     add_ringbuffer: bool = False,
 ) -> None:
