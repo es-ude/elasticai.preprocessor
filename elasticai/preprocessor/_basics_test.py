@@ -2,7 +2,7 @@ from elasticai.preprocessor import get_path_to_project
 
 
 def test_path_to_project() -> None:
-    checks = ["elastic-ai", "preprocessor"]
+    checks = ["elasticai", "preprocessor"]
     rslt = get_path_to_project()
 
     assert rslt.is_dir()
