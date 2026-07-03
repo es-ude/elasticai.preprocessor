@@ -3,54 +3,44 @@
 
 #include <stdint.h>
 
-/* -------------------------------------------------------------------------
- * State structs
- *
- * ReplayerState      — data-only replayer (mirrors REPLAYER without ADD_TRIGGER)
- * ReplayerTrggState  — replayer with parallel trigger channel (ADD_TRIGGER)
- * ---------------------------------------------------------------------- */
+// State structs:
+// ReplayerState      — data-only replayer
+// ReplayerTrggState  — replayer with parallel trigger channel
 
 typedef struct {
-    uint16_t pos;         /* current read position (= cnt_pos in Verilog)  */
-    uint16_t num_values;  /* total number of stored values (= NUM_VALUES)   */
-    void    *data;        /* pointer to the data array (= bram_data)        */
+    uint16_t pos;         // current read position
+    uint16_t num_values;  // total number of stored values
+    void    *data;        // pointer to the data array
 } ReplayerState;
 
 typedef struct {
     uint16_t  pos;
     uint16_t  num_values;
     void     *data;
-    uint8_t  *trgg;       /* pointer to the trigger array (= bram_trgg)     */
+    uint8_t  *trgg;       // pointer to the trigger array
 } ReplayerTrggState;
 
 
-/* =========================================================================
- * Variant A: data only  (no ADD_TRIGGER)
- * =========================================================================
- *
- * Generated API per instance ID:
- *
- *   data_type replayer_next_ID(void)
- *       Read the value at the current position and advance the counter.
- *       Wraps back to 0 after the last value — mirrors Verilog's always-block:
- *         cnt_pos <= (cnt_pos == NUM_VALUES-1) ? 0 : cnt_pos + 1
- *
- *   int replayer_done_ID(void)
- *       Returns 1 if the current position is the last value (pos == n-1).
- *       Mirrors: DATA_END = (cnt_pos == NUM_VALUES-1)
- *       IMPORTANT: call BEFORE replayer_next, not after — next advances pos.
- *
- *   void replayer_reset_ID(void)
- *       Reset counter to 0.  Mirrors: RSTN (active-low reset).
- *
- * Typical usage:
- *   while (1) {
- *       int done     = replayer_done_ID();   // check end BEFORE reading
- *       data_type v  = replayer_next_ID();   // read + advance
- *       process(v);
- *       if (done) break;
- *   }
- * ======================================================================= */
+// data only
+// generates tree functions:
+//
+//   data_type replayer_next_ID(void)
+//   read current positions value and increase counter
+//
+//   int replayer_done_ID(void)
+//   returns 1 if current position is the last value
+//
+//   void replayer_reset_ID(void)
+//   reset counter to 0.
+//
+// typical use: 
+//      wile (1) 
+//      {
+//          int done    = replayer_done_ID();
+//          data_type v = replayer_next_ID();
+//          process(v);
+//          if (done) break;
+//      }
 
 #ifndef DEF_REPLAYER_READ
 #define DEF_REPLAYER_READ(id, data_type) \
@@ -96,23 +86,11 @@ data_type replayer_read_##id(ReplayerState *r) { \
 #endif
 
 
-/* =========================================================================
- * Variant B: data + trigger  (ADD_TRIGGER)
- *
- * The trigger array must be declared BEFORE invoking DEF_NEW_REPLAYER_TRGG_IMPL.
- * The Python generator emits it automatically; when using the macro by hand:
- *
- *   static uint8_t my_trgg[] = {0, 0, 1, 0, ...};
- *   DEF_NEW_REPLAYER_TRGG_IMPL(0, int16_t, 19, my_trgg, 0x001, 0x002, ...)
- *
- * Additional API function:
- *
- *   uint8_t replayer_trgg_ID(void)
- *       Returns the trigger bit at the CURRENT position (before advancing).
- *       Mirrors: DATA_TRGG = bram_trgg[cnt_pos]
- *       Call this before replayer_next_ID() to get the trigger at the same
- *       position as the data value being read.
- * ======================================================================= */
+// data and trigger
+// additional function:
+// uint8_t replayer_trgg_ID()
+// returns trigger-bit at current position
+// call before replayer_next_ID() to get trigger of correct position. 
 
 #ifndef DEF_REPLAYER_TRGG_READ
 #define DEF_REPLAYER_TRGG_READ(id, data_type) \
