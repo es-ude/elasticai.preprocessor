@@ -179,15 +179,14 @@ def test_sliding_windower_build_equal(
         )
     )
 
-    data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-
-    signal = np.pad(
-        np.asarray(data_in),
-        (samples - num_shift, 0),
-        mode="constant",
+    data_in = build_testdata(
+        bitwidth=bitwidth, 
+        is_signed=False, 
+        samples=samples, 
+        repeats=8
     )
 
-    data_checked = dut.slide(signal).tolist()
+    data_checked = dut.slide(np.asarray(data_in)).tolist()
 
     load_and_plugin(
         type="windower",
@@ -227,15 +226,14 @@ def test_sequence_windower_build_equal(
         )
     )
 
-    data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-
-    signal = np.pad(
-        np.asarray(data_in),
-        (samples - num_shift, 0),
-        mode="constant",
+    data_in = build_testdata(
+        bitwidth=bitwidth, 
+        is_signed=False, 
+        samples=samples, 
+        repeats=8
     )
 
-    data_checked = dut.sequence(signal).tolist()
+    data_checked = dut.sequence(np.asarray(data_in)).tolist()
 
     load_and_plugin(
         type="windower",
