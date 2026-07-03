@@ -5,6 +5,8 @@ from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
+from elasticai.creator_plugins.windower.utils import load_and_plugin
+
 
 @cocotb.test()
 @eai_testbench
@@ -56,7 +58,7 @@ async def shifting_data(dut, bitwidth: int, elements: int):
         assert dut.DVALID.value == 1
 
 
-# @pytest.mark.simulation
+@pytest.mark.simulation
 @pytest.mark.parametrize(
     ["bitwidth", "elements"],
     [
@@ -72,3 +74,27 @@ def test_shift_register(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, e
 
     cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER")
     cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "SAMPLES": elements}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize(
+    ["bitwidth", "elements"],
+    [(8, 6)]
+)
+def test_shift_register_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
+    cocotb_test_fixture.clear_srcs()
+    path2build = cocotb_test_fixture.get_artifact_dir() / "verilog"
+
+    load_and_plugin(
+        type="shift_register",
+        id="0",
+        params={"BITWIDTH": bitwidth, "SAMPLES": elements},
+        packages=["windower"],
+        path2save=path2build,
+        add_ringbuffer=False
+    )
+    assert (path2build / "shift_register_0.v").exists()
+
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER_0")
+    cocotb_test_fixture.run(params={}, defines={})

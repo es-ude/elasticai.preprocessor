@@ -73,15 +73,24 @@ class TestWindowSequencer(TestCase):
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
+
+        delta_steps = set0.window_length - set0.overlap_length
+        padded_stimuli = np.pad(
+            stimuli,
+            (set0.window_length - delta_steps, 0),
+            mode="constant",
+            constant_values=0,
+        )
+
         rslt = WindowSequencer(set0).slide(stimuli)
 
         assert rslt.shape == (
-            int((num_trials - 1) * set0.window_length) + 1,
+            num_samples,
             set0.window_length,
         )
         for idx, sequence in enumerate(rslt):
             start_point = idx
-            chck = stimuli[start_point : start_point + set0.window_length]
+            chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_quarter_overlapping(self):
@@ -90,13 +99,27 @@ class TestWindowSequencer(TestCase):
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
+
+        delta_steps = set0.window_length - set0.overlap_length
+        padded_stimuli = np.pad(
+            stimuli,
+            (set0.window_length - delta_steps, 0),
+            mode="constant",
+            constant_values=0,
+        )
+
         rslt = WindowSequencer(set0).slide(stimuli)
 
-        assert rslt.shape[0] in range(int(num_trials * 1.5 - 2), int(num_trials * 1.5))
-        assert rslt.shape[1] == set0.window_length
+        expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
+
+        assert rslt.shape == (
+            expected_num_windows,
+            set0.window_length,
+        )
+
         for idx, sequence in enumerate(rslt):
             start_point = int(idx * self.sets.window_length * 0.75)
-            chck = stimuli[start_point : start_point + set0.window_length]
+            chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_half_overlapping(self):
@@ -105,12 +128,27 @@ class TestWindowSequencer(TestCase):
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
+
+        delta_steps = set0.window_length - set0.overlap_length
+        padded_stimuli = np.pad(
+            stimuli,
+            (set0.window_length - delta_steps, 0),
+            mode="constant",
+            constant_values=0,
+        )
+
         rslt = WindowSequencer(set0).slide(stimuli)
 
-        assert rslt.shape == (num_trials * 2 - 1, set0.window_length)
+        expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
+
+        assert rslt.shape == (
+            expected_num_windows,
+            set0.window_length,
+        )
+
         for idx, sequence in enumerate(rslt):
             start_point = int(idx * self.sets.window_length * 0.5)
-            chck = stimuli[start_point : start_point + set0.window_length]
+            chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_sequence(self):

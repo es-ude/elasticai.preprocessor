@@ -1,20 +1,24 @@
+from random import randint
+
 import cocotb
+import numpy as np
 import pytest
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, FallingEdge, Timer
-from random import randint
-import numpy as np
-
+from cocotb.triggers import FallingEdge, RisingEdge, Timer
 from elasticai.creator.arithmetic import FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
+
 from elasticai.creator_plugins.windower.utils import load_and_plugin
-from elasticai.preprocessor.windower import WindowSequencer, SettingsWindow
+from elasticai.preprocessor.windower import SettingsWindow, WindowSequencer
 
 
 def build_testdata(bitwidth: int, is_signed: bool, samples: int, repeats: int = 8) -> list[int]:
     params = FxpParams(total_bits=bitwidth, frac_bits=0, signed=is_signed)
 
-    data = [randint(a=params.minimum_as_integer, b=params.maximum_as_integer) for _ in range(repeats * samples)]
+    data = [
+        randint(a=params.minimum_as_integer, b=params.maximum_as_integer)
+        for _ in range(repeats * samples)
+    ]
     data.append(params.minimum_as_integer)
     data.append(params.maximum_as_integer)
     return data
@@ -22,7 +26,9 @@ def build_testdata(bitwidth: int, is_signed: bool, samples: int, repeats: int = 
 
 @cocotb.test()
 @eai_testbench
-async def check_transfer_function(dut, bitwidth: int, samples: int, num_shift: int, data_in: list[int], check: list[int]):
+async def check_transfer_function(
+    dut, bitwidth: int, samples: int, num_shift: int, data_in: list[int], check: list[int]
+):
     period_clk = 5
 
     # Initialize signals
@@ -33,7 +39,7 @@ async def check_transfer_function(dut, bitwidth: int, samples: int, num_shift: i
     dut.DATA_IN.value = 0
 
     # Start clock and making reset
-    cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit='ns').start())
+    cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
 
     for _ in range(8):
         await RisingEdge(dut.CLK_SYS)
@@ -116,8 +122,14 @@ def test_windower(
     cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
     cocotb_test_fixture.set_top_module_name("WINDOWER")
     cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/ring_buffer.v",)
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/windower.v",)
+    cocotb_test_fixture.add_srcs_from_package(
+        "windower",
+        "verilog/ring_buffer.v",
+    )
+    cocotb_test_fixture.add_srcs_from_package(
+        "windower",
+        "verilog/windower.v",
+    )
 
     cocotb_test_fixture.run(
         params={
@@ -144,7 +156,11 @@ def test_windower_build(
     load_and_plugin(
         type="windower",
         id="",
-        params={"BITWIDTH": bitwidth, "SAMPLES": samples, "NUM_SHIFT": num_shift,},
+        params={
+            "BITWIDTH": bitwidth,
+            "SAMPLES": samples,
+            "NUM_SHIFT": num_shift,
+        },
         packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
         add_ringbuffer=True,
@@ -155,7 +171,7 @@ def test_windower_build(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={}, 
+        params={},
         defines={},
     )
 
@@ -179,19 +195,18 @@ def test_sliding_windower_build_equal(
         )
     )
 
-    data_in = build_testdata(
-        bitwidth=bitwidth, 
-        is_signed=False, 
-        samples=samples, 
-        repeats=8
-    )
+    data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
 
     data_checked = dut.slide(np.asarray(data_in)).tolist()
 
     load_and_plugin(
         type="windower",
         id="",
-        params={"BITWIDTH": bitwidth, "SAMPLES": samples, "NUM_SHIFT": num_shift,},
+        params={
+            "BITWIDTH": bitwidth,
+            "SAMPLES": samples,
+            "NUM_SHIFT": num_shift,
+        },
         packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
         add_ringbuffer=True,
@@ -202,7 +217,7 @@ def test_sliding_windower_build_equal(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={}, 
+        params={},
         defines={},
     )
 
@@ -226,19 +241,18 @@ def test_sequence_windower_build_equal(
         )
     )
 
-    data_in = build_testdata(
-        bitwidth=bitwidth, 
-        is_signed=False, 
-        samples=samples, 
-        repeats=8
-    )
+    data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
 
     data_checked = dut.sequence(np.asarray(data_in)).tolist()
 
     load_and_plugin(
         type="windower",
         id="",
-        params={"BITWIDTH": bitwidth, "SAMPLES": samples, "NUM_SHIFT": num_shift,},
+        params={
+            "BITWIDTH": bitwidth,
+            "SAMPLES": samples,
+            "NUM_SHIFT": num_shift,
+        },
         packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
         add_ringbuffer=True,
@@ -249,6 +263,6 @@ def test_sequence_windower_build_equal(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={}, 
+        params={},
         defines={},
     )

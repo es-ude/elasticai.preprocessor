@@ -91,7 +91,7 @@ class WindowSequencer:
         :return:        Numpy array of sequence signals with shape=(M, window length)
         """
         delta_steps = self._settings.window_length - self._settings.overlap_length
-        
+
         num_pre_padding = self._settings.window_length - delta_steps
 
         signal = np.pad(
@@ -100,7 +100,7 @@ class WindowSequencer:
             mode="constant",
             constant_values=0,
         )
-        
+
         return sliding_window_view(
             x=signal, axis=0, window_shape=self._settings.window_length, writeable=True
         )[::delta_steps]
