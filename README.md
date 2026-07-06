@@ -7,7 +7,7 @@ For building the whole digital AI hardware, we recommend to use the following fr
 - [denspp.offline](https://github.com/es-ude/denspp.offline): Finding the best preprocessing methods with offline data
 - [elasticAI.explorer](https://github.com/es-ude/elastic-ai.explorer): Hardware-aware NAS
 - [elasticAI.creator](https://github.com/es-ude/elastic-ai.creator): Building embedded deep learning models
-- [elasticAI.hardware](https://github.com/es-ude/elastic-ai.hardware): Hardware for deploying the embedded models
+- [elasticAI.hardware](https://github.com/es-ude/elasticai.hardware): Hardware for deploying the embedded models
 - [elasticAI.equi-checker](https://github.com/es-ude/elasticai.equi-checker): Equivalence Framework for Hardware/Software Co-Design
 # Table of Content
 1. [Installation guide](#installation-guide)
