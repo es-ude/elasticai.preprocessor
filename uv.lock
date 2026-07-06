@@ -418,18 +418,6 @@ wheels = [
 ]
 
 [[package]]
-name = "elastic-ai-equi-checker"
-version = "0.1.1.dev2+g9fd7cb8c9"
-source = { git = "https://github.com/es-ude/elastic-ai.equi-checker.git?branch=main#9fd7cb8c9b7ec4e6892af573711eb2411cd595ed" }
-dependencies = [
-    { name = "cffi" },
-    { name = "hypothesis" },
-    { name = "numpy" },
-    { name = "pytest" },
-    { name = "setuptools" },
-]
-
-[[package]]
 name = "elasticai-creator"
 version = "0.68.0"
 source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#cf06d54586e50edcce9752e0a340f7fa85a5529c" }
@@ -439,6 +427,16 @@ dependencies = [
     { name = "pytest" },
     { name = "tomlkit" },
     { name = "torch" },
+]
+
+[[package]]
+name = "elasticai-equi-checker"
+version = "0.1.1.dev5+g703be4c23"
+source = { git = "https://github.com/es-ude/elasticai.equi-checker.git?branch=main#703be4c23a2b8740a440a48634bd1fb4ecd4f15b" }
+dependencies = [
+    { name = "cffi" },
+    { name = "hypothesis" },
+    { name = "pytest" },
 ]
 
 [[package]]
@@ -473,13 +471,13 @@ docs = [
     { name = "sphinxext-opengraph" },
 ]
 lint = [
-    { name = "elastic-ai-equi-checker" },
     { name = "ruff" },
     { name = "tombi" },
     { name = "ty" },
 ]
 test = [
     { name = "cocotb" },
+    { name = "elasticai-equi-checker" },
     { name = "pytest" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-testmon" },
@@ -515,13 +513,13 @@ docs = [
     { name = "sphinxext-opengraph", specifier = ">=0.9.1" },
 ]
 lint = [
-    { name = "elastic-ai-equi-checker", git = "https://github.com/es-ude/elastic-ai.equi-checker.git?branch=main" },
     { name = "ruff", specifier = ">=0.15.14" },
     { name = "tombi", specifier = ">=1.1.3" },
     { name = "ty", specifier = ">=0.0.41" },
 ]
 test = [
     { name = "cocotb", specifier = ">=2.0.1" },
+    { name = "elasticai-equi-checker", git = "https://github.com/es-ude/elasticai.equi-checker.git?branch=main" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-rerunfailures", specifier = ">=16.3" },
     { name = "pytest-testmon", specifier = ">=2.2.0" },
