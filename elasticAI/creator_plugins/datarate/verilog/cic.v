@@ -35,13 +35,10 @@ module FILTER_CIC#(
 
     localparam BIT_OVR = N_DEC*$clog2(DEC_RATE);
 
-    // Integrator stage registers: N_DEC kaskadierte Integratoren statt nur einem
     reg [BIT_OVR+BITWIDTH-'d1:0] dhigh [N_DEC-'d1:0];
     reg [BIT_OVR+BITWIDTH-'d1:0] dlow [N_DEC-'d1:0];
     reg [BIT_OVR+BITWIDTH-'d1:0] dout;
 
-    // Kombinatorische Integrator-Kaskade: alle N_DEC Stufen im selben Sample
-    // (analog zu "for i in range(num_stages): z = intes[i].update(z)")
     wire [BIT_OVR+BITWIDTH-'d1:0] integ_chain [N_DEC:0];
     assign integ_chain[0] = DATA_IN;
     genvar gi;
@@ -51,8 +48,6 @@ module FILTER_CIC#(
         end
     endgenerate
 
-    // Kombinatorische Comb-Kaskade: alle N_DEC Stufen im selben Takt
-    // (analog zu "for c in range(num_stages): z = combs[c].update(z)")
     wire [BIT_OVR+BITWIDTH-'d1:0] comb_chain [N_DEC:0];
     assign comb_chain[0] = dhigh[N_DEC-'d1];
     genvar gc;
@@ -86,8 +81,6 @@ module FILTER_CIC#(
         end else begin
             shift_clk_hgh <= CLK_SMP;
 
-            // Decimation decision: Trigger bei sample_index % DEC_RATE == 0
-            // (analog zu "if (s % dsr) == 0" in do_cic, inkl. dem allerersten Sample)
             if (do_dec) begin
                 v_comb <= (count == 'd0) ? 1'b1 : 1'b0;
                 count <= (count == DEC_RATE-'d1) ? 'd0 : count + 8'd1;
@@ -95,14 +88,14 @@ module FILTER_CIC#(
                 v_comb <= 1'b0;
             end
 
-            // Integrator section running at sampling clock (N_DEC Stufen kaskadiert)
+            // Integrator section running at sampling clock 
             if(do_dec) begin
                 for (i0 = 0; i0 < N_DEC; i0 = i0 + 1) begin
                     dhigh[i0] <= integ_chain[i0+1];
                 end
             end
 
-            // Comb section running at output rate (N_DEC Stufen kaskadiert)
+            // Comb section running at output rate 
             if (v_comb) begin
                 for (i0 = 0; i0 < N_DEC; i0 = i0 + 1) begin
                     dlow[i0] <= comb_chain[i0];

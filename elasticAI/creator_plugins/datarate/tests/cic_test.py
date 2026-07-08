@@ -72,7 +72,6 @@ async def cic_access(dut, bitwidth: int, dec_rate: int, n_dec: int, sig_in: list
     assert data_out == ref
 
 
-#  --------------- (1) Template Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [2, 6, 8, 12, 16])
@@ -91,7 +90,6 @@ def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_r
         params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec}, defines={}
     )
 
-#  --------------- (2) Build Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
@@ -121,7 +119,6 @@ def test_filter_cic_build(
     cocotb_test_fixture.run(params={}, defines={})
 
 
-#  --------------- (3) Äquivalenz Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8]) 

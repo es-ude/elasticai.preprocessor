@@ -45,7 +45,7 @@ module FILTER_POLYDEC_ASIC#(
 			    din_dly_low[i0] <= 'd0;
 			 end
 			 DATA_OUT <= 'd0;
-		end else if(EN) begin  // Neu: if(EN)
+		end else if(EN) begin  
 			// Clock Generation
 			clk_half <= ~clk_half;
 			
@@ -62,7 +62,7 @@ module FILTER_POLYDEC_ASIC#(
                    end
                 end
                 default: begin
-                    DATA_OUT <= DATA_IN;   // keine Gate-Bedingung -> volle Rate
+                    DATA_OUT <= DATA_IN; 
                 end
             endcase
 			end

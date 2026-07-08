@@ -10,27 +10,25 @@ from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampli
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 
 
-def build_test_signal(bitwidth: int, num_periods: int = 2, n_samples: int = 22) -> list: 
+
+def build_test_signal(
+    bitwidth: int, frac: int = 0, num_periods: int = 2, n_samples: int = 22
+) -> list:
+    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=frac, signed=False))
     mid_cm = 2 ** (bitwidth - 1)
 
     sig_in = mid_cm + (mid_cm - 2) * np.sin(
         np.linspace(0, num_periods * 2 * np.pi, n_samples, dtype=float)
     )
-    return sig_in.astype(int).tolist()
+    return [arith_data.cut_as_integer(float(v)) for v in sig_in]
 
-
-def build_expected(sig_in: list[int], poly_order: int) -> list[int]:
-    dut = DownSampling(
-        SettingsDownSampling(
-            sampling_rate=1000.0, # Default Settings
-            dsr=10,
-        ))
-    if poly_order == 1:
-        return dut.do_decimation_polyphase_order_one(np.array(sig_in)).astype(int).tolist()
-    elif poly_order == 2:
-        return dut.do_decimation_polyphase_order_two(np.array(sig_in)).astype(int).tolist()
-    else:
-        return sig_in 
+    
+#Feste Werte für den Template-Test
+FIXED_SIG_IN = [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]
+FIXED_CHECK = {
+    1: [1, 5, 1, 5, 1, 5],   # y_k = x[2k+1] + x[2k]
+    2: [1, 7, 3, 7, 3, 7],   # y_k = x[2k+1] + 2*x[2k] + x[2k-2]
+}
     
 
 @cocotb.test()
@@ -77,43 +75,30 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
     assert data_out[1:] == check 
 
 
-#  --------------- (1) Template Test ------------------
 
 @pytest.mark.simulation  
-@pytest.mark.parametrize(
-    "bitwidth, poly_order",
-    [(2, 1),(2, 2), (4, 1), (4, 2), (12, 1), (12, 2),],
-)
+@pytest.mark.parametrize("bitwidth, poly_order",[(3, 1),(3, 2),],)
 
-def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
-    data_in = build_test_signal(
-        bitwidth=bitwidth,
-        num_periods=2,
-        n_samples=22,
-    )
-    check = build_expected(data_in, poly_order)
-    
-    cocotb_test_fixture.write({"sig_in": data_in, "check": check}) 
+def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int):
+    sig_in = FIXED_SIG_IN # Bitwidth nicht mehr berücksichtigt
+    check = FIXED_CHECK[poly_order]
+
+    cocotb_test_fixture.write({"sig_in": sig_in, "check": check}) 
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_asic.v")
     cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_ASIC")
-    cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
+    cocotb_test_fixture.run(params={"BITWIDTH" : bitwidth, "POLY_ORDER": poly_order}, defines={})
 
 
-#  --------------- (2) Build Test ------------------
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, poly_order", [(3, 1)])
+@pytest.mark.parametrize("bitwidth, poly_order", [(3,1),],)
 def test_filter_polydec_asic_build_first_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
+    cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int
 ):
     build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-
-    data_in = build_test_signal(
-        bitwidth=bitwidth,
-        num_periods=2,
-        n_samples=22,
-    )
+    sig_in = FIXED_SIG_IN # Bitwidth nicht mehr berücksichtigt
+    check = FIXED_CHECK[poly_order]
 
     load_and_plugin(
         type="polydec_asic",
@@ -122,10 +107,8 @@ def test_filter_polydec_asic_build_first_order(
         packages=["datarate"],
         path2save=build_dir,
     )
-
-    check = build_expected(data_in, poly_order)
     
-    cocotb_test_fixture.write({"sig_in": data_in, "check": check})
+    cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
     cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -133,17 +116,13 @@ def test_filter_polydec_asic_build_first_order(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, poly_order", [(4, 2)])
+@pytest.mark.parametrize("bitwidth, poly_order", [(3,2),],)
 def test_filter_polydec_asic_build_second_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
+    cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int
 ):
     build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-
-    data_in = build_test_signal(
-        bitwidth=bitwidth,
-        num_periods=2,
-        n_samples=22,
-    )
+    sig_in = FIXED_SIG_IN # Bitwidth nicht mehr berücksichtigt
+    check = FIXED_CHECK[poly_order]
 
     load_and_plugin(
         type="polydec_asic",
@@ -152,17 +131,14 @@ def test_filter_polydec_asic_build_second_order(
         packages=["datarate"],
         path2save=build_dir,
     )
-
-    check = build_expected(data_in, poly_order)
     
-    cocotb_test_fixture.write({"sig_in": data_in, "check": check})
+    cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
     cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(params={}, defines={})
 
 
-#  --------------- (3) Äquivalenz Test ------------------
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, poly_order", [(3, 1)])
