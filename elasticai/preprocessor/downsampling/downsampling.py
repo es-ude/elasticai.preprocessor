@@ -143,12 +143,12 @@ class DownSampling:
         return np.array(output_transient)
 
     @staticmethod
-    def _do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
+    def do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
         """Performing first order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
         """
-        last_sample_hs = 0.0
+        last_sample_hs = 0.
         uout = list()
         for idx, val in enumerate(uin):
             if idx % 2 == 1:
@@ -157,13 +157,13 @@ class DownSampling:
         return np.array(uout)
 
     @staticmethod
-    def _do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
+    def do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
         """Performing second order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
         """
-        last_even_prev = 0.0
-        last_even = 0.0
+        last_even_prev = 0.
+        last_even = 0.
         uout = list()
         for idx, val in enumerate(uin):
             if idx % 2 == 0:
@@ -173,7 +173,7 @@ class DownSampling:
                 uout.append(val + 2 * last_even + last_even_prev)
         return np.array(uout)
 
-    def do_decimation_polyphase(self, uin: np.ndarray, take_first_order: bool) -> np.ndarray:
+    def do_decimation_polyphase(self, uin: np.ndarray, take_first_order: bool = False) -> np.ndarray:
         """Performing Non-Recursive Polyphase Decimation on input (depends on DSR)
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)

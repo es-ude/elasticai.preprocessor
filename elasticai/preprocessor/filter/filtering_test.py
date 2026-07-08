@@ -8,10 +8,8 @@ from unittest import TestCase, main, skipUnless
 import numpy as np
 from scipy.signal import find_peaks
 
-from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.transformation import do_fft
-
 from .filtering import Filtering, SettingsFilter
+from elasticai.preprocessor.transformation import do_fft
 
 test_settings = SettingsFilter(
     gain=1,
@@ -24,7 +22,9 @@ test_settings = SettingsFilter(
 )
 
 
-def extract_peaks(signal: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def extract_peaks(
+    signal: np.ndarray, fs: float
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     freq, trans = do_fft(y=signal, fs=fs)
     peakx, _ = find_peaks(x=trans, height=0.05)
     return freq[peakx], trans[peakx], peakx
@@ -57,7 +57,9 @@ class TestDigitalFilters(TestCase):
         )
 
     def test_signal_generation(self):
-        signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         f0, y0, _ = extract_peaks(signal, test_settings.fs)
         assert self.freq == f0.tolist()
         np.testing.assert_almost_equal(
@@ -65,12 +67,15 @@ class TestDigitalFilters(TestCase):
         )
 
     def test_lowpass_iir_first_order(self):
-        signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -80,12 +85,17 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.98, 0.93, 0.71, 0.44, 0.21], decimal=1)
 
     def test_lowpass_iir_first_order_quantized(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter_fxp(
+            signal, total_bitwidth=10, fraction_width=6, is_signed=True
         result = Filtering(sets).filt_quantized(
             signal, total_bitwidth=10, fraction_width=4, is_signed=True
         )
@@ -97,12 +107,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.98, 0.93, 0.71, 0.44, 0.21], decimal=1)
 
     def test_lowpass_iir_second_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 2
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -112,12 +126,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.99, 0.98, 0.71, 0.23, 0.05], decimal=1)
 
     def test_highpass_iir_first_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "highpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -127,12 +145,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.19, 0.36, 0.71, 0.9, 0.98], decimal=1)
 
     def test_bandpass_iir_first_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "bandpass"
         sets.f_filt = [50.0, 100.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -142,12 +164,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.1, 0.21, 0.71, 0.71, 0.25], decimal=1)
 
     def test_bandstop_iir_first_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "bandstop"
         sets.f_filt = [50.0, 100.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -157,12 +183,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.99, 0.98, 0.71, 0.71, 0.97], decimal=1)
 
     def test_notch_iir_first_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "notch"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -172,12 +202,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.98, 0.9, 0.001, 0.84, 0.97], decimal=1)
 
     def test_allpass_iir_first_order(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "iir"
         sets.n_order = 1
         sets.b_type = "allpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -187,12 +221,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.99, 0.99, 0.99], decimal=1)
 
     def test_lowpass_fir_taps21(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 21
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -202,12 +240,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.98, 0.92, 0.59, 0.09, 0.001], decimal=2)
 
     def test_lowpass_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 51
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -217,12 +259,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.5, 0.001, 0.001], decimal=2)
 
     def test_highpass_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 51
         sets.b_type = "highpass"
         sets.f_filt = [20.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -232,12 +278,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.26, 0.5, 0.99, 0.99, 0.99], decimal=2)
 
     def test_bandpass_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 51
         sets.b_type = "bandpass"
         sets.f_filt = [20.0, 100.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -247,12 +297,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.25, 0.49, 0.99, 0.49, 0.001], decimal=2)
 
     def test_bandstop_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 51
         sets.b_type = "bandstop"
         sets.f_filt = [20.0, 100.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -262,12 +316,16 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.88, 0.59, 0.01, 0.59, 1.18], decimal=2)
 
     def test_notch_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 501
         sets.b_type = "notch"
         sets.f_filt = [50.0, 1.0]
+        result = Filtering(sets).filter(signal)
         result = Filtering(sets).filt(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.fs)
@@ -277,12 +335,20 @@ class TestDigitalFilters(TestCase):
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.73, 0.99, 0.99], decimal=2)
 
     def test_allpass_fir_taps51(self):
+        signal = np.sum(
+            [np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0
+        )
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
         sets.type = "fir"
         sets.n_order = 201
         sets.b_type = "allpass"
         sets.f_filt = [0.0]
+        result = Filtering(sets).filter(signal)
+        np.testing.assert_almost_equal(
+            signal[: -sets.n_order], result[sets.n_order :], decimal=5
+        )
+
         result = Filtering(sets).filt(signal)
         np.testing.assert_almost_equal(signal[: -sets.n_order], result[sets.n_order :], decimal=5)
 
