@@ -173,10 +173,10 @@ def test_filter_fir_delay_build(
     data_check = arith_data.cut_as_integer(data_check)
 
     cocotb_test_fixture.write({"data": data_in, "check": data_check})
-    cocotb_test_fixture.set_top_module_name("FIR_DELAY_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        cocotb_test_fixture.set_top_module_name("FIR_DELAY_0")
+            cocotb_test_fixture.clear_srcs()
+                cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+                    cocotb_test_fixture.run(
+                            params={},
+                                    defines={},
+                                        )
