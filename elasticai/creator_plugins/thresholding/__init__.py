@@ -1,0 +1,1 @@
+from .src.mov_avg_norm import mov_avg_norm as mov_avg_norm
