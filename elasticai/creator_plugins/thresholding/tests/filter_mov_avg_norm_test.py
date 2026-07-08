@@ -13,14 +13,16 @@ import elasticai.creator_plugins.filter_data as test_dut
 # from elasticai.creator_plugins.helper import calc_mavg
 
 
-# cocotb_settings = dict(
-#     src_files=["filter_mov_avg_norm.v"],
-#     top_module_name="MOVING_AVERAGE",
-#     cocotb_test_module="elasticai.creator_plugins.filters.tests.filter_mov_avg_norm_tb",
-#     path2src=Path(test_dut.__file__).parent / "verilog",
-#     params={"BITWIDTH": 8, "LENGTH": 4},
-# )
+# --- build test signal
+def build_test_signal(bitwidth: int, length: int) -> list[int]:
+    return [
+        np.random.randint(0, 2**bitwidth - 1)
+        for _ in range(length)
+    ]
 
+# --- build check data
+    def calc_mavg_reference(data_in, length) -> list[int]:
+        return [1,2,4 ]
 
 @cocotb.test()
 @eai_testbench  #add this
@@ -28,7 +30,9 @@ async def filter_fir_mavg_pow2_test(
     dut,
     bitwidth: int,
     length: int,
-    ):
+    data_in: list[int],  #new input parameter
+    check: list[int],    #check signal
+):
     period_clk = 5
     period_data = 100
     num_repeats = 4
@@ -36,16 +40,18 @@ async def filter_fir_mavg_pow2_test(
 
     used_bitwidth = int(dut.BITWIDTH.value)
     used_adrwidth = 4
-    data_in_array = [
-        np.random.randint(low=0, high=2**used_bitwidth - 1)
-        for _ in range(used_adrwidth)
-    ]
+
+    # --- data_in_array not needed anymore because of input signal
+    # data_in_array = [
+    #     np.random.randint(low=0, high=2**used_bitwidth - 1)
+    #     for _ in range(used_adrwidth)
+    # ]
     # data_in_array = [int(2**(used_bitwidth-1) * (1 + np.cos(2 * np.pi * idx / used_adrwidth))) for idx in range(used_adrwidth)]
-    data_in_array = [val if val >= 0 else 0 for val in data_in_array]
-    data_in_array = [
-        2**used_bitwidth - 1 if val >= 2**used_bitwidth - 1 else val
-        for val in data_in_array
-    ]
+    # data_in_array = [val if val >= 0 else 0 for val in data_in_array]
+    # data_in_array = [
+    #     2**used_bitwidth - 1 if val >= 2**used_bitwidth - 1 else val
+    #     for val in data_in_array
+    # ]
 
     # --- Moving mean buffer
     mavg_buffer = [0 for _ in range(used_adrwidth)]
@@ -80,10 +86,9 @@ async def filter_fir_mavg_pow2_test(
     for idx in range(num_repeats):
         await RisingEdge(dut.CLK_SYS)
         assert dut.DVALID.value == (idx > 0)
-        for val in data_in_array:
+        for val, expected in zip(data_in, check):
             await RisingEdge(dut.DO_CALC)
-            dut.DATA_IN.value = val
-            test_val =  1 #calc_mavg(mavg_buffer, used_bitwidth, do_signed)
+            dut.DATA_IN.value = val           
             mavg_buffer[ite % used_adrwidth] = val
             ite += 1
 
@@ -92,17 +97,15 @@ async def filter_fir_mavg_pow2_test(
             assert dut.DVALID.value == 0
 
             await RisingEdge(dut.DVALID)
-            assert dut.DVALID.value == 1
+            assert int(dut.DATA_OUT.value) == int(expected)
             print(
                 int(dut.DATA_OUT.value),
-                # calc_mavg(mavg_buffer, used_bitwidth, do_signed),
             )
-            assert dut.DATA_OUT.value == dut.DATA_OUT.value  # test_val
+            assert dut.DATA_OUT.value == test_val
 
 
-# if __name__ == "__main__":
-#     run_cocotb_sim_for_src_dir(**cocotb_settings)
 
+# --- template test
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("length", [4])
@@ -111,16 +114,33 @@ def test_mov_avg_norm(
     bitwidth: int,
     length: int,
 	):
-	cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")
-	cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
-	cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
-	cocotb_test_fixture.run(params={
+
+    # --- Build test data
+    data_in = build_test_signal(
+        bitwidth=bitwidth,
+        length=20,
+    )
+
+    check_data = calc_mavg_reference(data_in, length)
+
+    cocotb_test_fixture.write(
+        {
+            "data_in": data_in,
+            "check": check_data,
+        }
+    )
+    cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
+    cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
+    cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")   
+    cocotb_test_fixture.run(params={
         "BITWIDTH": bitwidth,
         "LENGTH": length,
     }, 
     defines={}
     )
 
+
+# --- build test
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [4])
 @pytest.mark.parametrize("length", [4])
@@ -136,7 +156,7 @@ def test_mov_avg_norm_build(
 
     load_and_plugin(
         type="mov_avg_norm",
-        id="",
+        id="0",  #irrelevant?   
         params={
             "BITWIDTH": bitwidth,
             "LENGTH": length,
@@ -144,4 +164,87 @@ def test_mov_avg_norm_build(
         packages=["thresholding"],
         path2save=build_dir,
     )
+
+    # --- input data
+    data_in = build_test_signal(
+        bitwidth=bitwidth,
+        length=20,
+    )
+
+    cocotb_test_fixture.write(
+        {
+            "data_in": data_in,
+            "check": data_in,
+        }
+    )
+
+
+    #start test
+    cocotb_test_fixture.set_top_module_name("MOV_AVG_NORM_0")
+    cocotb_test_fixture.clear_srcs()
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+    cocotb_test_fixture.run(
+        params={},
+        defines={},
+    )
+
+# --- Check equivalence to reference function (build_test_data)
+# @pytest.mark.simulation
+# @pytest.mark.parametrize("bitwidth", [4])
+# @pytest.mark.parametrize("length", [4])
+# def test_mov_avg_norm_equal(
+#     cocotb_test_fixture: CocotbTestFixture,
+#     bitwidth: int,
+#     length: int,
+# ):
+    # build_dir = (
+    #     cocotb_test_fixture.get_artifact_dir()
+    #     / "verilog"
+    # )
+
+    # data_in = build_test_signal(
+    #     bitwidth=bitwidth,
+    #     length=20,
+    # )
+
+    # data_check = calc_mavg_reference(
+    #     data_in,
+    #     window=length,
+    # )
+
+    # load_and_plugin(
+    #     type="mov_avg_norm",
+    #     id="1",
+    #     params={
+    #         "BITWIDTH": bitwidth,
+    #         "LENGTH": length,
+    #     },
+    #     packages=["thresholding"],
+    #     path2save=build_dir,
+    # )
+
+    # cocotb_test_fixture.write(
+    #     {
+    #         "data_in": data_in,
+    #         "check": data_check,
+    #     }
+    # )
+
+    # cocotb_test_fixture.set_top_module_name(
+    #     "MOV_AVG_NORM_1"
+    # )
+
+    # cocotb_test_fixture.clear_srcs()
+
+    # cocotb_test_fixture.add_srcs_from_artifact_dir(
+    #     "verilog/*.v"
+    # )
+
+    # cocotb_test_fixture.run(
+    #     params={},
+    #     defines={},
+    # )
+
+
+
 
