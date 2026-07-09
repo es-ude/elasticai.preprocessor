@@ -11,6 +11,7 @@ elasticai/__init__.py
 **/.devenv
 **/dist
 
+.DS_Store
 .coverage
 coverage.xml
 .testmondata*

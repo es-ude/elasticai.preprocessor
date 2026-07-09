@@ -77,10 +77,7 @@ def test_shift_register(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, e
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize(
-    ["bitwidth", "elements"],
-    [(8, 6)]
-)
+@pytest.mark.parametrize(["bitwidth", "elements"], [(8, 6)])
 def test_shift_register_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
     cocotb_test_fixture.clear_srcs()
     path2build = cocotb_test_fixture.get_artifact_dir() / "verilog"
@@ -91,7 +88,7 @@ def test_shift_register_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: 
         params={"BITWIDTH": bitwidth, "SAMPLES": elements},
         packages=["windower"],
         path2save=path2build,
-        add_ringbuffer=False
+        add_ringbuffer=False,
     )
     assert (path2build / "shift_register_0.v").exists()
 
