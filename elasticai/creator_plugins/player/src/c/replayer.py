@@ -20,7 +20,7 @@ def build_replayer(
     """Generating C files for replaying pre-recorded integer data (data only) for using on microcontrollers
     Args:
         data:        List of integer sample values
-        bitwidth:    Bit width of each sample 
+        bitwidth:    Bit width of each sample
         signed:      Decision if data values are signed [otherwise unsigned]
         path2save:   Path to save the .h / .c output-files.
         replayer_id: ID appended to function names.
@@ -32,12 +32,12 @@ def build_replayer(
     module_id = replayer_id.lower()
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        "path2include":     define_path,
-        "template_name":    "replayer_template.h",
-        "device_id":        module_id.upper(),
-        "data_type":        get_embedded_datatype(bitwidth, signed),
-        "num_values":       str(len(data)),
-        "data_values":      ", ".join(str(v) for v in data),
+        "path2include": define_path,
+        "template_name": "replayer_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
+        "num_values": str(len(data)),
+        "data_values": ", ".join(str(v) for v in data),
     }
     template_c = _generate_replayer_template()
     generate_c_files(
@@ -78,14 +78,14 @@ def build_replayer_with_trigger(
     trgg_array_name = f"replayer_trgg_data_{module_id.upper()}"
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        "path2include":     define_path,
-        "template_name":    "replayer_template.h",
-        "device_id":        module_id.upper(),
-        "data_type":        get_embedded_datatype(bitwidth, signed),
-        "num_values":       str(len(data)),
-        "data_values":      ", ".join(str(v) for v in data),
-        "trgg_values":      ", ".join(str(v) for v in trigger),
-        "trgg_array_name":  trgg_array_name,
+        "path2include": define_path,
+        "template_name": "replayer_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
+        "num_values": str(len(data)),
+        "data_values": ", ".join(str(v) for v in data),
+        "trgg_values": ", ".join(str(v) for v in trigger),
+        "trgg_array_name": trgg_array_name,
     }
     template_c = _generate_replayer_trgg_template()
     generate_c_files(

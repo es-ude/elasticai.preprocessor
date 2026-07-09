@@ -38,9 +38,7 @@ def _build_and_load(
     )
     adapter = tmp_path / "adapter.h"
     adapter.write_text(
-        f"{c_type} replayer_next_0(void);\n"
-        "int replayer_done_0(void);\n"
-        "void replayer_reset_0(void);\n"
+        f"{c_type} replayer_next_0(void);\nint replayer_done_0(void);\nvoid replayer_reset_0(void);\n"
     )
     loader = CompileLoader(
         headers=str(adapter),
@@ -87,9 +85,7 @@ def _build_and_load_with_trigger(
 
 # data only
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_data_values(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_data_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
 
@@ -98,9 +94,7 @@ def test_replayer_c_data_values(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_done_flag(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_done_flag(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
     done_fn = loader.get("replayer_done_0")
@@ -112,9 +106,7 @@ def test_replayer_c_done_flag(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_wraps_around(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_wraps_around(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
 
@@ -126,9 +118,7 @@ def test_replayer_c_wraps_around(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_reset(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_reset(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
     done_fn = loader.get("replayer_done_0")
@@ -144,11 +134,9 @@ def test_replayer_c_reset(
     assert result == DATA
 
 
- # data and trigger
+# data and trigger
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_trgg_data_values(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_trgg_data_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
 
@@ -157,9 +145,7 @@ def test_replayer_c_trgg_data_values(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_trgg_trigger_values(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_trgg_trigger_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
     trgg_fn = loader.get("replayer_trgg_0")
@@ -172,9 +158,7 @@ def test_replayer_c_trgg_trigger_values(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_trgg_done_flag(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_trgg_done_flag(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
     done_fn = loader.get("replayer_done_0")
@@ -186,9 +170,7 @@ def test_replayer_c_trgg_done_flag(
 
 
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
-def test_replayer_c_trgg_reset(
-    tmp_path: Path, bitwidth: int, signed: bool, c_type: str
-) -> None:
+def test_replayer_c_trgg_reset(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
     next_fn = loader.get("replayer_next_0")
     trgg_fn = loader.get("replayer_trgg_0")

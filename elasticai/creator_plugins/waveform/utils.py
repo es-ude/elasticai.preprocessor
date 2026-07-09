@@ -14,7 +14,7 @@ def prepare_waveform(
 
     params = num_params if not do_opt else 4 * num_params - 3
 
-    arith = int_arithmetic(total_bits=bitwidth if not do_opt else bitwidth-1, signed=is_signed)
+    arith = int_arithmetic(total_bits=bitwidth if not do_opt else bitwidth - 1, signed=is_signed)
     sig = (
         WaveformGenerator(sampling_rate=float(params - 1))
         .generate_waveform_quant_fxp(

@@ -51,10 +51,10 @@ lint = [
 ]
 test = [
   "cocotb>=2.0.1",
+  "elasticai-equi-checker",
   "pytest>=9.0.3",
   "pytest-rerunfailures>=16.3",
   "pytest-testmon>=2.2.0",
-  "elasticai-equi-checker",
 ]
 
 [build-system]
