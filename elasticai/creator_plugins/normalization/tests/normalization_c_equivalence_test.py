@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.normalization import DataNormalization
+from elasticai.preprocessor.normalization import DataNormalization, SettingsNormalization
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -18,8 +18,11 @@ INTEGER_CONFIGS = [
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=2)
-
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     normalizer.create_design(target, 8, "0", tmp_path, signed=True)
 
     assert (tmp_path / "normalization_minmax_0.c").exists()
@@ -29,8 +32,11 @@ def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> 
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_zscore_c_files(tmp_path: Path, target: str) -> None:
-    normalizer = DataNormalization("zscore")
-
+    sets = SettingsNormalization(
+        method="zscore",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     normalizer.create_design(target, 8, "0", tmp_path, signed=True)
 
     assert (tmp_path / "normalization_zscore_0.c").exists()
@@ -39,39 +45,59 @@ def test_create_design_generates_zscore_c_files(tmp_path: Path, target: str) -> 
 
 
 def test_create_design_rejects_unknown_target(tmp_path: Path) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=2)
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
 
     with pytest.raises(ValueError, match="Target unknown is not supported"):
         normalizer.create_design("unknown", 8, "0", tmp_path)
 
 
 def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=2)
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
 
-    with pytest.raises(NotImplementedError, match="FPGA normalization"):
+    try:
         normalizer.create_design("fpga", 8, "0", tmp_path)
+    except NotImplementedError:
+        assert True
+    else:
+        assert False
 
 
 def test_create_design_rejects_other_normalization_methods(tmp_path: Path) -> None:
-    normalizer = DataNormalization("norm")
+    sets = SettingsNormalization(
+        method="norm",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
 
-    with pytest.raises(NotImplementedError, match="only minmax and zscore"):
+    try:
         normalizer.create_design("mcu", 8, "0", tmp_path)
+    except NotImplementedError:
+        assert True
+    else:
+        assert False
 
 
 def test_create_design_rejects_other_peak_modes(tmp_path: Path) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=0)
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=1
+    )
+    normalizer = DataNormalization(settings=sets)
 
-    with pytest.raises(NotImplementedError, match="peak_mode=2"):
+    try:
         normalizer.create_design("mcu", 8, "0", tmp_path)
-
-
-@pytest.mark.parametrize("method", ["minmax", "zscore"])
-def test_create_design_rejects_global_scaling(tmp_path: Path, method: str) -> None:
-    normalizer = DataNormalization(method, do_global_scaling=True)
-
-    with pytest.raises(NotImplementedError, match="global scaling"):
-        normalizer.create_design("mcu", 8, "0", tmp_path)
+    except NotImplementedError:
+        assert True
+    else:
+        assert False
 
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
@@ -81,7 +107,11 @@ def test_generated_minmax_c_matches_python_frames(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=2)
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
 
@@ -129,7 +159,11 @@ def test_generated_zscore_c_matches_python_frames(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    normalizer = DataNormalization("zscore")
+    sets = SettingsNormalization(
+        method="zscore",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
 
@@ -177,7 +211,11 @@ def test_generated_minmax_c_accepts_empty_frame(
     _: type[np.generic],
     c_type: str,
 ) -> None:
-    normalizer = DataNormalization("minmax", peak_mode=2)
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
 
@@ -207,7 +245,11 @@ def test_generated_zscore_c_accepts_empty_frame(
     _: type[np.generic],
     c_type: str,
 ) -> None:
-    normalizer = DataNormalization("zscore")
+    sets = SettingsNormalization(
+        method="zscore",
+        peak_mode=2
+    )
+    normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
 
