@@ -1,3 +1,4 @@
+from .augmentation import augmentation_downsampling as augmentation_downsampling
 from .downsampling import DefaultSettingsDownSampling as DefaultSettingsDownSampling
 from .downsampling import DownSampling as DownSampling
 from .downsampling import SettingsDownSampling as SettingsDownSampling

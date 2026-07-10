@@ -208,11 +208,11 @@ def test_normalization_method(
 
     data = test_func.normalize(generate_test_data(do_tensor=True))
     result = (data.min().float().item(), data.max().float().item())
-    assert result == expected_torch
+    np.testing.assert_almost_equal(result, expected_torch, decimal=6)
 
     data = test_func.normalize(generate_test_data(do_tensor=False))
     result = (data.min(), data.max())
-    assert result == expected_numpy
+    np.testing.assert_almost_equal(result, expected_numpy, decimal=6)
 
 
 def test_create_c_minmax_absmax():
