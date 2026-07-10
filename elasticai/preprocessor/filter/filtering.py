@@ -78,15 +78,15 @@ class Filtering(CommonDigitalFunctions):
     _coeff_b: np.ndarray
     _settings: SettingsFilter
 
-    def __init__(self, setting: SettingsFilter, use_filtfilt: bool = False):
+    def __init__(self, settings: SettingsFilter, use_filtfilt: bool = False):
         """Class for Emulating Digital Signal Processing on FPGA
-        :param setting:         Class for handling the filter stage (using SettingsFilter)
+        :param settings:        Class for handling the filter stage (using SettingsFilter)
         :param use_filtfilt:    Boolean for applying zero-phase filtering
         :return:                None
         """
         super().__init__()
         self.__logger = getLogger(__name__)
-        self._settings = setting
+        self._settings = settings
         self.__use_filtfilt = use_filtfilt
         self.__process_filter()
 
