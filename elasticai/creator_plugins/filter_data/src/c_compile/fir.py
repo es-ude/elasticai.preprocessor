@@ -33,7 +33,7 @@ def build_filter_fir(
     """
     assert settings.type.lower() == "fir", f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
     assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
-    coeff_b = Filtering(setting=settings).get_coeffs().b
+    coeff_b = Filtering(settings=settings).get_coeffs().b
     if do_optimized and len(coeff_b) % 2 == 0:
         raise NotImplementedError("Please add an odd number to filter order!")
 

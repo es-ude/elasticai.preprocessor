@@ -33,7 +33,7 @@ def build_filter_iir(
     assert settings.type.lower() == "iir", f"Key 'type' must be 'iir' and not '{settings.type.lower()}'"
     assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
-    coeff = Filtering(setting=settings).get_coeffs()
+    coeff = Filtering(settings=settings).get_coeffs()
     module_id_used = f"{settings.b_type.lower().split('pass')[0]}{filter_id.lower()}"
     data_type_filter = get_embedded_datatype(bitwidth, signed)
     params = {
