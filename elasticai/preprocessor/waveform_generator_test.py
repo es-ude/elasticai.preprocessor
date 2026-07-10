@@ -586,7 +586,7 @@ class TestWaveformGenerator(TestCase):
 
         WaveformGenerator(100.0).create_design(
             waveform="SINE_FULL",
-            num_params=11,
+            num_params=101,
             target="fpga",
             bitwidth=8,
             is_signed=False,

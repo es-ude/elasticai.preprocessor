@@ -11,7 +11,7 @@ def generate_waveform_lut_template(do_opt: bool) -> dict:
         "// Params: ",
         "// \tID = {$device_id},",
         "// \tdatatypes (data, counter),",
-        '# include "{$path2include}/{$template_name}"',
+        '# include "{$path2include}{$template_name}"',
         "DEF_NEW_WAVEFORM_LUT_PROTO({$device_id}, {$datatype_int}, {$datatype_cnt})",
     ]
     func_temp = [
@@ -24,7 +24,7 @@ def generate_waveform_lut_template(do_opt: bool) -> dict:
         "// \tN_LUT = {$num_lutsine}",
         "// \tOffset = {$lut_offset}",
         "// \t Used LUT data order (a_0, a_1, ... a_N)",
-        '# include "{$path2include}/{$template_name}"',
+        '# include "{$path2include}{$template_name}"',
         "DEF_NEW_WAVEFORM_LUT_"
         + use_option
         + "_IMPL({$device_id}, {$datatype_int}, {$datatype_cnt}, {$num_lutsine}, {$lut_offset}, {$lut_data})",

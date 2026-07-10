@@ -362,7 +362,7 @@ class WaveformGenerator:
         :param path2save:   Path to save the hardware files
         :param use_bram:    Boolean indicating whether to use bram or not
         :param do_opt:      Boolean indicating whether to do opt or not
-        :return:            None
+        :return:            List with integer values of the waveform
         """
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
@@ -460,6 +460,7 @@ class WaveformGenerator:
         bitwidth: int,
         path2save: Path,
         do_opt: bool,
+        path2include: str = "src/"
     ) -> list[int]:
         self._logger.debug("Creating C design for Waveform Player")
         # --- Step #1: Generating the waveform
@@ -475,10 +476,10 @@ class WaveformGenerator:
         # --- Step #2: Generating the values for parameter dict
         params = {
             "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-            "path2include": "src",
+            "path2include": path2include,
             "template_name": "waveform_lut_template.h",
             "device_id": str(id.upper()),
-            "datatype_cnt": get_embedded_datatype(bitwidth=len(wvf), signed=False),
+            "datatype_cnt": get_embedded_datatype(bitwidth=int(np.ceil(np.log2(len(wvf)))), signed=False),
             "datatype_int": get_embedded_datatype(bitwidth, signed=is_signed),
             "num_lutsine": str(len(wvf)),
             "lut_offset": str(0 if not do_opt else (0 if is_signed else (2 ** (bitwidth_mcu - 1)))),
