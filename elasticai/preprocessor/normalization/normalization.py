@@ -1,20 +1,37 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import torch
 
 
-class DataNormalization:
-    _do_global: bool
-    __params: dict = {}
-    __extract_peak_mode: int = 2
+@dataclass
+class SettingsNormalization:
+    """Settings for performing normalization on input data
+    Attributes:
+        method (str):               The normalization method ["minmax", "norm", "zscore", "medianmad", or "meanmad"]
+        peak_mode (int):            Mode for taking peak value (0: max, 1: min, 2: abs-max)
 
-    def __init__(self, method: str, do_global_scaling: bool = False, peak_mode: int = 2):
+    """
+
+    method: str
+    peak_mode: int
+
+
+DefaultSettingsNormalization = SettingsNormalization(
+    method="minmax",
+    peak_mode=2,
+)
+
+
+class DataNormalization:
+    _settings: SettingsNormalization
+    __params: dict = {}
+
+    def __init__(self, settings: SettingsNormalization):
         """Normalizing the input data to enhance classification performance.
         Parameters:
-            method (str):               The normalization method ["minmax", "norm", "zscore", "medianmad", or "meanmad"]
-            do_global_scaling (bool):   Applied global scaling in normalization else sample scaling
-            peak_mode (int):            Mode for taking peak value (0: max, 1: min, 2: abs-max)
+            settings:   Settings for performing normalization on input data
         Methods:
             normalize(): Normalize the input data based on the selected mode and method.
         Examples:
@@ -22,24 +39,19 @@ class DataNormalization:
             handler = DataNormalization("minmax")
             data_in = (0.5 - np.random.rand(100, 10)) * 10
             normalized_frames = handler.normalize(data_in)
-
         """
-        self.__method = method
-        self._do_global = do_global_scaling
-        self.__extract_peak_mode = peak_mode
+        self._settings = settings
         self.__list_norm_methods = {
             "zeroone": self._normalize_zeroone,
             "minmax": self._normalize_minmax,
             "norm": self._normalize_norm,
             "zscore": self._normalize_zscore,
             "medianmad": self._normalize_medianmad,
-            "meanmad": self._normalize_medianmad,
+            "meanmad": self._normalize_meanmad,
         }
 
-    def list_normalization_methods(self, print_output: bool = True) -> list:
-        """Printing all available methods for normalization"""
-        if print_output:
-            print(self.__list_norm_methods.keys())
+    def list_normalization_methods(self) -> list:
+        """Return list with all available methods for normalization"""
         return [key for key in self.__list_norm_methods.keys()]
 
     def get_peak_amplitude_values(self) -> np.ndarray | torch.Tensor:
@@ -57,8 +69,8 @@ class DataNormalization:
         Returns:
             Numpy array with normalized frames
         """
-        if self.__method in self.__list_norm_methods.keys():
-            return self.__list_norm_methods[self.__method](dataset)
+        if self._settings.method.lower() in self.__list_norm_methods.keys():
+            return self.__list_norm_methods[self._settings.method.lower()](dataset)
         else:
             raise NotImplementedError("Selected mode is not available.")
 
@@ -70,23 +82,23 @@ class DataNormalization:
         path2save: Path,
         signed: bool = True,
     ) -> None:
-        """Generate a C design for the configured normalization method."""
+        """Generate a C design for the configured normalization method.
+        :param target:      String with target name ["mcu", "pc", "fpga"]
+        :param bitwidth:    Integer with total bitwidth
+        :param id:          String with unique identifier of device (appended to the name)
+        :param path2save:   Path to save the hardware files
+        :param signed:      Whether generated C designs use a signed integer data type
+        :return:            None
+        """
         supported_targets = ["mcu", "pc", "fpga"]
         target = target.lower()
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if self.__method not in ("minmax", "zscore"):
-            raise NotImplementedError(
-                "C generation currently supports only minmax and zscore normalization"
-            )
-        if self._do_global:
-            raise NotImplementedError("C generation does not support global scaling")
-        if self.__method == "minmax" and self.__extract_peak_mode != 2:
-            raise NotImplementedError("C generation currently supports only peak_mode=2")
+        if self._settings.method.lower() not in self.list_normalization_methods():
+            raise ValueError(f"Method {self._settings.method.lower()} is not available!")
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
-                method=self.__method,
                 id=id,
                 bitwidth=bitwidth,
                 signed=signed,
@@ -94,16 +106,22 @@ class DataNormalization:
             )
         else:
             self._create_design_fpga(
-                method=self.__method,
                 id=id,
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
             )
 
-    @staticmethod
-    def _create_design_c(method: str, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         from elasticai.creator_plugins.normalization.src import c_compile
+
+        method = self._settings.method.lower()
+        if method not in ("minmax", "zscore"):
+            raise NotImplementedError(
+                "C generation currently supports only minmax and zscore normalization"
+            )
+        if method == "minmax" and self._settings.peak_mode != 2:
+            raise NotImplementedError("C generation currently supports only peak_mode=2")
 
         builders = {
             "minmax": c_compile.build_normalization_minmax,
@@ -117,7 +135,7 @@ class DataNormalization:
             define_path=".",
         )
 
-    def _create_design_fpga(self, method: str, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+    def _create_design_fpga(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         raise NotImplementedError
 
     @staticmethod
@@ -130,7 +148,7 @@ class DataNormalization:
         return np.repeat(np.expand_dims(data, axis=-1), num_repeats, axis=-1)
 
     def _get_data_peak_value_numpy(self, raw_dataset: np.ndarray) -> np.ndarray:
-        match self.__extract_peak_mode:
+        match self._settings.peak_mode:
             case 0:
                 amp_array = np.max(raw_dataset, axis=-1)
             case 1:
@@ -140,7 +158,7 @@ class DataNormalization:
         return amp_array
 
     def _get_data_peak_value_tensor(self, raw_dataset: torch.Tensor) -> torch.Tensor:
-        match self.__extract_peak_mode:
+        match self._settings.peak_mode:
             case 0:
                 amp_array = torch.max(raw_dataset, dim=-1).values
             case 1:
@@ -151,17 +169,9 @@ class DataNormalization:
 
     def _get_scaling_value_minmax(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
         if isinstance(raw_dataset, torch.Tensor):
-            scale = (
-                torch.max(torch.abs(raw_dataset))
-                if self._do_global
-                else self._get_data_peak_value_tensor(raw_dataset)
-            )
+            scale = self._get_data_peak_value_tensor(raw_dataset)
         else:
-            scale = (
-                np.max(np.abs(raw_dataset), axis=-1)
-                if self._do_global
-                else self._get_data_peak_value_numpy(raw_dataset)
-            )
+            scale = self._get_data_peak_value_numpy(raw_dataset)
         self.__params = {"scale_used": scale}
 
     ################################ IMPLEMENTED METHODS ################################
@@ -203,28 +213,16 @@ class DataNormalization:
         return dataset_norm
 
     def _get_scaling_value_zscore(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
-        if self._do_global:
-            scale_std = (
-                np.zeros((raw_dataset.shape[0],)) + np.std(raw_dataset)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],)) + torch.std(raw_dataset)
-            )
-            scale_mean = (
-                np.zeros((raw_dataset.shape[0],)) + np.mean(raw_dataset)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],)) + torch.mean(raw_dataset)
-            )
-        else:
-            scale_std = (
-                np.std(raw_dataset, axis=-1)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.std(raw_dataset, dim=-1, unbiased=False)
-            )
-            scale_mean = (
-                np.mean(raw_dataset, axis=-1)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.mean(raw_dataset, dim=-1)
-            )
+        scale_std = (
+            np.std(raw_dataset, axis=-1)
+            if isinstance(raw_dataset, np.ndarray)
+            else torch.std(raw_dataset, dim=-1, unbiased=False)
+        )
+        scale_mean = (
+            np.mean(raw_dataset, axis=-1)
+            if isinstance(raw_dataset, np.ndarray)
+            else torch.mean(raw_dataset, dim=-1)
+        )
         self.__params = {"scale_std": scale_std, "scale_mean": scale_mean}
 
     def _normalize_zscore(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
@@ -242,44 +240,18 @@ class DataNormalization:
         return dataset_norm
 
     def _get_scaling_value_medianmad(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
-        if self._do_global:
-            scale_median = (
-                np.zeros((raw_dataset.shape[0],)) + np.median(raw_dataset)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.add(torch.zeros((raw_dataset.shape[0],)), torch.median(raw_dataset))
-            )
-            scale_mad = (
-                np.zeros((raw_dataset.shape[0],))
-                + np.median(np.abs(raw_dataset - np.median(raw_dataset)))
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],))
-                + torch.median(torch.abs(torch.sub(raw_dataset, torch.median(raw_dataset))))
+        if isinstance(raw_dataset, np.ndarray):
+            scale_median = np.median(raw_dataset, axis=-1)
+            scale_mad = np.median(
+                np.abs(raw_dataset - self._generate_numpy_full(scale_median, raw_dataset.shape[-1])),
+                axis=-1,
             )
         else:
-            scale_median = (
-                np.median(raw_dataset, axis=-1)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.median(raw_dataset, dim=-1).values
-            )
-            scale_mad = (
-                np.median(
-                    np.abs(
-                        raw_dataset
-                        - self._generate_numpy_full(np.median(raw_dataset, axis=1), raw_dataset.shape[-1])
-                    ),
-                    axis=-1,
-                )
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.median(
-                    torch.abs(
-                        raw_dataset
-                        - self._generate_tensor_full(
-                            torch.median(raw_dataset, dim=1).values,
-                            raw_dataset.shape[-1],
-                        )
-                    ),
-                    dim=-1,
-                ).values
+            scale_median = torch.quantile(raw_dataset, 0.5, dim=-1)
+            scale_mad = torch.quantile(
+                torch.abs(raw_dataset - self._generate_tensor_full(scale_median, raw_dataset.shape[-1])),
+                0.5,
+                dim=-1,
             )
         self.__params = {"scale_mad": scale_mad, "scale_median": scale_median}
 
@@ -298,42 +270,17 @@ class DataNormalization:
         return dataset_norm
 
     def _get_scaling_value_meanmad(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
-        if self._do_global:
-            scale_mean = (
-                np.zeros((raw_dataset.shape[0],)) + np.mean(raw_dataset)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.add(torch.zeros((raw_dataset.shape[0],)), torch.mean(raw_dataset))
-            )
-            scale_mad = (
-                np.zeros((raw_dataset.shape[0],)) + np.mean(np.abs(raw_dataset - np.mean(raw_dataset)))
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.zeros((raw_dataset.shape[0],))
-                + torch.mean(torch.abs(torch.sub(raw_dataset, torch.mean(raw_dataset))))
+        if isinstance(raw_dataset, np.ndarray):
+            scale_mean = np.mean(raw_dataset, axis=-1)
+            scale_mad = np.mean(
+                np.abs(raw_dataset - self._generate_numpy_full(scale_mean, raw_dataset.shape[-1])),
+                axis=-1,
             )
         else:
-            scale_mean = (
-                np.mean(raw_dataset, axis=-1)
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.mean(raw_dataset, dim=-1).values
-            )
-            scale_mad = (
-                np.mean(
-                    np.abs(
-                        raw_dataset
-                        - self._generate_numpy_full(np.mean(raw_dataset, axis=1), raw_dataset.shape[-1])
-                    ),
-                    axis=-1,
-                )
-                if isinstance(raw_dataset, np.ndarray)
-                else torch.mean(
-                    torch.abs(
-                        raw_dataset
-                        - self._generate_tensor_full(
-                            torch.mean(raw_dataset, dim=1), raw_dataset.shape[-1]
-                        )
-                    ),
-                    dim=-1,
-                )
+            scale_mean = torch.mean(raw_dataset, dim=-1)
+            scale_mad = torch.mean(
+                torch.abs(raw_dataset - self._generate_tensor_full(scale_mean, raw_dataset.shape[-1])),
+                dim=-1,
             )
         self.__params = {"scale_mad": scale_mad, "scale_mean": scale_mean}
 

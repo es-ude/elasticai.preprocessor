@@ -1,9 +1,12 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
 import numpy as np
+import pytest
 import torch
 
-from .normalization import DataNormalization
+from .normalization import DataNormalization, SettingsNormalization
 
 
 def generate_test_data(
@@ -102,122 +105,150 @@ class TestHelper(TestCase):
         self.assertEqual(test_data.shape, (self.num_input, self.num_window_size))
 
 
-class TestSum(TestCase):
-    x = np.linspace(start=0, stop=3, num=int(2 * np.pi * 1000), endpoint=True)
-    input_numpy = generate_test_data(do_tensor=False)
-    input_torch = generate_test_data(do_tensor=True)
+def test_list_methods():
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=0,
+    )
+    test_func = DataNormalization(settings=sets)
+    key = test_func.list_normalization_methods()
+    assert len(key) == 6
 
-    def test_list_methods(self):
-        test_func = DataNormalization(method="minmax", peak_mode=0)
-        key = test_func.list_normalization_methods(False)
-        self.assertEqual(len(key), 6)
 
-    def test_error_wrong_input(self):
-        test_func = DataNormalization(method="bimax", peak_mode=0)
-        try:
-            test_func.normalize(self.input_torch)
-            result = False
-        except:
-            result = True
+def test_error_wrong_input():
+    sets = SettingsNormalization(
+        method="bimax",
+        peak_mode=0,
+    )
+    test_func = DataNormalization(settings=sets)
+    try:
+        test_func.normalize(generate_test_data(do_tensor=False))
+    except:
+        assert True
+    else:
+        assert False
 
-        self.assertEqual(result, True)
 
-    def test_numpy_minmax_max(self):
-        test_func = DataNormalization(method="minmax", peak_mode=0)
-        data = test_func.normalize(self.input_numpy)
+@pytest.mark.parametrize(
+    "method, mode, expected_numpy, expected_torch",
+    [
+        ("zeroone", 0, (-0.0025785681031014196, 1.0), (-0.002578556537628174, 1.0)),
+        ("zeroone", 1, (0.0, 1.0025267804720257), (0.0, 1.0025267601013184)),
+        ("zeroone", 2, (0.0, 1.0), (0.0, 1.0)),
+        ("minmax", 0, (-1.0051571362062028, 1.0), (-1.0051571130752563, 1.0)),
+        ("minmax", 1, (-1.0, 1.0050535609440512), (-1.0, 1.0050536394119263)),
+        ("minmax", 2, (-1.0, 1.0), (-1.0, 1.0)),
+        (
+            "norm",
+            0,
+            (-0.2537967223202087, 0.2539491764105914),
+            (-0.2537967562675476, 0.25394919514656067),
+        ),
+        (
+            "norm",
+            1,
+            (-0.2537967223202087, 0.2539491764105914),
+            (-0.2537967562675476, 0.25394919514656067),
+        ),
+        (
+            "norm",
+            2,
+            (-0.2537967223202087, 0.2539491764105914),
+            (-0.2537967562675476, 0.25394919514656067),
+        ),
+        (
+            "zscore",
+            0,
+            (-1.4349982392766611, 1.4477661687200503),
+            (-1.4349982738494873, 1.4477663040161133),
+        ),
+        (
+            "zscore",
+            1,
+            (-1.4349982392766611, 1.4477661687200503),
+            (-1.4349982738494873, 1.4477663040161133),
+        ),
+        (
+            "zscore",
+            2,
+            (-1.4349982392766611, 1.4477661687200503),
+            (-1.4349982738494873, 1.4477663040161133),
+        ),
+        (
+            "medianmad",
+            0,
+            (-1.451448498197262, 1.5791120924283681),
+            (-1.4514487981796265, 1.5791120529174805),
+        ),
+        (
+            "medianmad",
+            1,
+            (-1.451448498197262, 1.5791120924283681),
+            (-1.4514487981796265, 1.5791120529174805),
+        ),
+        (
+            "medianmad",
+            2,
+            (-1.451448498197262, 1.5791120924283681),
+            (-1.4514487981796265, 1.5791120529174805),
+        ),
+        ("meanmad", 0, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
+        ("meanmad", 1, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
+        ("meanmad", 2, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
+    ],
+)
+def test_normalization_method(
+    method: str, mode: int, expected_numpy: tuple[float], expected_torch: tuple[float]
+):
+    sets = SettingsNormalization(
+        method=method,
+        peak_mode=mode,
+    )
+    test_func = DataNormalization(settings=sets)
 
-        result = (data.min(), data.max())
-        expected = (-1.0051571362062028, 1.0)
-        np.testing.assert_almost_equal(result, expected, decimal=5)
+    data = test_func.normalize(generate_test_data(do_tensor=True))
+    result = (data.min().float().item(), data.max().float().item())
+    assert result == expected_torch
 
-    def test_numpy_minmax_min(self):
-        test_func = DataNormalization(method="minmax", peak_mode=1)
-        data = test_func.normalize(self.input_numpy)
+    data = test_func.normalize(generate_test_data(do_tensor=False))
+    result = (data.min(), data.max())
+    assert result == expected_numpy
 
-        result = (data.min(), data.max())
-        expected = (-1.0, 1.0050535609440512)
-        self.assertEqual(result, expected)
 
-    def test_numpy_minmax_absmax(self):
-        test_func = DataNormalization(method="minmax", peak_mode=2)
-        data = test_func.normalize(self.input_numpy)
+def test_create_c_minmax_absmax():
+    sets = SettingsNormalization(
+        method="minmax",
+        peak_mode=2,
+    )
 
-        result = (data.min(), data.max())
-        expected = (-1.0, 1.0)
-        self.assertEqual(result, expected)
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        DataNormalization(settings=sets).create_design("mcu", 8, "0", path2save, signed=False)
 
-    def test_torch_minmax_max(self):
-        test_func = DataNormalization(method="minmax", peak_mode=0)
-        data = test_func.normalize(self.input_torch)
+        assert {file.name for file in path2save.iterdir()} == {
+            "normalization_minmax_0.h",
+            "normalization_minmax_0.c",
+            "normalization_minmax_template.h",
+        }
 
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (-1.0051571130752563, 1.0)
-        self.assertEqual(result, expected)
 
-    def test_torch_minmax_min(self):
-        test_func = DataNormalization(method="minmax", peak_mode=1)
-        data = test_func.normalize(self.input_torch)
+def test_create_c_zscore():
+    sets = SettingsNormalization(
+        method="zscore",
+        peak_mode=0,
+    )
 
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (-1.0, 1.0050536394119263)
-        np.testing.assert_almost_equal(result, expected, decimal=5)
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        DataNormalization(settings=sets).create_design("mcu", 8, "0", path2save, signed=False)
 
-    def test_torch_minmax_absmax(self):
-        test_func = DataNormalization(method="minmax", peak_mode=2)
-        data = test_func.normalize(self.input_torch)
-
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (-1.0, 1.0)
-        self.assertEqual(result, expected)
-
-    def test_numpy_zeroone_max(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=0)
-        data = test_func.normalize(self.input_numpy)
-
-        result = (data.min(), data.max())
-        expected = (-0.0025785681031014196, 1.0)
-        self.assertEqual(result, expected)
-
-    def test_numpy_zeroone_min(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=1)
-        data = test_func.normalize(self.input_numpy)
-
-        result = (data.min(), data.max())
-        expected = (0.0, 1.0025267804720257)
-        self.assertEqual(result, expected)
-
-    def test_numpy_zeroone_absmax(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=2)
-        data = test_func.normalize(self.input_numpy)
-
-        result = (data.min(), data.max())
-        expected = (0.0, 1.0)
-        self.assertEqual(result, expected)
-
-    def test_torch_zeroone_max(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=0)
-        data = test_func.normalize(self.input_torch)
-
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (-0.002578556537628174, 1.0)
-        self.assertEqual(result, expected)
-
-    def test_torch_zeroone_min(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=1)
-        data = test_func.normalize(self.input_torch)
-
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (0.0, 1.0025267601013184)
-        self.assertEqual(result, expected)
-
-    def test_torch_zeroone_absmax(self):
-        test_func = DataNormalization(method="zeroone", peak_mode=2)
-        data = test_func.normalize(self.input_torch)
-
-        result = (data.min().float().item(), data.max().float().item())
-        expected = (0.0, 1.0)
-        self.assertEqual(result, expected)
+        assert {file.name for file in path2save.iterdir()} == {
+            "normalization_zscore_0.h",
+            "normalization_zscore_0.c",
+            "normalization_zscore_template.h",
+        }
 
 
 if __name__ == "__main__":
     main()
+    pytest.main([__file__])
