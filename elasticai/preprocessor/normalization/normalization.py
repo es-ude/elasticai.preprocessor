@@ -75,8 +75,6 @@ class DataNormalization:
         target = target.lower()
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if target == "fpga":
-            raise NotImplementedError("FPGA normalization generation is not implemented")
         if self.__method not in ("minmax", "zscore"):
             raise NotImplementedError(
                 "C generation currently supports only minmax and zscore normalization"
@@ -86,13 +84,22 @@ class DataNormalization:
         if self.__method == "minmax" and self.__extract_peak_mode != 2:
             raise NotImplementedError("C generation currently supports only peak_mode=2")
 
-        self._create_design_c(
-            method=self.__method,
-            id=id,
-            bitwidth=bitwidth,
-            signed=signed,
-            path2save=path2save,
-        )
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                method=self.__method,
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_fpga(
+                method=self.__method,
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
 
     @staticmethod
     def _create_design_c(method: str, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
@@ -109,6 +116,9 @@ class DataNormalization:
             normalization_id=id,
             define_path=".",
         )
+
+    def _create_design_fpga(self, method: str, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        raise NotImplementedError
 
     @staticmethod
     def _generate_tensor_full(data: torch.Tensor, num_repeats: int) -> torch.Tensor:
