@@ -1,5 +1,8 @@
 from copy import deepcopy
 from unittest import TestCase, main
+from tempfile import TemporaryDirectory
+from pathlib import Path
+from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
 
 import numpy as np
 
@@ -9,6 +12,12 @@ from .downsampling import (
     SettingsDownSampling,
 )
 
+test_settings = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0, # Default Settings
+            dsr=10,
+        )
+)
 
 def inp_samp(time: np.ndarray) -> np.ndarray:
     freq = [4, 20]
@@ -145,6 +154,44 @@ class TestDownSampling(TestCase):
 
         with self.assertRaisesRegex(ValueError, "dsr must be >= 1"):
             DownSampling(self.sets).do_subsampling(data)
+
+
+    def test_create_cic_verilog(self):
+        sets = deepcopy(test_settings)
+        sets.type = "cic"
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            DownSampling(sets).create_design("pc", 16, "0", path2save)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "cic.v"
+            }
+
+
+    def test_create_polydec_fpga_verilog(self):
+        sets = deepcopy(test_settings)
+        sets.type = "polydec_fpga"
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            DownSampling(sets).create_design("pc", 16, "0", path2save)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "polydec_fpga.v"
+            }  
+
+    def test_create_polydec_asic_verilog(self):
+        sets = deepcopy(test_settings)
+        sets.type = "polydec_asic"
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            DownSampling(sets).create_design("pc", 16, "0", path2save)
+
+            assert {file.name for file in path2save.iterdir()} == {
+                "polydec_asic.v"
+            }        
 
 
 if __name__ == "__main__":
