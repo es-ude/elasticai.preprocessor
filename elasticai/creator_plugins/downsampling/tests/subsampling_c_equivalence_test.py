@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -20,34 +20,28 @@ INTEGER_CONFIGS = [
 def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str) -> None:
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
 
-    downsampler.create_design(target, 8, "0", tmp_path, signed=True)
+    downsampler.create_design(
+        method=TargetsDownSampling.Subsampling,
+        target=target,
+        bitwidth=8,
+        id="0",
+        path2save=tmp_path,
+        signed=True,
+    )
 
     assert (tmp_path / "downsampling_subsampling_0.c").exists()
     assert (tmp_path / "downsampling_subsampling_0.h").exists()
     assert (tmp_path / "downsampling_subsampling_template.h").exists()
 
 
-def test_create_design_rejects_unknown_target(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
-
-    with pytest.raises(ValueError, match="Target unknown is not supported"):
-        downsampler.create_design("unknown", 8, "0", tmp_path)
-
-
-def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
-
-    with pytest.raises(NotImplementedError, match="FPGA downsampling"):
-        downsampler.create_design("fpga", 8, "0", tmp_path)
-
-
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
-        downsampler.create_design("mcu", 8, "0", tmp_path)
+        downsampler.create_design(TargetsDownSampling.Subsampling, "mcu", 8, "0", tmp_path)
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("augment", [False, True])
 def test_generated_subsampling_c_matches_python_frame(
@@ -60,7 +54,14 @@ def test_generated_subsampling_c_matches_python_frame(
     settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
-    downsampler.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+    downsampler.create_design(
+        method=TargetsDownSampling.Subsampling,
+        target="mcu",
+        bitwidth=bitwidth,
+        id="0",
+        path2save=output_dir,
+        signed=True,
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(

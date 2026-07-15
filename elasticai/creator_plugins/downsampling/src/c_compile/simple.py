@@ -26,8 +26,10 @@ def build_downsampling_simple(
         downsampling_id:    ID appended to function names
         define_path:        Include path written into the generated #include line.
     """
-    assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
-    assert downsampling_ratio > 0, "dsr must be >= 1"
+    if bitwidth not in range(2, 65):
+        raise ValueError("Bitwidth must be between 2 and 64")
+    if downsampling_ratio <= 0:
+        raise ValueError("dsr must be >= 1")
 
     module_id = downsampling_id.lower()
     params = {
@@ -67,6 +69,5 @@ def _generate_downsampling_simple_template() -> dict[str, list[str]]:
         '#include "{$path2include}/{$template_name}"',
         "DOWNSAMPLING_SIMPLE_OUTPUT_LENGTH({$device_id}, {$downsampling_ratio})",
         "DEF_NEW_DO_SIMPLE_TAP_IMPL({$device_id}, {$data_type}, {$downsampling_ratio})",
-        "DEF_GET_DO_SIMPLE_VAL_IMPL({$device_id}, {$data_type})",
     ]
     return {"head": header_template, "func": implementation_template}
