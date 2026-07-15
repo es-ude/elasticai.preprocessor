@@ -137,9 +137,7 @@ def test_filter_cic_build_equal(
         num_samples=20,
     )
 
-    # Erwarteter Wert aus Python Funktion
-    data_checked = (dut.do_cic(uin=np.asarray(data_in), num_stages=n_dec)).tolist()
-    print("Check-Ausgangsdaten:", data_checked)
+    data_checked = dut.do_cic(uin=np.asarray(data_in), num_stages=n_dec).tolist()
 
     load_and_plugin(
         type="cic",

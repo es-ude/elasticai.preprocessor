@@ -1,8 +1,17 @@
-import math
 from dataclasses import dataclass
+from enum import IntEnum
 from pathlib import Path
 
 import numpy as np
+
+from elasticai.creator_plugins.downsampling.src import c_compile
+
+
+class TargetsDownSampling(IntEnum):
+    Subsampling = 0
+    Simple = 1
+    CIC = 2
+    Polyphase = 3
 
 
 @dataclass
@@ -64,32 +73,65 @@ class DownSampling:
 
     def create_design(
         self,
+        method: TargetsDownSampling,
         target: str,
         bitwidth: int,
         id: str,
         path2save: Path,
         signed: bool = True,
     ) -> None:
-        """Generate a C design for subsampling."""
-        supported_targets = ["mcu", "pc", "fpga"]
-        target = target.lower()
-        if target not in supported_targets:
+        """Generate the hardware design to downsampling on hardware
+        :param method:      Used method for hardware generation
+        :param target:      Target platform ["mcu", "pc", "fpga", "asic"]
+        :param bitwidth:    Bitwidth
+        :param id:          ID of the target structure
+        :param path2save:   Path to save downsampling subsampling
+        :param signed:      Signal to use for downsampling
+        :return:            None
+        """
+
+        supported_targets = ["mcu", "pc", "fpga", "asic"]
+        if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if target == "fpga":
-            raise NotImplementedError("FPGA downsampling generation is not implemented")
-        self._create_design_c(id=id, bitwidth=bitwidth, signed=signed, path2save=path2save)
 
-    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
-        from elasticai.creator_plugins.downsampling.src import c_compile
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
+            )
+        else:
+            self._create_design_fpga(
+                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
+            )
 
-        c_compile.build_downsampling_subsampling(
-            downsampling_ratio=self._settings.dsr,
-            bitwidth=bitwidth,
-            signed=signed,
-            downsampling_id=id,
-            path2save=path2save,
-            define_path=".",
-        )
+    def _create_design_c(
+        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
+    ) -> None:
+        match method:
+            case TargetsDownSampling.Subsampling:
+                c_compile.build_downsampling_subsampling(
+                    downsampling_ratio=self._settings.dsr,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    downsampling_id=id,
+                    path2save=path2save,
+                    define_path=".",
+                )
+            case TargetsDownSampling.Simple:
+                c_compile.build_downsampling_simple(
+                    downsampling_ratio=self._settings.dsr,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    downsampling_id=id,
+                    path2save=path2save,
+                    define_path=".",
+                )
+            case _:
+                raise NotImplementedError(f"Method {method} is not implemented")
+
+    def _create_design_fpga(
+        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
+    ) -> None:
+        raise NotImplementedError("FPGA downsampling generation is not implemented")
 
     def do_simple(self, uin: np.ndarray) -> np.ndarray:
         """Performing a simple downsampling of the adc data stream
@@ -109,10 +151,6 @@ class DownSampling:
         output_transient = list()
         dsr = self._settings.dsr
         gain = dsr**num_stages
-
-        growth_bits = math.ceil(num_stages * math.log2(dsr))
-        frac_bits = max(62 - growth_bits, 1)
-        Q = 1 << frac_bits
 
         class integrator:
             def __init__(self):
@@ -137,14 +175,14 @@ class DownSampling:
         intes = [integrator() for a in range(num_stages)]
         combs = [comb() for a in range(num_stages)]
         for s, v in enumerate(uin):
-            z = round(v * Q)
+            z = round(v)
             for i in range(num_stages):
                 z = intes[i].update(z)
 
             if s % dsr == 0:
                 for c in combs:
                     z = c.update(z)
-                output_transient.append(z / (Q * gain))
+                output_transient.append(z / gain)
         return np.array(output_transient)
 
     @staticmethod

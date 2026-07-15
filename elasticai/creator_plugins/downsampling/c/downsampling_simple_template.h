@@ -27,9 +27,9 @@ bool calc_next_datum_do_simple_ ## id(input_type data, DoSimpleTaps *tap_memory)
     input_type *do_taps = (input_type *) tap_memory->taps; \
     do_taps[do_tap_start] = data; \
     \
-    input_type sum = 0; \
-    for (int16_t pos_tap = 0; pos_tap < do_tap_length; pos_tap++) { \
-        sum += do_taps[pos_tap]; \
+    int32_t sum = 0; \
+    for (size_t pos_tap = 0; pos_tap < do_tap_length; pos_tap++) { \
+        sum += (int32_t)do_taps[pos_tap]; \
     } \
     do_tap_start++; \
     tap_memory->tap_start = do_tap_start; \
@@ -64,7 +64,7 @@ bool calc_do_simple_ ## id(input_type data, input_type *out) { \
 
 #ifndef DEF_NEW_DO_SIMPLE_PROTO
 #define DEF_NEW_DO_SIMPLE_PROTO(id, input_type) \
-bool calc_do_simple_ ## id(input_type data, input_type *out); \
+bool calc_do_simple_ ## id(input_type data, input_type *out);
 #endif // DEF_NEW_DO_SIMPLE_PROTO
 
 #endif // DOWNSAMPLING_SIMPLE_TEMPLATE_H
