@@ -108,7 +108,7 @@ class DownSampling:
         """
         output_transient = list()
         dsr = self._settings.dsr
-        gain = dsr ** num_stages
+        gain = dsr**num_stages
 
         growth_bits = math.ceil(num_stages * math.log2(dsr))
         frac_bits = max(62 - growth_bits, 1)

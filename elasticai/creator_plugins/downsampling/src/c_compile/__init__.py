@@ -1,1 +1,2 @@
+from .simple import build_downsampling_simple as build_downsampling_simple
 from .subsampling import build_downsampling_subsampling as build_downsampling_subsampling
