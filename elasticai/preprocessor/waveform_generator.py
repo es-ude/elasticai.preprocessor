@@ -460,7 +460,7 @@ class WaveformGenerator:
         bitwidth: int,
         path2save: Path,
         do_opt: bool,
-        path2include: str = "src/"
+        path2include: str = "src/",
     ) -> list[int]:
         self._logger.debug("Creating C design for Waveform Player")
         # --- Step #1: Generating the waveform

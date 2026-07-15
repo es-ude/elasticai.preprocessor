@@ -1,6 +1,7 @@
 .idea
 **/__pycache__
 elasticai/__init__.py
+.DS_Store
 
 **/.python-version
 **/build*
