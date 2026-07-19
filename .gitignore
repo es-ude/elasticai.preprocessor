@@ -15,3 +15,4 @@ elasticai/__init__.py
 coverage.xml
 .testmondata*
 
+**/my_notes.md

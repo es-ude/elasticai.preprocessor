@@ -3,6 +3,16 @@ from logging import Logger, getLogger
 
 import numpy as np
 
+from pathlib import Path
+
+import elasticai.creator_plugins.mac as hw_thresholding
+from elasticai.preprocessor._common_func import CommonDigitalFunctions
+from elasticai.preprocessor._plot_helper import (
+    get_plot_color,
+    get_textsize_paper,
+    save_figure,
+)
+
 
 @dataclass
 class SettingsThreshold:
@@ -54,6 +64,73 @@ class Thresholding:
             "wins": "_winsorization",
         }
 
+    def create_design(
+    self,
+    target: str,
+    bitwidth: int,
+    id: str,
+    path2save: Path, ) -> None:
+        """Create hardware design for thresholding.
+
+        Currently only FPGA/Verilog generation is supported.
+        """
+
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_verilog(
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+            )
+    def _create_design_c (
+            self,
+            id: str,
+            bitwidth: int,
+            path2save: Path, ) -> None:
+
+        raise NotImplementedError(
+            f"Target 'mcu/pc' is currently not supported. "
+            "Only 'fpga' is implemented."
+        )
+
+    def _create_design_verilog(
+        self,
+        id: str,
+        bitwidth: int,
+        path2save: Path, ) -> None:
+
+        match self._settings.method.lower():
+            case "mavg":
+                params = {
+                    "type": "mov_avg_norm",
+                    "id": id,
+                    "params": {
+                        "BITWIDTH": bitwidth,
+                        "LENGTH": self._settings.window_steps,
+                    },
+                }
+
+            case _:
+                raise NotImplementedError(
+                    f"Threshold method '{self._settings.method}' "
+                    "does not have a Verilog implementation."
+                )
+
+        hw_thresholding.load_and_plugin(
+            packages=["thresholding"],
+            path2save=path2save,
+            **params,
+        )
+
     def get_overview(self) -> list:
         """Getting an overview of available thresholding methods
         :return: List with names of available methods
@@ -97,6 +174,41 @@ class Thresholding:
             pos = np.argwhere(xin0 >= xthr).flatten()
         pos_pre = int(self._settings.sampling_rate * pre_time)
         return np.array(self._get_values_non_incremented_change(pos)) - pos_pre
+
+    def get_threshold_list(self, data_in: list[int]) -> list[int]:
+        match self._settings.method:
+            case "mavg":
+                out = self._calc_mavg(data_in)
+            case "abs_mean":
+                out = self._calc_abs_mean(data_in)
+            case _:
+                raise ValueError(
+                f"Thresholding method {self._settings.method} not available - Please change to {self.get_overview()}"
+            )
+
+        return out
+
+    def _calc_mavg(self, data_in: list[int]) -> list[int]:
+
+        length = self._settings.window_steps
+        taps = [0] * length
+        pos = 0
+        acc = 0
+        out = []
+
+        for sample in data_in:
+            # Ausgabe wie in der Hardware
+            out.append(acc // length)
+
+            # Zustand aktualisieren
+            acc = acc - taps[pos] + sample
+            taps[pos] = sample
+            pos = (pos + 1) % length
+
+        return out
+
+    def _calc_abs_mean(self, data_in: list[int]) -> list[int]:
+        return [1]
 
     @staticmethod
     def _get_values_non_incremented_change(data: np.ndarray) -> list:
