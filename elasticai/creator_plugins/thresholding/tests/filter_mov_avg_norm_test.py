@@ -24,24 +24,6 @@ def build_test_signal(bitwidth: int, length: int) -> list[int]:
         for _ in range(length)
     ]
 
-# --- build check data sliding middle value
-def calc_mavg_reference_sliding(data, length):
-    taps = [0] * length
-    pos = 0
-    pre_out = 0
-    out = []
-
-    for sample in data:
-        # FPGA gibt zuerst den alten Wert aus
-        out.append(pre_out // length)
-
-        # intern aktualisieren
-        pre_out = pre_out - taps[pos] + sample
-        taps[pos] = sample
-        pos = (pos + 1) % length
-
-    return out
-
 def assert_mov_avg_equivalent(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
@@ -49,8 +31,11 @@ def assert_mov_avg_equivalent(
     id: int,
     data_in: list[int], ):
 
+    module_type = "mov_avg_norm"
+
     settings = SettingsThreshold(
         method="mavg",
+        module_type = module_type,
         sampling_rate=1.0,
         gain=1.0,
         window_sec=float(length),
@@ -72,6 +57,9 @@ def assert_mov_avg_equivalent(
 
     
     check = threshold.get_threshold_list(data_in)
+    check.insert(0,0)
+    check.pop()
+
 
     cocotb_test_fixture.write(
         {
