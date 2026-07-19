@@ -23,12 +23,14 @@ class SettingsThreshold:
                         'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
                         'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
                         'welford': Welford Online Algorithm for STD Calculation]
+        module_type:    Name of the module Type (eg. "mov_avg_norm")
         sampling_rate:  Sampling rate of the transient signal [Hz]
         gain:           Applied gain on threshold output
         window_sec:     Window length in sec.
     """
 
     method: str
+    module_type: str
     sampling_rate: float
     gain: float
     window_sec: float
@@ -40,7 +42,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3
+    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3, module_type = "MOV_AVG_NORM"
 )
 
 
@@ -108,10 +110,15 @@ class Thresholding:
         bitwidth: int,
         path2save: Path, ) -> None:
 
+        if self._settings.module_type == "":
+            raise NoTopModule(
+                    f"Top Module in Settings is missing"
+                )
+
         match self._settings.method.lower():
             case "mavg":
                 params = {
-                    "type": "mov_avg_norm",
+                    "type": self._settings.module_type,
                     "id": id,
                     "params": {
                         "BITWIDTH": bitwidth,
@@ -197,13 +204,11 @@ class Thresholding:
         out = []
 
         for sample in data_in:
-            # Ausgabe wie in der Hardware
-            out.append(acc // length)
-
-            # Zustand aktualisieren
             acc = acc - taps[pos] + sample
             taps[pos] = sample
             pos = (pos + 1) % length
+
+            out.append(acc // length)
 
         return out
 

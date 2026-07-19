@@ -41,3 +41,10 @@ def _prepare_translator(plugin_types: list[str]) -> Ir2Verilog:
     for plugin in plugin_types:
         loader.load_from_package(plugin)
     return _translate
+
+# --- build test signal
+def build_test_signal(bitwidth: int, length: int) -> list[int]:
+    return [
+        np.random.randint(0, 2**bitwidth - 1)
+        for _ in range(length)
+    ]
