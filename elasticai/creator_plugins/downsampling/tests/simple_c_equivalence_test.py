@@ -32,6 +32,17 @@ def test_create_design_generates_simple_c_files(tmp_path: Path, target: str) -> 
     assert (tmp_path / "downsampling_simple_0.h").exists()
     assert (tmp_path / "downsampling_simple_template.h").exists()
 
+def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
+    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr= 0))
+
+    with pytest.raises(ValueError, match="dsr must be >= 1"):
+        downsampler.create_design(
+            method=TargetsDownSampling.Simple, 
+            target="mcu",
+            bitwidth=8,
+            id="0",
+            path2save=tmp_path,
+            )
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_simple_c_matches_python_frame(
