@@ -79,6 +79,7 @@ class DownSampling:
         id: str,
         path2save: Path,
         signed: bool = True,
+        num_stages: int = 5,
     ) -> None:
         """Generate the hardware design to downsampling on hardware
         :param method:      Used method for hardware generation
@@ -96,15 +97,30 @@ class DownSampling:
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
-                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
+                method=method,
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+                num_stages=num_stages,
             )
         else:
             self._create_design_fpga(
-                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
+                method=method,
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save
             )
 
     def _create_design_c(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
+        self,
+        method: TargetsDownSampling,
+        id: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+        num_stages: int = 5,
     ) -> None:
         match method:
             case TargetsDownSampling.Subsampling:
@@ -124,6 +140,16 @@ class DownSampling:
                     downsampling_id=id,
                     path2save=path2save,
                     define_path=".",
+                )
+            case TargetsDownSampling.CIC:
+                c_compile.build_downsampling_cic(
+                    downsampling_ratio=self._settings.dsr,
+                    num_stages=num_stages,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    downsampling_id=id,
+                    path2save=path2save,
+                    define_path="."
                 )
             case _:
                 raise NotImplementedError(f"Method {method} is not implemented")
