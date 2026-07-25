@@ -33,13 +33,17 @@ def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str
     assert (tmp_path / "downsampling_subsampling_0.h").exists()
     assert (tmp_path / "downsampling_subsampling_template.h").exists()
 
-
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
+    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr= 0))
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
-        downsampler.create_design(TargetsDownSampling.Subsampling, "mcu", 8, "0", tmp_path)
-
+        downsampler.create_design(
+            method=TargetsDownSampling.Subsampling, 
+            target="mcu",
+            bitwidth=8,
+            id="0",
+            path2save=tmp_path,
+            )
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
