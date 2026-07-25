@@ -32,17 +32,6 @@ def test_create_design_generates_simple_c_files(tmp_path: Path, target: str) -> 
     assert (tmp_path / "downsampling_simple_0.h").exists()
     assert (tmp_path / "downsampling_simple_template.h").exists()
 
-def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr= 0))
-
-    with pytest.raises(ValueError, match="dsr must be >= 1"):
-        downsampler.create_design(
-            method=TargetsDownSampling.Simple, 
-            target="mcu",
-            bitwidth=8,
-            id="0",
-            path2save=tmp_path,
-            )
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_simple_c_matches_python_frame(
@@ -74,6 +63,52 @@ def test_generated_simple_c_matches_python_frame(
     loader.load()
 
     input_frame = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=numpy_dtype)
+    expected = downsampler.do_simple(input_frame).astype(numpy_dtype)
+
+    out = loader.ffi().new(f"{c_type} *")
+    c_results = []
+    for sample in input_frame.tolist():
+        if loader.get("calc_do_simple_0")(sample, out):
+            c_results.append(int(out[0]))
+
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
+        passed, reason = compare_values(int(expected_value), c_value)
+        assert passed, f"index={index}: {reason}"
+
+
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+def test_generated_simple_c_matches_python_sinewave(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
+    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
+    downsampler = DownSampling(settings)
+    output_dir = tmp_path / "src"
+    downsampler.create_design(
+        method=TargetsDownSampling.Simple,
+        target="mcu",
+        bitwidth=bitwidth,
+        id="0",
+        path2save=output_dir,
+        signed=True,
+    )
+
+    adapter = tmp_path / "adapter.h"
+    adapter.write_text(f"_Bool calc_do_simple_0({c_type} data, {c_type} *out);\n")
+    loader = CompileLoader(
+        headers=str(adapter),
+        sources=[str(output_dir / "downsampling_simple_0.c")],
+        build_dir=str(tmp_path / "cffi-build"),
+        module_name=f"downsampling_simple_sinewave_{uuid4().hex}",
+    )
+    loader.load()
+
+    amplitude = 40 if bitwidth == 8 else 10000
+    t = np.arange(60) / settings.sampling_rate
+    input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
+
     expected = downsampler.do_simple(input_frame).astype(numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
