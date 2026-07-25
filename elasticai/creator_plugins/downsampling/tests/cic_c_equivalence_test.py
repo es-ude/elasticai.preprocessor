@@ -33,7 +33,19 @@ def test_create_design_generates_cic_c_files(tmp_path: Path, target: str) -> Non
     assert (tmp_path / "downsampling_cic_0.h").exists()
     assert (tmp_path / "downsampling_cic_template.h").exists()
 
+def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
+    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr= 0))
 
+    with pytest.raises(ValueError, match="dsr must be >= 1"):
+        downsampler.create_design(
+            method=TargetsDownSampling.CIC, 
+            target="mcu",
+            bitwidth=8,
+            id="0",
+            path2save=tmp_path,
+            )
+
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_cic_c_matches_python_frame(
     tmp_path: Path,
