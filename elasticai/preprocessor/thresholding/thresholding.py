@@ -33,7 +33,7 @@ class SettingsThreshold:
     module_type: str
     sampling_rate: float
     gain: float
-    window_sec: float
+    window_sec: float    
 
     @property
     def window_steps(self) -> int:
@@ -71,11 +71,16 @@ class Thresholding:
     target: str,
     bitwidth: int,
     id: str,
-    path2save: Path, ) -> None:
+    path2save: Path, **kwargs ) -> None:
         """Create hardware design for thresholding.
 
         Currently only FPGA/Verilog generation is supported.
         """
+
+        try:
+            countwidth = kwargs["countwidth"]
+        except KeyError as error:
+            countwidth = 0
 
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
@@ -91,6 +96,7 @@ class Thresholding:
             self._create_design_verilog(
                 id=id,
                 bitwidth=bitwidth,
+                countwidth = countwidth,
                 path2save=path2save,
             )
     def _create_design_c (
@@ -108,6 +114,7 @@ class Thresholding:
         self,
         id: str,
         bitwidth: int,
+        countwidth: int,
         path2save: Path, ) -> None:
 
         if self._settings.module_type == "":
@@ -123,6 +130,15 @@ class Thresholding:
                     "params": {
                         "BITWIDTH": bitwidth,
                         "LENGTH": self._settings.window_steps,
+                    },
+                }
+            case "abs_mean":
+                params = {
+                    "type": self._settings.module_type,
+                    "id": id,
+                    "params": {
+                        "BITWIDTH": bitwidth,
+                        "COUNTWIDTH": countwidth,
                     },
                 }
 
@@ -213,7 +229,16 @@ class Thresholding:
         return out
 
     def _calc_abs_mean(self, data_in: list[int]) -> list[int]:
-        return [1]
+        out = []
+        abs_sum = 0
+        count = 1
+
+        for sample in data_in:
+            abs_sum += sample
+            out.append(abs_sum // count)
+            count += 1
+
+        return out
 
     @staticmethod
     def _get_values_non_incremented_change(data: np.ndarray) -> list:
