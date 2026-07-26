@@ -14,9 +14,8 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.mac import load_and_plugin
 from elasticai.preprocessor.thresholding import Thresholding, SettingsThreshold
 
-# --- get deterministic signal for template test
+# --- get signal for template test
 def get_template_signal() -> list[int]:
-    # length = 4
     return [ 0, 0, 0, 0 ]
 
 # --- build test signal
@@ -26,59 +25,22 @@ def build_test_signal(bitwidth: int, length: int) -> list[int]:
         for _ in range(length)
     ]
 
-# --- build reference data
-def calc_mavg_reference(data_in: list[int], length: int) -> list[int]:
-    """
-    Reference model matching the Verilog implementation:
 
-    pre_out <= pre_out - old_tap + DATA_IN
-    DATA_OUT = pre_out >> log2(LENGTH)
-    """
-
-    taps = [0] * length
-    pos = 0
-    pre_out = 0
-
-    result = []
-
-    for sample in data_in:
-
-        # update FIR buffer
-        pre_out = pre_out - taps[pos] + sample
-        taps[pos] = sample
-
-        # output before current sample update
-        result.append(pre_out // length)
-
-        # Verilog counts backwards
-        if pos == 0:
-            pos = length - 1
-        else:
-            pos -= 1
-
-    return result
-
-def assert_mov_avg_equivalent(
+def assert_mean_avg_equivalent(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
-    length: int,
+    countwidth: int,
     id: int,
     data_in: list[int], ):
 
-    module_type = "mov_avg_pow2"
-
-    # Check if length is a power of 2
-    if (length & (length-1) != 0):
-        raise Exception(
-                    f"Length has to be a power of 2."
-                )
+    module_type = "mean_avg"
 
     settings = SettingsThreshold(
-        method="mavg",
+        method="abs_mean",
         module_type = module_type,
         sampling_rate=1.0,
         gain=1.0,
-        window_sec=float(length),
+        window_sec=float(len(data_in)),
     )
 
     threshold = Thresholding(settings)
@@ -91,6 +53,7 @@ def assert_mov_avg_equivalent(
     threshold.create_design(
         target="fpga",
         bitwidth=bitwidth,
+        countwidth = countwidth,
         id=f'{id}',
         path2save=build_dir,
     )
@@ -115,35 +78,18 @@ def assert_mov_avg_equivalent(
         defines={},
     )
 
-
+# --- Testbench -------------------------------------
 @cocotb.test()
 @eai_testbench
-async def filter_fir_mavg_pow2_test(
+async def mean_avg_test(
     dut,
     bitwidth: int,
-    length: int,
+    countwidth: int,
     data_in: list[int],
     check: list[int],
     ):
     period_clk = 5
     period_data = 100
-    # num_repeats = 4 <- is now parameter
-    do_signed = False
-
-    used_bitwidth = bitwidth #int(dut.BITWIDTH.value)
-    used_adrwidth = 4
-
-    # --- data_in_array not needed anymore because of input signal
-    # data_in_array = [
-    #     np.random.randint(low=0, high=2**used_bitwidth - 1)
-    #     for _ in range(used_adrwidth)
-    # ]
-    # # data_in_array = [int(2**(used_bitwidth-1) * (1 + np.cos(2 * np.pi * idx / used_adrwidth))) for idx in range(used_adrwidth)]
-    # data_in_array = [val if val >= 0 else 0 for val in data_in_array]
-    # data_in_array = [
-    #     2**used_bitwidth - 1 if val >= 2**used_bitwidth - 1 else val
-    #     for val in data_in_array
-    # ]
 
     # --- Control signals
     dut.CLK_SYS.value = 0
@@ -152,12 +98,7 @@ async def filter_fir_mavg_pow2_test(
     dut.DO_CALC.value = 0
     dut.DATA_IN.value = 0
 
-    # --- Control signals
-    dut.CLK_SYS.value = 0
-    dut.RSTN.value = 0
-    dut.EN.value = 0
-    dut.DO_CALC.value = 0
-    dut.DATA_IN.value = 0
+    assert len(data_in) == len(check)
 
     # Start clock and making reset
     cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
@@ -200,75 +141,64 @@ async def filter_fir_mavg_pow2_test(
         assert int(dut.DATA_OUT.value) == int(expected)
 
 
-
-
+# --- template test
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
-@pytest.mark.parametrize("length", [4])
-def test_mov_avg_pow2(
+@pytest.mark.parametrize("countwidth", [8])
+def test_mean_avg(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
-    length: int,
+    countwidth: int,
 	):
 
-    # deterministic test vector
+    # --- Build test data
     data_in = get_template_signal()
 
-    check = data_in
+    check_data = data_in
 
     cocotb_test_fixture.write(
         {
             "data_in": data_in,
-            "check": check,
+            "check": check_data,
         }
     )
-
-    cocotb_test_fixture.set_top_module_name(
-        "MOVING_AVERAGE_POW2"
-    )
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package(
-        "thresholding",
-        "verilog/*.v"
-    )
-    cocotb_test_fixture.run( 
-        params={
-            "BITWIDTH": bitwidth,
-            "LENGTH": length,
-        },
-        defines={},
+    cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
+    cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
+    cocotb_test_fixture.set_top_module_name("MEAN_AVERAGE")   
+    cocotb_test_fixture.run(params={
+        "BITWIDTH": bitwidth,
+        "COUNTWIDTH": countwidth,
+    }, 
+    defines={}
     )
 
 # --- build test
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [4])
-@pytest.mark.parametrize("length", [4])
-def test_mov_avg_pow2_build(
+@pytest.mark.parametrize("countwidth", [8])
+def test_mean_avg_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
-    length: int,
-):
+    countwidth: int,
+    ):
 
     # Directory for artifact
     artifact_dir = cocotb_test_fixture.get_artifact_dir()
     build_dir = artifact_dir / "verilog"
 
-    # generate verilog using plugin
     load_and_plugin(
-        type="mov_avg_pow2",
-        id="0",
+        type="mean_avg",
+        id="0",  
         params={
             "BITWIDTH": bitwidth,
-            "LENGTH": length,
+            "COUNTWIDTH": countwidth,
         },
         packages=["thresholding"],
         path2save=build_dir,
     )
 
-    # input data
+    # --- input data
     data_in = get_template_signal()
-
-    # reference output
     check = data_in
 
     cocotb_test_fixture.write(
@@ -278,62 +208,33 @@ def test_mov_avg_pow2_build(
         }
     )
 
-    # start simulation
-    cocotb_test_fixture.set_top_module_name(
-        "MOV_AVG_POW2_0"
-    )
+    #start test
+    cocotb_test_fixture.set_top_module_name("MEAN_AVG_0")
     cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir(
-        "verilog/*.v"
-    )
-
+    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
         params={},
         defines={},
     )
-    
+
 # --- Check equivalence to reference function
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [4])
-@pytest.mark.parametrize("length", [4])
-def test_mov_avg_pow2_equal(
+@pytest.mark.parametrize("countwidth", [8])
+def test_mean_avg_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
-    length: int,
+    countwidth: int,
 ):
     id = 1
 
+    length = 16
+
     data_in = build_test_signal(bitwidth, length)
 
-    assert_mov_avg_equivalent(
+    assert_mean_avg_equivalent(
         cocotb_test_fixture,
         bitwidth,
-        length,
+        countwidth,
         id,
         data_in)
-
-# --- Check equivalence with extended input
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth", [4])
-@pytest.mark.parametrize("length", [16])
-def test_mov_avg_pow2_equal_extended(
-    cocotb_test_fixture: CocotbTestFixture,
-    bitwidth: int,
-    length: int,
-    ):
-
-    id = 2
-    num_repeats = 4
-
-    data_in = build_test_signal(
-        bitwidth=bitwidth,
-        length= length,
-    )
-    data_in = data_in * num_repeats 
-
-    assert_mov_avg_equivalent(
-        cocotb_test_fixture,
-        bitwidth,
-        length,
-        id,
-        data_in)  
