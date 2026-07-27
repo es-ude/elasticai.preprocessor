@@ -1,17 +1,9 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
-
-import numpy as np
-
 from pathlib import Path
 
 import elasticai.creator_plugins.mac as hw_thresholding
-from elasticai.preprocessor._common_func import CommonDigitalFunctions
-from elasticai.preprocessor._plot_helper import (
-    get_plot_color,
-    get_textsize_paper,
-    save_figure,
-)
+import numpy as np
 
 
 @dataclass
@@ -33,7 +25,7 @@ class SettingsThreshold:
     module_type: str
     sampling_rate: float
     gain: float
-    window_sec: float    
+    window_sec: float
 
     @property
     def window_steps(self) -> int:
@@ -42,7 +34,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3, module_type = "MOV_AVG_NORM"
+    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3, module_type="MOV_AVG_NORM"
 )
 
 
@@ -66,12 +58,7 @@ class Thresholding:
             "wins": "_winsorization",
         }
 
-    def create_design(
-    self,
-    target: str,
-    bitwidth: int,
-    id: str,
-    path2save: Path, **kwargs ) -> None:
+    def create_design(self, target: str, bitwidth: int, id: str, path2save: Path, **kwargs) -> None:
         """Create hardware design for thresholding.
 
         Currently only FPGA/Verilog generation is supported.
@@ -79,7 +66,7 @@ class Thresholding:
 
         try:
             countwidth = kwargs["countwidth"]
-        except KeyError as error:
+        except KeyError:
             countwidth = 0
 
         supported_targets = ["mcu", "pc", "fpga"]
@@ -96,18 +83,19 @@ class Thresholding:
             self._create_design_verilog(
                 id=id,
                 bitwidth=bitwidth,
-                countwidth = countwidth,
+                countwidth=countwidth,
                 path2save=path2save,
             )
-    def _create_design_c (
-            self,
-            id: str,
-            bitwidth: int,
-            path2save: Path, ) -> None:
+
+    def _create_design_c(
+        self,
+        id: str,
+        bitwidth: int,
+        path2save: Path,
+    ) -> None:
 
         raise NotImplementedError(
-            f"Target 'mcu/pc' is currently not supported. "
-            "Only 'fpga' is implemented."
+            "Target 'mcu/pc' is currently not supported. Only 'fpga' is implemented."
         )
 
     def _create_design_verilog(
@@ -115,12 +103,11 @@ class Thresholding:
         id: str,
         bitwidth: int,
         countwidth: int,
-        path2save: Path, ) -> None:
+        path2save: Path,
+    ) -> None:
 
         if self._settings.module_type == "":
-            raise NoTopModule(
-                    f"Top Module in Settings is missing"
-                )
+            raise AttributeError("Top Module in Settings is missing")
 
         match self._settings.method.lower():
             case "mavg":
@@ -144,8 +131,7 @@ class Thresholding:
 
             case _:
                 raise NotImplementedError(
-                    f"Threshold method '{self._settings.method}' "
-                    "does not have a Verilog implementation."
+                    f"Threshold method '{self._settings.method}' does not have a Verilog implementation."
                 )
 
         hw_thresholding.load_and_plugin(
@@ -206,8 +192,8 @@ class Thresholding:
                 out = self._calc_abs_mean(data_in)
             case _:
                 raise ValueError(
-                f"Thresholding method {self._settings.method} not available - Please change to {self.get_overview()}"
-            )
+                    f"Thresholding method {self._settings.method} not available - Please change to {self.get_overview()}"
+                )
 
         return out
 
