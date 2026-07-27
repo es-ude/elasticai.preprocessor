@@ -8,7 +8,6 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 from elasticai.creator.arithmetic import FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
-from elasticai.creator_plugins.windower.utils import load_and_plugin
 from elasticai.preprocessor.windower import SettingsWindow, WindowSequencer
 
 
@@ -151,19 +150,22 @@ def test_windower_build(
     samples: int,
     num_shift: int,
 ):
+    sampling_rate = 100
+    dut = WindowSequencer(
+        SettingsWindow(
+            sampling_rate=sampling_rate,
+            window_sec=samples / sampling_rate,
+            overlap_sec=(samples - num_shift) / sampling_rate,
+        )
+    )
+
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
 
-    load_and_plugin(
-        type="windower",
+    dut.create_design(
+        target="fpga",
+        bitwidth=bitwidth,
         id="",
-        params={
-            "BITWIDTH": bitwidth,
-            "SAMPLES": samples,
-            "NUM_SHIFT": num_shift,
-        },
-        packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-        add_ringbuffer=True,
     )
 
     cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
@@ -199,17 +201,11 @@ def test_sliding_windower_build_equal(
 
     data_checked = dut.slide(np.asarray(data_in)).tolist()
 
-    load_and_plugin(
-        type="windower",
+    dut.create_design(
+        target="fpga",
+        bitwidth=bitwidth,
         id="",
-        params={
-            "BITWIDTH": bitwidth,
-            "SAMPLES": samples,
-            "NUM_SHIFT": num_shift,
-        },
-        packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-        add_ringbuffer=True,
     )
 
     cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
@@ -245,17 +241,11 @@ def test_sequence_windower_build_equal(
 
     data_checked = dut.sequence(np.asarray(data_in)).tolist()
 
-    load_and_plugin(
-        type="windower",
+    dut.create_design(
+        target="fpga",
+        bitwidth=bitwidth,
         id="",
-        params={
-            "BITWIDTH": bitwidth,
-            "SAMPLES": samples,
-            "NUM_SHIFT": num_shift,
-        },
-        packages=["windower"],
         path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-        add_ringbuffer=True,
     )
 
     cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
