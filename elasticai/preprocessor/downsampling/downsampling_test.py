@@ -1,22 +1,22 @@
 from copy import deepcopy
-from unittest import TestCase, main
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase, main
+
 import numpy as np
 
 from .downsampling import (
     DefaultSettingsDownSampling,
     DownSampling,
     SettingsDownSampling,
+    TargetsDownSampling,
 )
 
-test_settings = DownSampling(
-        SettingsDownSampling(
-            sampling_rate=1000.0, # Default Settings
-            dsr=10,
-            type=type,
-        )
+test_settings = SettingsDownSampling(
+    sampling_rate=1000.0,
+    dsr=10,
 )
+
 
 def inp_samp(time: np.ndarray) -> np.ndarray:
     freq = [4, 20]
@@ -154,15 +154,21 @@ class TestDownSampling(TestCase):
         with self.assertRaisesRegex(ValueError, "dsr must be >= 1"):
             DownSampling(self.sets).do_subsampling(data)
 
-
     def test_create_cic_verilog(self):
         sets = deepcopy(test_settings)
-        sets.type = "cic"
         with TemporaryDirectory() as directory:
-           path2save = Path(directory)
-           path2save.mkdir(parents=True, exist_ok=True)
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(2, "pc", 16, "0", path2save, 5)
+        DownSampling(sets).create_design(
+            method=TargetsDownSampling.CIC,
+            id="0",
+            target="fpga",
+            bitwidth=16,
+            signed=True,
+            path2save=path2save,
+            num_stages=2,
+        )
         files_available = [
             "cic_0.v",
         ]
@@ -170,31 +176,42 @@ class TestDownSampling(TestCase):
             assert file.exists()
             assert file.name in files_available
 
-
     def test_create_polydec_fpga_verilog(self):
         sets = deepcopy(test_settings)
-        sets.type = "polydec_fpga"
         with TemporaryDirectory() as directory:
-           path2save = Path(directory)
-           path2save.mkdir(parents=True, exist_ok=True)
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(3, "pc", 16, "0", path2save, 5)
+        DownSampling(sets).create_design(
+            method=TargetsDownSampling.Polyphase,
+            id="0",
+            target="fpga",
+            bitwidth=16,
+            signed=True,
+            path2save=path2save,
+        )
         files_available = [
             "polydec_fpga_0.v",
         ]
         for file in path2save.glob("*.v"):
             assert file.exists()
             assert file.name in files_available
-            
 
     def test_create_polydec_asic_verilog(self):
         sets = deepcopy(test_settings)
         sets.type = "polydec_asic"
         with TemporaryDirectory() as directory:
-           path2save = Path(directory)
-           path2save.mkdir(parents=True, exist_ok=True)
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(3, "pc", 16, "0", path2save, 5)
+        DownSampling(sets).create_design(
+            method=TargetsDownSampling.Polyphase,
+            id="0",
+            target="asic",
+            bitwidth=16,
+            signed=True,
+            path2save=path2save,
+        )
         files_available = [
             "polydec_asic_0.v",
         ]

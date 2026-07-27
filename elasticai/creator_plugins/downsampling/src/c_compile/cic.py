@@ -28,12 +28,6 @@ def build_downsampling_cic(
         downsampling_id:    ID appended to function names
         define_path:        Include path written into the generated #include line
     """
-    if downsampling_ratio < 1:
-        raise ValueError("dsr must be >= 1")
-    if num_stages < 1:
-        raise ValueError("num_stages must be >= 1")
-    assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
-
     module_id = downsampling_id.lower()
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
