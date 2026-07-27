@@ -1,29 +1,25 @@
 import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, FallingEdge
-from pathlib import Path
 import numpy as np
 
-from elasticai.creator.testing.cocotb_runner import run_cocotb_sim_for_src_dir
-import elasticai.creator_plugins.filter_data as test_dut
 # from elasticai.creator_plugins.helper import calc_mavg
-
-#add this:
-import pytest 
+# add this:
+import pytest
+from cocotb.clock import Clock
+from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.mac import load_and_plugin
-from elasticai.preprocessor.thresholding import Thresholding, SettingsThreshold
+
+from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+
 
 # --- get signal for template test
 def get_template_signal() -> list[int]:
-    return [ 0, 0, 0, 0 ]
+    return [0, 0, 0, 0]
+
 
 # --- build test signal
 def build_test_signal(bitwidth: int, length: int) -> list[int]:
-    return [
-        np.random.randint(0, 2**bitwidth - 1)
-        for _ in range(length)
-    ]
+    return [np.random.randint(0, 2**bitwidth - 1) for _ in range(length)]
 
 
 def assert_mean_avg_equivalent(
@@ -31,13 +27,14 @@ def assert_mean_avg_equivalent(
     bitwidth: int,
     countwidth: int,
     id: int,
-    data_in: list[int], ):
+    data_in: list[int],
+):
 
     module_type = "mean_avg"
 
     settings = SettingsThreshold(
         method="abs_mean",
-        module_type = module_type,
+        module_type=module_type,
         sampling_rate=1.0,
         gain=1.0,
         window_sec=float(len(data_in)),
@@ -45,20 +42,16 @@ def assert_mean_avg_equivalent(
 
     threshold = Thresholding(settings)
 
-    build_dir = (
-        cocotb_test_fixture.get_artifact_dir()
-        / "verilog"
-    )
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
 
     threshold.create_design(
         target="fpga",
         bitwidth=bitwidth,
-        countwidth = countwidth,
-        id=f'{id}',
+        countwidth=countwidth,
+        id=f"{id}",
         path2save=build_dir,
     )
 
-    
     check = threshold.get_threshold_list(data_in)
 
     cocotb_test_fixture.write(
@@ -68,7 +61,7 @@ def assert_mean_avg_equivalent(
         }
     )
 
-    top_module_name = f'{module_type.upper()}_{id}'
+    top_module_name = f"{module_type.upper()}_{id}"
     cocotb_test_fixture.set_top_module_name(top_module_name)
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -77,6 +70,7 @@ def assert_mean_avg_equivalent(
         params={},
         defines={},
     )
+
 
 # --- Testbench -------------------------------------
 @cocotb.test()
@@ -87,7 +81,7 @@ async def mean_avg_test(
     countwidth: int,
     data_in: list[int],
     check: list[int],
-    ):
+):
     period_clk = 5
     period_data = 100
 
@@ -120,13 +114,13 @@ async def mean_avg_test(
         await RisingEdge(dut.CLK_SYS)
     cocotb.start_soon(Clock(dut.DO_CALC, period_data, unit="ns").start())
 
-    # Synchronisation to first clk 
+    # Synchronisation to first clk
     await RisingEdge(dut.CLK_SYS)
 
     # Process all data
     for val, expected in zip(data_in, check):
         await RisingEdge(dut.DO_CALC)
-        dut.DATA_IN.value = val           
+        dut.DATA_IN.value = val
 
         await FallingEdge(dut.DVALID)
         await FallingEdge(dut.CLK_SYS)
@@ -134,9 +128,12 @@ async def mean_avg_test(
 
         await RisingEdge(dut.DVALID)
         print(
-            "IN =", val,
-            "EXPECTED =", expected,
-            "OUT =", int(dut.DATA_OUT.value),                
+            "IN =",
+            val,
+            "EXPECTED =",
+            expected,
+            "OUT =",
+            int(dut.DATA_OUT.value),
         )
         assert int(dut.DATA_OUT.value) == int(expected)
 
@@ -149,7 +146,7 @@ def test_mean_avg(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     countwidth: int,
-	):
+):
 
     # --- Build test data
     data_in = get_template_signal()
@@ -162,15 +159,17 @@ def test_mean_avg(
             "check": check_data,
         }
     )
-    cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
-    cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
-    cocotb_test_fixture.set_top_module_name("MEAN_AVERAGE")   
-    cocotb_test_fixture.run(params={
-        "BITWIDTH": bitwidth,
-        "COUNTWIDTH": countwidth,
-    }, 
-    defines={}
+    cocotb_test_fixture.clear_srcs()  # modul sources werden frei gegeben um neu geladen zu werden
+    cocotb_test_fixture.add_srcs_from_package("thresholding", "verilog/*.v")
+    cocotb_test_fixture.set_top_module_name("MEAN_AVERAGE")
+    cocotb_test_fixture.run(
+        params={
+            "BITWIDTH": bitwidth,
+            "COUNTWIDTH": countwidth,
+        },
+        defines={},
     )
+
 
 # --- build test
 @pytest.mark.simulation
@@ -180,7 +179,7 @@ def test_mean_avg_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     countwidth: int,
-    ):
+):
 
     # Directory for artifact
     artifact_dir = cocotb_test_fixture.get_artifact_dir()
@@ -188,7 +187,7 @@ def test_mean_avg_build(
 
     load_and_plugin(
         type="mean_avg",
-        id="0",  
+        id="0",
         params={
             "BITWIDTH": bitwidth,
             "COUNTWIDTH": countwidth,
@@ -208,7 +207,7 @@ def test_mean_avg_build(
         }
     )
 
-    #start test
+    # start test
     cocotb_test_fixture.set_top_module_name("MEAN_AVG_0")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -216,6 +215,7 @@ def test_mean_avg_build(
         params={},
         defines={},
     )
+
 
 # --- Check equivalence to reference function
 @pytest.mark.simulation
@@ -232,9 +232,4 @@ def test_mean_avg_equal(
 
     data_in = build_test_signal(bitwidth, length)
 
-    assert_mean_avg_equivalent(
-        cocotb_test_fixture,
-        bitwidth,
-        countwidth,
-        id,
-        data_in)
+    assert_mean_avg_equivalent(cocotb_test_fixture, bitwidth, countwidth, id, data_in)

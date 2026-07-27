@@ -13,10 +13,10 @@ from elasticai.creator.ir2verilog import (
 
 @type_handler_iterable()
 def mov_avg_norm(impl: DataGraph, _: Registry) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.thresholding"     #change this to current module
-    path2file = "verilog/mov_avg_norm.v"                        #change this to current module
+    package_path = "elasticai.creator_plugins.thresholding"  # change this to current module
+    path2file = "verilog/mov_avg_norm.v"  # change this to current module
 
-    #Parameters need to fit to verilog module
+    # Parameters need to fit to verilog module
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")

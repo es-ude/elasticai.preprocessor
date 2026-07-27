@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import elasticai.creator.ir2verilog as ir
+import numpy as np
 from elasticai.creator.file_generation import find_project_root as get_path_to_build
 from elasticai.creator.ir import Registry, attribute
 from elasticai.creator.ir2verilog import Ir2Verilog, factory
@@ -24,9 +25,7 @@ def load_and_plugin(
         (build_dir / name).write_text("".join(content))
 
 
-def _build_verilog_implementation(
-    type: str, id: str, params: dict[str, Any]
-) -> ir.DataGraph:
+def _build_verilog_implementation(type: str, id: str, params: dict[str, Any]) -> ir.DataGraph:
     mod_name = f"{type}_{id}" if id else f"{type}"
     return factory.graph(
         attributes=attribute(**params),
@@ -42,9 +41,7 @@ def _prepare_translator(plugin_types: list[str]) -> Ir2Verilog:
         loader.load_from_package(plugin)
     return _translate
 
+
 # --- build test signal
 def build_test_signal(bitwidth: int, length: int) -> list[int]:
-    return [
-        np.random.randint(0, 2**bitwidth - 1)
-        for _ in range(length)
-    ]
+    return [np.random.randint(0, 2**bitwidth - 1) for _ in range(length)]

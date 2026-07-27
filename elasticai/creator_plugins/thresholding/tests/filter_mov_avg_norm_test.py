@@ -1,41 +1,39 @@
 import cocotb
-from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, FallingEdge
-from pathlib import Path
 import numpy as np
-
-import pytest #add this
+import pytest  # add this
+from cocotb.clock import Clock
+from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.mac import load_and_plugin
 
-from elasticai.creator.testing.cocotb_runner import run_cocotb_sim_for_src_dir
-import elasticai.creator_plugins.filter_data as test_dut
-from elasticai.preprocessor.thresholding import Thresholding, SettingsThreshold
+from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+
 # from elasticai.creator_plugins.helper import calc_mavg
+
 
 # --- get signal for template test
 def get_template_signal() -> list[int]:
-    return [ 0, 0, 0, 0 ]
+    return [0, 0, 0, 0]
+
 
 # --- build test signal
 def build_test_signal(bitwidth: int, length: int) -> list[int]:
-    return [
-        np.random.randint(0, 2**bitwidth - 1)
-        for _ in range(length)
-    ]
+    return [np.random.randint(0, 2**bitwidth - 1) for _ in range(length)]
+
 
 def assert_mov_avg_equivalent(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
     id: int,
-    data_in: list[int], ):
+    data_in: list[int],
+):
 
     module_type = "mov_avg_norm"
 
     settings = SettingsThreshold(
         method="mavg",
-        module_type = module_type,
+        module_type=module_type,
         sampling_rate=1.0,
         gain=1.0,
         window_sec=float(length),
@@ -43,23 +41,18 @@ def assert_mov_avg_equivalent(
 
     threshold = Thresholding(settings)
 
-    build_dir = (
-        cocotb_test_fixture.get_artifact_dir()
-        / "verilog"
-    )
+    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
 
     threshold.create_design(
         target="fpga",
         bitwidth=bitwidth,
-        id=f'{id}',
+        id=f"{id}",
         path2save=build_dir,
     )
 
-    
     check = threshold.get_threshold_list(data_in)
-    check.insert(0,0)
+    check.insert(0, 0)
     check.pop()
-
 
     cocotb_test_fixture.write(
         {
@@ -68,7 +61,7 @@ def assert_mov_avg_equivalent(
         }
     )
 
-    top_module = f'MOV_AVG_NORM_{id}'
+    top_module = f"MOV_AVG_NORM_{id}"
     cocotb_test_fixture.set_top_module_name(top_module)
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -80,33 +73,16 @@ def assert_mov_avg_equivalent(
 
 
 @cocotb.test()
-@eai_testbench  #add this
+@eai_testbench  # add this
 async def filter_fir_mavg_norm_test(
     dut,
     bitwidth: int,
     length: int,
-    data_in: list[int],  #new input parameter
-    check: list[int],    #check signal
+    data_in: list[int],  # new input parameter
+    check: list[int],  # check signal
 ):
     period_clk = 5
     period_data = 100
-    do_signed = False
-
-    used_bitwidth = int(dut.BITWIDTH.value)
-    used_adrwidth = 4
-
-    # --- data_in_array not needed anymore because of input signal
-    # data_in_array = [
-    #     np.random.randint(low=0, high=2**used_bitwidth - 1)
-    #     for _ in range(used_adrwidth)
-    # ]
-    # data_in_array = [int(2**(used_bitwidth-1) * (1 + np.cos(2 * np.pi * idx / used_adrwidth))) for idx in range(used_adrwidth)]
-    # data_in_array = [val if val >= 0 else 0 for val in data_in_array]
-    # data_in_array = [
-    #     2**used_bitwidth - 1 if val >= 2**used_bitwidth - 1 else val
-    #     for val in data_in_array
-    # ]
-
 
     # --- Control signals
     dut.CLK_SYS.value = 0
@@ -116,8 +92,8 @@ async def filter_fir_mavg_norm_test(
     dut.DATA_IN.value = 0
 
     # --- check input
-    if(len(data_in) != len(check)):
-        raise Exception("wrong input data") 
+    if len(data_in) != len(check):
+        raise Exception("wrong input data")
 
     # Start clock and making reset
     cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
@@ -138,15 +114,14 @@ async def filter_fir_mavg_norm_test(
     for _ in range(8):
         await RisingEdge(dut.CLK_SYS)
     cocotb.start_soon(Clock(dut.DO_CALC, period_data, unit="ns").start())
-    ite = 0
 
-    # Synchronisation to first clk 
+    # Synchronisation to first clk
     await RisingEdge(dut.CLK_SYS)
 
     # Process all data
     for val, expected in zip(data_in, check):
         await RisingEdge(dut.DO_CALC)
-        dut.DATA_IN.value = val           
+        dut.DATA_IN.value = val
 
         await FallingEdge(dut.DVALID)
         await FallingEdge(dut.CLK_SYS)
@@ -154,12 +129,14 @@ async def filter_fir_mavg_norm_test(
 
         await RisingEdge(dut.DVALID)
         print(
-            "IN =", val,
-            "EXPECTED =", expected,
-            "OUT =", int(dut.DATA_OUT.value),                
+            "IN =",
+            val,
+            "EXPECTED =",
+            expected,
+            "OUT =",
+            int(dut.DATA_OUT.value),
         )
         assert int(dut.DATA_OUT.value) == int(expected)
-
 
 
 # --- template test
@@ -170,7 +147,7 @@ def test_mov_avg_norm(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
-	):
+):
 
     # --- Build test data
     data_in = get_template_signal()
@@ -183,14 +160,15 @@ def test_mov_avg_norm(
             "check": check_data,
         }
     )
-    cocotb_test_fixture.clear_srcs()    #modul sources werden frei gegeben um neu geladen zu werden
-    cocotb_test_fixture.add_srcs_from_package("thresholding","verilog/*.v")
-    cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")   
-    cocotb_test_fixture.run(params={
-        "BITWIDTH": bitwidth,
-        "LENGTH": length,
-    }, 
-    defines={}
+    cocotb_test_fixture.clear_srcs()  # modul sources werden frei gegeben um neu geladen zu werden
+    cocotb_test_fixture.add_srcs_from_package("thresholding", "verilog/*.v")
+    cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")
+    cocotb_test_fixture.run(
+        params={
+            "BITWIDTH": bitwidth,
+            "LENGTH": length,
+        },
+        defines={},
     )
 
 
@@ -202,7 +180,7 @@ def test_mov_avg_norm_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
-    ):
+):
 
     # Directory for artifact
     artifact_dir = cocotb_test_fixture.get_artifact_dir()
@@ -210,7 +188,7 @@ def test_mov_avg_norm_build(
 
     load_and_plugin(
         type="mov_avg_norm",
-        id="0",  
+        id="0",
         params={
             "BITWIDTH": bitwidth,
             "LENGTH": length,
@@ -230,7 +208,7 @@ def test_mov_avg_norm_build(
         }
     )
 
-    #start test
+    # start test
     cocotb_test_fixture.set_top_module_name("MOV_AVG_NORM_0")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
@@ -238,6 +216,7 @@ def test_mov_avg_norm_build(
         params={},
         defines={},
     )
+
 
 # --- Check equivalence to reference function (build_test_data)
 @pytest.mark.simulation
@@ -247,7 +226,7 @@ def test_mov_avg_norm_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
-    ):
+):
 
     id = 1
 
@@ -256,12 +235,8 @@ def test_mov_avg_norm_equal(
         length=20,
     )
 
-    assert_mov_avg_equivalent(
-        cocotb_test_fixture,
-        bitwidth,
-        length,
-        id,
-        data_in)
+    assert_mov_avg_equivalent(cocotb_test_fixture, bitwidth, length, id, data_in)
+
 
 # --- Check equivalence with extended input
 @pytest.mark.simulation
@@ -271,20 +246,15 @@ def test_mov_avg_norm_equal_extended(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
-    ):
+):
 
     id = 2
     num_repeats = 4
 
     data_in = build_test_signal(
         bitwidth=bitwidth,
-        length= length,
+        length=length,
     )
-    data_in = data_in * num_repeats 
+    data_in = data_in * num_repeats
 
-    assert_mov_avg_equivalent(
-        cocotb_test_fixture,
-        bitwidth,
-        length,
-        id,
-        data_in)    
+    assert_mov_avg_equivalent(cocotb_test_fixture, bitwidth, length, id, data_in)
