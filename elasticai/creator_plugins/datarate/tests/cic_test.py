@@ -129,6 +129,7 @@ def test_filter_cic_build_equal(
         SettingsDownSampling(
             sampling_rate=1000.0,
             dsr=dec_rate,
+            type="cic",
         )
     )
     # Test-Signal
@@ -139,18 +140,19 @@ def test_filter_cic_build_equal(
 
     data_checked = dut.do_cic(uin=np.asarray(data_in), num_stages=n_dec).tolist()
 
-    load_and_plugin(
-        type="cic",
+    dut.create_design(
+        target="fpga",
+        method=2,
+        bitwidth=bitwidth,
         id="1",
-        params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
-        packages=["datarate"],
         path2save=build_dir,
     )
+
     cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
     cocotb_test_fixture.set_top_module_name("CIC_1")
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={},
+        params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
         defines={},
     )

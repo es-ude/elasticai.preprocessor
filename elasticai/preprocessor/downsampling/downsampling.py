@@ -3,8 +3,7 @@ from enum import IntEnum
 from pathlib import Path
 
 import numpy as np
-
-from elasticai.creator_plugins.downsampling.src import c_compile
+import elasticai.creator_plugins.datarate as datarate_filters
 
 
 class TargetsDownSampling(IntEnum):
@@ -24,11 +23,13 @@ class SettingsDownSampling:
 
     sampling_rate: float
     dsr: int
+    type: str
 
 
 DefaultSettingsDownSampling = SettingsDownSampling(
     sampling_rate=1000.0,
     dsr=10,
+    type="cic"
 )
 
 
@@ -97,63 +98,103 @@ class DownSampling:
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
-                method=method,
+                #method=method,
                 id=id,
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
-                num_stages=num_stages,
+                #num_stages=num_stages,
             )
+
+        if target.lower() in ["fpga"]:
+            self._create_design_fpga_verilog(
+                id=id,
+                bitwidth=bitwidth, 
+                path2save=path2save,
+                )
+
+        if target.lower() in ["asic"]:
+            self._create_design_asic_verilog(
+                id=id,
+                bitwidth=bitwidth, 
+                path2save=path2save,
+                )
+    
+
+    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        from elasticai.creator_plugins.downsampling.src import c_compile
+
+        filter_type = self._settings.type.lower()
+
+        if filter_type in ["cic", "polydec_fpga", "polydec_asic"]:
+            c_compile.build_downsampling_subsampling(
+            downsampling_ratio=10,
+            bitwidth=bitwidth,
+            signed=signed,
+            downsampling_id=id,
+            path2save=path2save,
+            define_path=".",
+        )    
         else:
-            self._create_design_fpga(
-                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
-            )
+            raise ValueError(f"Filter type {self._settings.type} is not supported")
+            
+        
+    def _create_cic_verilog(self, id: str, bitwidth: int, dec_rate: int, n_dec: int) -> dict: 
+        return {
+        "type":"cic",
+        "id":id,
+        "params":{"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
+        }
+    
 
-    def _create_design_c(
-        self,
-        method: TargetsDownSampling,
-        id: str,
-        bitwidth: int,
-        signed: bool,
-        path2save: Path,
-        num_stages: int = 5,
-    ) -> None:
-        match method:
-            case TargetsDownSampling.Subsampling:
-                c_compile.build_downsampling_subsampling(
-                    downsampling_ratio=self._settings.dsr,
-                    bitwidth=bitwidth,
-                    signed=signed,
-                    downsampling_id=id,
-                    path2save=path2save,
-                    define_path=".",
-                )
-            case TargetsDownSampling.Simple:
-                c_compile.build_downsampling_simple(
-                    downsampling_ratio=self._settings.dsr,
-                    bitwidth=bitwidth,
-                    signed=signed,
-                    downsampling_id=id,
-                    path2save=path2save,
-                    define_path=".",
-                )
-            case TargetsDownSampling.CIC:
-                c_compile.build_downsampling_cic(
-                    downsampling_ratio=self._settings.dsr,
-                    num_stages=num_stages,
-                    bitwidth=bitwidth,
-                    signed=signed,
-                    downsampling_id=id,
-                    path2save=path2save,
-                    define_path=".",
-                )
-            case _:
-                raise NotImplementedError(f"Method {method} is not implemented")
+    def _create_polydec_fpga_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
+        return {
+        "type":"polydec_fpga",
+        "id":id,
+        "params":{"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+        }
+        
 
-    def _create_design_fpga(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
-    ) -> None:
-        raise NotImplementedError("FPGA downsampling generation is not implemented")
+    def _create_polydec_asic_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
+        return {
+        "type":"polydec_asic",
+        "id":id,
+        "params":{"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+        }    
+
+
+    def _create_design_fpga_verilog(self, id: str, bitwidth: int, path2save: Path, poly_order: int | None = None, dec_rate: int | None = None, n_dec: int | None = None,) -> None:
+        if self._settings.type.lower() == "cic":
+            params = self._create_cic_verilog(id=id, bitwidth=bitwidth, dec_rate=dec_rate, n_dec=n_dec)
+
+        elif self._settings.type.lower() == "polydec_fpga":
+            params = self._create_polydec_fpga_verilog(id=id, bitwidth=bitwidth, poly_order=poly_order)
+
+        elif self._settings.type.lower() == "polydec_asic":
+            params = self._create_polydec_asic_verilog(id=id, bitwidth=bitwidth, poly_order=poly_order)
+
+        else:
+            raise ValueError(f"Filter type {self._settings.type} is not supported")
+
+        datarate_filters.load_and_plugin(packages=["datarate"],path2save=path2save, **params)
+        
+
+
+    def _create_design_asic_verilog(self, id: str, bitwidth: int, path2save: Path, poly_order: int | None = None, dec_rate: int | None = None, n_dec: int | None = None,) -> None:
+        if self._settings.type.lower() == "cic":
+            params = self._create_cic_verilog(id=id, bitwidth=bitwidth, dec_rate=dec_rate, n_dec=n_dec)
+
+        elif self._settings.type.lower() == "polydec_fpga":
+            params = self._create_polydec_fpga_verilog(id=id, bitwidth=bitwidth, poly_order=poly_order)
+
+        elif self._settings.type.lower() == "polydec_asic":
+            params = self._create_polydec_asic_verilog(id=id, bitwidth=bitwidth, poly_order=poly_order)
+
+        else:
+            raise ValueError(f"Filter type {self._settings.type} is not supported")
+
+        datarate_filters.load_and_plugin(packages=["datarate"],path2save=path2save, **params)
+    
 
     def do_simple(self, uin: np.ndarray) -> np.ndarray:
         """Performing a simple downsampling of the adc data stream
@@ -208,7 +249,7 @@ class DownSampling:
         return np.array(output_transient)
 
     @staticmethod
-    def _do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
+    def do_decimation_polyphase_order_one(uin: np.ndarray) -> np.ndarray:
         """Performing first order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)
@@ -222,7 +263,7 @@ class DownSampling:
         return np.array(uout)
 
     @staticmethod
-    def _do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
+    def do_decimation_polyphase_order_two(uin: np.ndarray) -> np.ndarray:
         """Performing second order Non-Recursive Polyphase Decimation on input
         param uin:          Numpy array with transient signal input (high sampling rate)
         return:             Numpy array with transient signal output (low sampling rate)

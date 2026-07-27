@@ -162,6 +162,7 @@ def test_filter_polydec_fpga_build_equal_first_order(
         SettingsDownSampling(
             sampling_rate=1000.0,
             dsr=10,
+            type="polydec_fpga",
         )
     )
     # Test-Signal
@@ -171,13 +172,13 @@ def test_filter_polydec_fpga_build_equal_first_order(
         n_samples=22,
     )
 
-    data_checked = dut._do_decimation_polyphase_order_one(uin=np.asarray(data_in)).tolist()
+    data_checked = dut.do_decimation_polyphase_order_one(uin=np.asarray(data_in)).tolist()
 
-    load_and_plugin(
-        type="polydec_fpga",
+    dut.create_design(
+        target="fpga",
+        method=3,
+        bitwidth=bitwidth,
         id="1",
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        packages=["datarate"],
         path2save=build_dir,
     )
 
@@ -186,7 +187,7 @@ def test_filter_polydec_fpga_build_equal_first_order(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={},
+        params={"BITWIDTH" : bitwidth, "POLY_ORDER": poly_order},
         defines={},
     )
 
@@ -201,6 +202,7 @@ def test_filter_polydec_fpga_build_equal_second_order(
         SettingsDownSampling(
             sampling_rate=1000.0,
             dsr=10,
+            type="polydec_fpga",
         )
     )
     # Test-Signal
@@ -210,13 +212,13 @@ def test_filter_polydec_fpga_build_equal_second_order(
         n_samples=22,
     )
 
-    data_checked = dut._do_decimation_polyphase_order_two(uin=np.asarray(data_in)).tolist()
+    data_checked = dut.do_decimation_polyphase_order_two(uin=np.asarray(data_in)).tolist()
 
-    load_and_plugin(
-        type="polydec_fpga",
+    dut.create_design(
+        target="fpga",
+        method=3,
+        bitwidth=bitwidth,
         id="1",
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        packages=["datarate"],
         path2save=build_dir,
     )
 
@@ -225,6 +227,6 @@ def test_filter_polydec_fpga_build_equal_second_order(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={},
+        params={"BITWIDTH" : bitwidth, "POLY_ORDER": poly_order},
         defines={},
     )
