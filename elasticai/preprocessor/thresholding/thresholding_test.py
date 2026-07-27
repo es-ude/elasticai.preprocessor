@@ -30,7 +30,7 @@ class ThresholdingTest(TestCase):
 
     def test_getting_overview(self):
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_overview()
+        rslt = dut._get_overview()
         assert len(rslt) == 9
         self.assertTrue("const" in rslt)
 
