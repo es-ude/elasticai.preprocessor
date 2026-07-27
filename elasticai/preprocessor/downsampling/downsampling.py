@@ -106,11 +106,7 @@ class DownSampling:
             )
         else:
             self._create_design_fpga(
-                method=method,
-                id=id,
-                bitwidth=bitwidth,
-                signed=signed,
-                path2save=path2save
+                method=method, id=id, bitwidth=bitwidth, signed=signed, path2save=path2save
             )
 
     def _create_design_c(
@@ -149,7 +145,7 @@ class DownSampling:
                     signed=signed,
                     downsampling_id=id,
                     path2save=path2save,
-                    define_path="."
+                    define_path=".",
                 )
             case _:
                 raise NotImplementedError(f"Method {method} is not implemented")
