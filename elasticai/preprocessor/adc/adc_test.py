@@ -618,7 +618,7 @@ def test_create_verilog_only_data(adc_sets: SettingsResampler):
         rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_verilog_design(data=data, path2save=path, id="0")
+    TransientResampler(sets).create_design(target="fpga", data=data, path2save=path, id="0")
 
     files_check = ["replayer_0.v", "replayer_0_data.mem"]
     files_check.sort()
@@ -638,9 +638,48 @@ def test_create_verilog_trgg_data(adc_sets: SettingsResampler):
         rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_verilog_design(data=data, path2save=path, id="0", trgg=trgg)
+    TransientResampler(sets).create_design(target="fpga", data=data, path2save=path, id="0", trgg=trgg)
 
     files_check = ["replayer_0.v", "replayer_0_data.mem", "replayer_0_trgg.mem"]
+    files_check.sort()
+    files_avai = [file.name for file in path.glob("*.*")]
+    files_avai.sort()
+
+    assert len(files_check) == len(files_avai)
+    assert files_check == files_avai
+
+
+def test_create_c_only_data(adc_sets: SettingsResampler):
+    sets = deepcopy(adc_sets)
+    data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
+    path = get_path_to_project("build_files") / "replayer2"
+    if path.exists():
+        rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+    TransientResampler(sets).create_design(target="mcu", data=data, path2save=path, id="0")
+
+    files_check = ["replayer_0.c", "replayer_0.h", "replayer_template.h"]
+    files_check.sort()
+    files_avai = [file.name for file in path.glob("*.*")]
+    files_avai.sort()
+
+    assert len(files_check) == len(files_avai)
+    assert files_check == files_avai
+
+
+def test_create_c_trgg_data(adc_sets: SettingsResampler):
+    sets = deepcopy(adc_sets)
+    data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
+    trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
+    path = get_path_to_project("build_files") / "replayer3"
+    if path.exists():
+        rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+    TransientResampler(sets).create_design(target="mcu", data=data, path2save=path, id="1", trgg=trgg)
+
+    files_check = ["replayer_1.c", "replayer_1.h", "replayer_template.h"]
     files_check.sort()
     files_avai = [file.name for file in path.glob("*.*")]
     files_avai.sort()

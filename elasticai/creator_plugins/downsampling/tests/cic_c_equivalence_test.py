@@ -21,29 +21,32 @@ def test_create_design_generates_cic_c_files(tmp_path: Path, target: str) -> Non
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=4))
 
     downsampler.create_design(
-        method=TargetsDownSampling.CIC, 
-        target=target, 
-        bitwidth=32, 
-        id="0", 
-        path2save=tmp_path, 
-        signed=True, 
-        num_stages=3)
+        method=TargetsDownSampling.CIC,
+        target=target,
+        bitwidth=32,
+        id="0",
+        path2save=tmp_path,
+        signed=True,
+        num_stages=3,
+    )
 
     assert (tmp_path / "downsampling_cic_0.c").exists()
     assert (tmp_path / "downsampling_cic_0.h").exists()
     assert (tmp_path / "downsampling_cic_template.h").exists()
 
+
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr= 0))
+    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
-            method=TargetsDownSampling.CIC, 
+            method=TargetsDownSampling.CIC,
             target="mcu",
             bitwidth=8,
             id="0",
             path2save=tmp_path,
-            )
+        )
+
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
@@ -58,13 +61,13 @@ def test_generated_cic_c_matches_python_frame(
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.CIC, 
-        target="mcu", 
-        bitwidth=bitwidth, 
-        id="0", 
-        path2save=output_dir, 
-        signed=True, 
-        num_stages=num_stages
+        method=TargetsDownSampling.CIC,
+        target="mcu",
+        bitwidth=bitwidth,
+        id="0",
+        path2save=output_dir,
+        signed=True,
+        num_stages=num_stages,
     )
 
     adapter = tmp_path / "adapter.h"
@@ -87,9 +90,7 @@ def test_generated_cic_c_matches_python_frame(
         if loader.get("calc_cic_0")(sample, out):
             c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"
 
@@ -106,13 +107,14 @@ def test_generated_cic_c_matches_python_sinewave(
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.CIC, 
-        target="mcu", 
-        bitwidth=bitwidth, 
-        id="0", 
-        path2save=output_dir, 
-        signed=True, 
-        num_stages=num_stages)
+        method=TargetsDownSampling.CIC,
+        target="mcu",
+        bitwidth=bitwidth,
+        id="0",
+        path2save=output_dir,
+        signed=True,
+        num_stages=num_stages,
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(f"_Bool calc_cic_0({c_type} data, {c_type} *out);\n")
@@ -137,10 +139,6 @@ def test_generated_cic_c_matches_python_sinewave(
         if loader.get("calc_cic_0")(sample, out):
             c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"
-
-

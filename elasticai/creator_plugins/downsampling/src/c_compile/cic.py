@@ -37,12 +37,12 @@ def build_downsampling_cic(
     module_id = downsampling_id.lower()
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        "path2include":       define_path,
-        "template_name":      "downsampling_cic_template.h",
-        "device_id":          module_id.upper(),
-        "data_type":          get_embedded_datatype(bitwidth, signed),
+        "path2include": define_path,
+        "template_name": "downsampling_cic_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
         "downsampling_ratio": str(downsampling_ratio),
-        "num_stages":         str(num_stages),
+        "num_stages": str(num_stages),
     }
     template_c = _generate_downsampling_cic_template()
     generate_c_files(

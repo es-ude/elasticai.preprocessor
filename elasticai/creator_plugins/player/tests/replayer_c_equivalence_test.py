@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from elasticai.equichecker import CompileLoader
 
-from elasticai.creator_plugins.player.src.c.replayer import (
+from elasticai.creator_plugins.player.src.c_compile import (
     build_replayer,
     build_replayer_with_trigger,
 )

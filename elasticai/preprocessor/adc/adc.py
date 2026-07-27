@@ -233,19 +233,61 @@ class TransientResampler:
         xin = self._do_resample(data)
         return self._quantize_digital(xin, is_int_input=True, is_int_output=is_int_output)
 
-    def create_verilog_design(self, id: str, path2save: Path, data: np.ndarray, trgg: list = []) -> None:
-        """Function for creating the Verilog designs to use pre-recorded in simulations
-        :param id:          ID of Verilog designs
-        :param path2save:   Path to the saved Verilog designs
+    def create_design(self, target: str, id: str, path2save: Path, data: np.ndarray, trgg: list = []):
+        """Function for creating the hardware design to use pre-recorded in simulations
+        :param target:      Target for hardware design (MCU, FPGA, PC)
+        :param id:          ID of hardware designs
+        :param path2save:   Path to the saved hardware designs
         :param data:        Numpy array with transient data / frame used in Simulation [shape=(num_samples, ), type=int]
         :param trgg:        List with trigger output (event detection, ...) used in Simulation [shape=(num_samples, ), type=int]
         :return:            None
         """
-        use_trgg = len(trgg) > 0
         if "int" not in data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
         if data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
             raise ValueError("shape")
+
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                id=id,
+                data=data,
+                trgg=trgg,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_verilog(id=id, data=data, trgg=trgg, path2save=path2save)
+
+    def _create_design_c(
+        self, id: str, path2save: Path, data: np.ndarray, trgg: list = [], define_path: str = "src"
+    ):
+        from elasticai.creator_plugins.player.src import c_compile
+
+        use_trgg = len(trgg) > 0
+        if use_trgg:
+            c_compile.build_replayer_with_trigger(
+                replayer_id=id,
+                define_path=define_path,
+                data=data.tolist(),
+                trigger=trgg,
+                bitwidth=self._settings.total_bits,
+                signed=self._settings.is_signed,
+                path2save=path2save,
+            )
+        else:
+            c_compile.build_replayer(
+                replayer_id=id,
+                define_path=define_path,
+                data=data.tolist(),
+                bitwidth=self._settings.total_bits,
+                signed=self._settings.is_signed,
+                path2save=path2save,
+            )
+
+    def _create_design_verilog(self, id: str, path2save: Path, data: np.ndarray, trgg: list = []) -> None:
+        use_trgg = len(trgg) > 0
 
         path2data = path2save / f"replayer_{id}_data.mem"
         write_mem_file(path=path2data, data=data.tolist(), bitwidth=self._settings.total_bits)
