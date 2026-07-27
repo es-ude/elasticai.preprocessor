@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 from scipy.signal.windows import gaussian
 
+import elasticai.creator_plugins.windower as hw_windower
 from elasticai.preprocessor._check_funcs import check_key_elements
 from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
 
@@ -156,3 +158,64 @@ class WindowSequencer:
 
                 sequence_window[ite, :] = cutted_signal
             return sequence_window
+
+    def create_design(
+        self,
+        target: str,
+        bitwidth: int,
+        id: str,
+        path2save: Path,
+        signed: bool = True,
+    ) -> None:
+        """Create a target-specific windower design.
+        :param target:      String with target name ["mcu", "pc", "fpga"]
+        :param bitwidth:    Integer with total bitwidth
+        :param id:          String with unique identifier of device (appended to the name)
+        :param path2save:   Path to save the hardware files
+        :param signed:      Whether generated C designs use a signed integer data type
+        :return:            None
+        """
+        supported_targets = ["mcu", "pc", "fpga"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        if target in ["mcu", "pc"]:
+            self._create_design_c(
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_verilog(
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
+
+    def _create_design_verilog(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        window_length = self._settings.window_length
+        overlap_length = self._settings.overlap_length
+        num_shift = window_length - overlap_length
+
+        params = {
+            "type": "windower",
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+                "SAMPLES": window_length,
+                "NUM_SHIFT": num_shift,
+            },
+            "add_ringbuffer": True,
+        }
+
+        hw_windower.load_and_plugin(
+            packages=["windower"],
+            path2save=path2save,
+            **params,
+        )
+
+    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        raise NotImplementedError
