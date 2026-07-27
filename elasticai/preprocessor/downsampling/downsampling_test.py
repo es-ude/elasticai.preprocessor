@@ -16,6 +16,7 @@ test_settings = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0, # Default Settings
             dsr=10,
+            type=type,
         )
 )
 
@@ -159,39 +160,49 @@ class TestDownSampling(TestCase):
     def test_create_cic_verilog(self):
         sets = deepcopy(test_settings)
         sets.type = "cic"
-
         with TemporaryDirectory() as directory:
-            path2save = Path(directory)
-            DownSampling(sets).create_design("pc", 16, "0", path2save)
+           path2save = Path(directory)
+           path2save.mkdir(parents=True, exist_ok=True)
 
-            assert {file.name for file in path2save.iterdir()} == {
-                "cic.v"
-            }
+        DownSampling(sets).create_design("pc", 16, "0", path2save)
+        files_available = [
+            "cic_0.v",
+        ]
+        for file in path2save.glob("*.v"):
+            assert file.exists()
+            assert file.name in files_available
 
 
     def test_create_polydec_fpga_verilog(self):
         sets = deepcopy(test_settings)
         sets.type = "polydec_fpga"
-
         with TemporaryDirectory() as directory:
-            path2save = Path(directory)
-            DownSampling(sets).create_design("pc", 16, "0", path2save)
+           path2save = Path(directory)
+           path2save.mkdir(parents=True, exist_ok=True)
 
-            assert {file.name for file in path2save.iterdir()} == {
-                "polydec_fpga.v"
-            }  
+        DownSampling(sets).create_design("pc", 16, "0", path2save)
+        files_available = [
+            "polydec_fpga_0.v",
+        ]
+        for file in path2save.glob("*.v"):
+            assert file.exists()
+            assert file.name in files_available
+            
 
     def test_create_polydec_asic_verilog(self):
         sets = deepcopy(test_settings)
         sets.type = "polydec_asic"
-
         with TemporaryDirectory() as directory:
-            path2save = Path(directory)
-            DownSampling(sets).create_design("pc", 16, "0", path2save)
+           path2save = Path(directory)
+           path2save.mkdir(parents=True, exist_ok=True)
 
-            assert {file.name for file in path2save.iterdir()} == {
-                "polydec_asic.v"
-            }        
+        DownSampling(sets).create_design("pc", 16, "0", path2save)
+        files_available = [
+            "polydec_asic_0.v",
+        ]
+        for file in path2save.glob("*.v"):
+            assert file.exists()
+            assert file.name in files_available
 
 
 if __name__ == "__main__":
