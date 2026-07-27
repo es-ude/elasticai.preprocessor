@@ -8,7 +8,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
 
 
 def build_test_signal(
@@ -129,7 +129,6 @@ def test_filter_cic_build_equal(
         SettingsDownSampling(
             sampling_rate=1000.0,
             dsr=dec_rate,
-            type="cic",
         )
     )
     # Test-Signal
@@ -142,7 +141,7 @@ def test_filter_cic_build_equal(
 
     dut.create_design(
         target="fpga",
-        method=2,
+        method=TargetsDownSampling.CIC,
         bitwidth=bitwidth,
         id="1",
         path2save=build_dir,

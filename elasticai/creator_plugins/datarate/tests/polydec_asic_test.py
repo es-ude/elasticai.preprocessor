@@ -7,7 +7,7 @@ from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
 
 
 def build_test_signal(bitwidth: int, frac: int = 0, num_periods: int = 2, n_samples: int = 22) -> list:
@@ -157,7 +157,6 @@ def test_filter_polydec_asic_build_equal_first_order(
         SettingsDownSampling(
             sampling_rate=1000.0,  # Default Settings
             dsr=10,
-            type="polydec_asic",
         )
     )
     # Test-Signal
@@ -166,15 +165,12 @@ def test_filter_polydec_asic_build_equal_first_order(
         num_periods=2,
         n_samples=22,
     )
-    
-    #Erwarteter Wert aus Python Funktion
-    data_checked = (dut.do_decimation_polyphase_order_one(  
-        uin=np.asarray(data_in)
-    )).tolist()
+
+    data_checked = (dut._do_decimation_polyphase_order_one(uin=np.asarray(data_in))).tolist()
 
     dut.create_design(
         target="asic",
-        method=3,
+        method=TargetsDownSampling.Polyphase,
         bitwidth=bitwidth,
         id="1",
         path2save=build_dir,
@@ -185,7 +181,7 @@ def test_filter_polydec_asic_build_equal_first_order(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={"BITWIDTH" : bitwidth, "POLY_ORDER": poly_order},
+        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
         defines={},
     )
 
@@ -200,24 +196,19 @@ def test_filter_polydec_asic_build_equal_second_order(
         SettingsDownSampling(
             sampling_rate=1000.0,  # Default Settings
             dsr=10,
-            type="polydec_asic",
         )
     )
-    # Test-Signal
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_periods=2,
         n_samples=22,
     )
-    
-    #Erwarteter Wert aus Python Funktion
-    data_checked = (dut.do_decimation_polyphase_order_two(  
-        uin=np.asarray(data_in)
-    )).tolist()
+
+    data_checked = (dut._do_decimation_polyphase_order_two(uin=np.asarray(data_in))).tolist()
 
     dut.create_design(
         target="asic",
-        method=3,
+        method=TargetsDownSampling.Polyphase,
         bitwidth=bitwidth,
         id="1",
         path2save=build_dir,
@@ -228,6 +219,6 @@ def test_filter_polydec_asic_build_equal_second_order(
     cocotb_test_fixture.clear_srcs()
     cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
     cocotb_test_fixture.run(
-        params={"BITWIDTH" : bitwidth, "POLY_ORDER": poly_order},
+        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
         defines={},
     )
