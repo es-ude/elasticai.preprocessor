@@ -1,43 +1,56 @@
 #ifndef DOWNSAMPLING_SUBSAMPLING_TEMPLATE_H
 #define DOWNSAMPLING_SUBSAMPLING_TEMPLATE_H
-
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
+typedef struct {
+    size_t output_len;
+    size_t pos;
+    void *out_arr;
+} DoSubOut;
 
-#ifndef DEF_DOWNSAMPLING_SUBSAMPLING_OUTPUT_LENGTH
-#define DEF_DOWNSAMPLING_SUBSAMPLING_OUTPUT_LENGTH(id, factor) \
-size_t get_downsampling_subsampling_output_length_ ## id(size_t input_length) { \
-    return (input_length + factor - 1u) / factor; \
-}
-#endif
-
-
-#ifndef DEF_DOWNSAMPLING_SUBSAMPLING_IMPL
-#define DEF_DOWNSAMPLING_SUBSAMPLING_IMPL(id, input_type, factor) \
-void downsample_subsampling_ ## id( \
-    const input_type *input, input_type *output, size_t input_length, uint8_t augment \
-) { \
-    const size_t output_length = get_downsampling_subsampling_output_length_ ## id(input_length); \
-    const size_t offsets = augment ? factor : 1u; \
-    for (size_t offset = 0u; offset < offsets; ++offset) { \
-        for (size_t output_index = 0u; output_index < output_length; ++output_index) { \
-            const size_t input_index = offset + output_index * factor; \
-            output[offset * output_length + output_index] = \
-                input_index < input_length ? input[input_index] : (input_type)0; \
-        } \
+#ifndef DEF_DOWNSAMPLING_SUBSAMPLING
+#define DEF_DOWNSAMPLING_SUBSAMPLING(id, input_type) \
+bool calc_next_datum_do_subsampling_ ## id(input_type data, DoSubOut *out) { \
+    size_t do_len = out->output_len; \
+    size_t do_pos = out->pos; \
+    input_type *do_out_arr = (input_type *) out->out_arr; \
+    do_out_arr[do_pos] = data; \
+    do_pos++; \
+    if (do_pos >= do_len) { \
+        out->pos = 0; \
+        return true; \
     } \
+    out->pos = do_pos; \
+    return false; \
 }
-#endif
+#endif//DEF_DOWNSAMPLING_SUBSAMPLING_IMPL
 
+#ifndef DEF_NEW_DO_SUBSAMPLING_OUTPUT_ARRAY_IMPL
+#define DEF_NEW_DO_SUBSAMPLING_OUTPUT_ARRAY_IMPL(id, input_type, dsr) \
+static DEF_DOWNSAMPLING_SUBSAMPLING(id, input_type) \
+bool calc_do_subsampling_ ## id (input_type data, input_type *out) { \
+    static input_type do_out_arr[dsr] = {0}; \
+    static DoSubOut output = { \
+        .output_len = dsr, \
+        .pos = 0, \
+        .out_arr = do_out_arr, \
+    }; \
+    if (calc_next_datum_do_subsampling_ ## id (data, &(output))) { \
+        for (size_t i = 0; i < dsr; i++) \
+        { \
+            out[i] = ((input_type *)output.out_arr)[i]; \
+        } \
+        return true; \
+    } \
+    return false; \
+}
+#endif//DEF_NEW_DO_SUBSAMPLING_OUTPUT_ARRAY_IMPL
 
 #ifndef DEF_DOWNSAMPLING_SUBSAMPLING_PROTO
 #define DEF_DOWNSAMPLING_SUBSAMPLING_PROTO(id, input_type) \
-size_t get_downsampling_subsampling_output_length_ ## id(size_t input_length); \
-void downsample_subsampling_ ## id( \
-    const input_type *input, input_type *output, size_t input_length, uint8_t augment \
-);
-#endif
+bool calc_do_subsampling_ ## id (input_type data, input_type *out);
+#endif//DEF_DOWNSAMPLING_SUBSAMPLING_PROTO
 
-
-#endif
+#endif//DOWNSAMPLING_SUBSAMPLING_TEMPLATE_H
