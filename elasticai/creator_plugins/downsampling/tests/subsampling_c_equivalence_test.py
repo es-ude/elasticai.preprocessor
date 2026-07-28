@@ -47,7 +47,6 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> Non
         )
 
 
-@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("augment", [False, True])
 def test_generated_subsampling_c_matches_python_frame(
@@ -70,11 +69,7 @@ def test_generated_subsampling_c_matches_python_frame(
     )
 
     adapter = tmp_path / "adapter.h"
-    adapter.write_text(
-        f"unsigned int get_downsampling_subsampling_output_length_0(unsigned int input_length);\n"
-        f"void downsample_subsampling_0("
-        f"const {c_type} *input, {c_type} *output, unsigned int input_length, unsigned char augment);\n"
-    )
+    adapter.write_text(f"_Bool calc_do_subsampling_0({c_type} data, {c_type} *out);\n")
     loader = CompileLoader(
         headers=str(adapter),
         sources=[str(output_dir / "downsampling_subsampling_0.c")],
@@ -83,22 +78,27 @@ def test_generated_subsampling_c_matches_python_frame(
     )
     loader.load()
 
-    input_frame = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=numpy_dtype)
-    expected = downsampler.do_subsampling(input_frame.reshape(1, -1), augment=augment)
-    expected_frame = expected.reshape(-1).astype(numpy_dtype)
-    output_length = int(loader.get("get_downsampling_subsampling_output_length_0")(len(input_frame)))
-    output_count = output_length * settings.dsr if augment else output_length
+    dsr = settings.dsr
+    input_frame = np.arange(9, dtype=numpy_dtype)  # 9 = 3 vollständige Fenster à dsr=3
+    if augment:
+        expected = input_frame  # alle Elemente jedes Fensters in Reihenfolge
+    else:
+        expected = input_frame[0::dsr]  # erstes Element jedes Fensters
 
-    c_input = loader.ffi().new(f"{c_type}[]", input_frame.tolist())
-    c_output = loader.ffi().new(f"{c_type}[]", output_count)
-
-    loader.get("downsample_subsampling_0")(c_input, c_output, len(input_frame), int(augment))
+    out = loader.ffi().new(f"{c_type}[{dsr}]")
+    c_results = []
+    for sample in input_frame.tolist():
+        if loader.get("calc_do_subsampling_0")(sample, out):
+            if augment:
+                c_results.extend(int(out[i]) for i in range(dsr))
+            else:
+                c_results.append(int(out[0]))
 
     for index, (expected_value, c_value) in enumerate(
-        zip(expected_frame.tolist(), c_output, strict=True)
+        zip(expected.tolist(), c_results, strict=True)
     ):
-        passed, reason = compare_values(int(expected_value), int(c_value))
-        assert passed, f"index={index}: {reason}"
+        passed, reason = compare_values(int(expected_value), c_value)
+        assert passed, f"augment={augment}, index={index}: {reason}"
 
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
@@ -121,11 +121,7 @@ def test_generated_subsampling_c_matches_python_sinewave(
     )
 
     adapter = tmp_path / "adapter.h"
-    adapter.write_text(
-        f"unsigned int get_downsampling_subsampling_output_length_0(unsigned int input_length);\n"
-        f"void downsample_subsampling_0("
-        f"const {c_type} *input, {c_type} *output, unsigned int input_length, unsigned char augment);\n"
-    )
+    adapter.write_text(f"_Bool calc_do_subsampling_0({c_type} data, {c_type} *out);\n")
     loader = CompileLoader(
         headers=str(adapter),
         sources=[str(output_dir / "downsampling_subsampling_0.c")],
@@ -134,18 +130,20 @@ def test_generated_subsampling_c_matches_python_sinewave(
     )
     loader.load()
 
+    dsr = settings.dsr
     amplitude = 100 if bitwidth == 8 else 10000
-    t = np.arange(60) / settings.sampling_rate
+    t = np.arange(60) / settings.sampling_rate  # 60 = 20 vollständige Fenster à dsr=3
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
+    expected = input_frame[0::dsr]
 
-    expected = downsampler.do_subsampling(input_frame.reshape(1, -1)).reshape(-1).astype(numpy_dtype)
-    output_length = int(loader.get("get_downsampling_subsampling_output_length_0")(len(input_frame)))
+    out = loader.ffi().new(f"{c_type}[{dsr}]")
+    c_results = []
+    for sample in input_frame.tolist():
+        if loader.get("calc_do_subsampling_0")(sample, out):
+            c_results.append(int(out[0]))
 
-    c_input = loader.ffi().new(f"{c_type}[]", input_frame.tolist())
-    c_output = loader.ffi().new(f"{c_type}[]", output_length)
-
-    loader.get("downsample_subsampling_0")(c_input, c_output, len(input_frame), 0)
-
-    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_output, strict=True)):
-        passed, reason = compare_values(int(expected_value), int(c_value))
+    for index, (expected_value, c_value) in enumerate(
+        zip(expected.tolist(), c_results, strict=True)
+    ):
+        passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"

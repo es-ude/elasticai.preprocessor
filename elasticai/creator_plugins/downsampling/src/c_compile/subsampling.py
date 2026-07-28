@@ -58,7 +58,6 @@ def _generate_downsampling_subsampling_template() -> dict[str, list[str]]:
         "// Code generated on: {$datetime_created}",
         "// Params: dsr = {$downsampling_ratio}",
         '#include "{$path2include}/{$template_name}"',
-        "DEF_DOWNSAMPLING_SUBSAMPLING_OUTPUT_LENGTH({$device_id}, {$downsampling_ratio})",
-        "DEF_DOWNSAMPLING_SUBSAMPLING_IMPL({$device_id}, {$data_type}, {$downsampling_ratio})",
+        "DEF_NEW_DO_SUBSAMPLING_OUTPUT_ARRAY_IMPL({$device_id}, {$data_type}, {$downsampling_ratio})",
     ]
     return {"head": header_template, "func": implementation_template}
