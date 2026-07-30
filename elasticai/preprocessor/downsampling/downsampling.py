@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 
-import elasticai.creator_plugins.datarate as datarate_filters
 from elasticai.creator_plugins.downsampling.src import c_compile
 
 
@@ -27,7 +26,10 @@ class SettingsDownSampling:
     dsr: int
 
 
-DefaultSettingsDownSampling = SettingsDownSampling(sampling_rate=1000.0, dsr=10)
+DefaultSettingsDownSampling = SettingsDownSampling(
+    sampling_rate=1000.0,
+    dsr=10,
+)
 
 
 class DownSampling:
@@ -73,61 +75,51 @@ class DownSampling:
         self,
         method: TargetsDownSampling,
         target: str,
+        bitwidth: int,
         id: str,
         path2save: Path,
-        bitwidth: int,
         signed: bool = True,
         num_stages: int = 5,
+        take_first_order: bool = True,
     ) -> None:
         """Generate the hardware design to downsampling on hardware
-        :param method:      Used method for hardware generation (using dataclass TargetsDownSampling)
-        :param target:      Target platform ["mcu", "pc", "fpga", "asic"]
-        :param bitwidth:    Bitwidth
-        :param id:          ID of the target structure
-        :param path2save:   Path to save downsampling subsampling
-        :param signed:      Signal to use for downsampling
-        :param num_stages:  Number of integrator stages in CIC filters (optional)
-        :return:            None
+        :param method:           Used method for hardware generation
+        :param target:           Target platform ["mcu", "pc", "fpga", "asic"]
+        :param bitwidth:         Bitwidth
+        :param id:               ID of the target structure
+        :param path2save:        Path to save downsampling subsampling
+        :param signed:           Signal to use for downsampling
+        :param take_first_order: True: order_one, False: order_two
+        :return:                 None
         """
 
         supported_targets = ["mcu", "pc", "fpga", "asic"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if self._settings.dsr < 1:
-            raise ValueError("dsr must be >= 1")
-        if num_stages < 1:
-            raise ValueError("num_stages must be >= 1")
-        assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
                 method=method,
+                take_first_order=take_first_order,
                 id=id,
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
                 num_stages=num_stages,
             )
-        elif target.lower() in ["fpga"]:
-            self._create_design_fpga_verilog(
+        else:
+            self._create_design_fpga(
                 method=method,
                 id=id,
                 bitwidth=bitwidth,
+                signed=signed,
                 path2save=path2save,
-                n_dec=num_stages,
-            )
-        elif target.lower() in ["asic"]:
-            self._create_design_asic_verilog(
-                method=method,
-                id=id,
-                bitwidth=bitwidth,
-                path2save=path2save,
-                n_dec=num_stages,
             )
 
     def _create_design_c(
         self,
         method: TargetsDownSampling,
+        take_first_order: bool,
         id: str,
         bitwidth: int,
         signed: bool,
@@ -140,8 +132,8 @@ class DownSampling:
                     downsampling_ratio=self._settings.dsr,
                     bitwidth=bitwidth,
                     signed=signed,
-                    downsampling_id=id,
                     path2save=path2save,
+                    downsampling_id=id,
                     define_path=".",
                 )
             case TargetsDownSampling.Simple:
@@ -149,84 +141,37 @@ class DownSampling:
                     downsampling_ratio=self._settings.dsr,
                     bitwidth=bitwidth,
                     signed=signed,
-                    downsampling_id=id,
                     path2save=path2save,
+                    downsampling_id=id,
                     define_path=".",
                 )
-
             case TargetsDownSampling.CIC:
                 c_compile.build_downsampling_cic(
                     downsampling_ratio=self._settings.dsr,
                     num_stages=num_stages,
                     bitwidth=bitwidth,
                     signed=signed,
-                    downsampling_id=id,
                     path2save=path2save,
+                    downsampling_id=id,
+                    define_path=".",
+                )
+            case TargetsDownSampling.Polyphase:
+                c_compile.build_downsampling_polyphase(
+                    downsampling_ratio=self._settings.dsr,
+                    take_first_order=take_first_order,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    downsampling_id=id,
                     define_path=".",
                 )
             case _:
                 raise NotImplementedError(f"Method {method} is not implemented")
 
-    def _create_cic_verilog(self, id: str, bitwidth: int, dec_rate: int, n_dec: int) -> dict:
-        return {
-            "type": "cic",
-            "id": id,
-            "params": {"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
-        }
-
-    def _create_polydec_fpga_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
-        return {
-            "type": "polydec_fpga",
-            "id": id,
-            "params": {"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        }
-
-    def _create_polydec_asic_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
-        return {
-            "type": "polydec_asic",
-            "id": id,
-            "params": {"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        }
-
-    def _create_design_fpga_verilog(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
+    def _create_design_fpga(
+        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
     ) -> None:
-        match method:
-            case TargetsDownSampling.Subsampling:
-                raise NotImplementedError
-            case TargetsDownSampling.Simple:
-                raise NotImplementedError
-            case TargetsDownSampling.CIC:
-                params = self._create_cic_verilog(
-                    id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=n_dec
-                )
-            case TargetsDownSampling.Polyphase:
-                params = self._create_polydec_fpga_verilog(
-                    id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
-                )
-            case _:
-                raise ValueError
-        datarate_filters.load_and_plugin(packages=["datarate"], path2save=path2save, **params)
-
-    def _create_design_asic_verilog(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
-    ) -> None:
-        match method:
-            case TargetsDownSampling.Subsampling:
-                raise NotImplementedError
-            case TargetsDownSampling.Simple:
-                raise NotImplementedError
-            case TargetsDownSampling.CIC:
-                params = self._create_cic_verilog(
-                    id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=n_dec
-                )
-            case TargetsDownSampling.Polyphase:
-                params = self._create_polydec_asic_verilog(
-                    id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
-                )
-            case _:
-                raise ValueError
-        datarate_filters.load_and_plugin(packages=["datarate"], path2save=path2save, **params)
+        raise NotImplementedError("FPGA downsampling generation is not implemented")
 
     def do_simple(self, uin: np.ndarray) -> np.ndarray:
         """Performing a simple downsampling of the adc data stream
