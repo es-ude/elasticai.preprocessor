@@ -1,5 +1,6 @@
 #ifndef FILTER_FIR_TEMPLATE_H
 #define FILTER_FIR_TEMPLATE_H
+#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -45,7 +46,7 @@ input_type calc_next_datum_filter_fir_ ## id (input_type data, FirFilter *filter
 #ifndef DEF_NEW_FIR_FIL
 #define DEF_NEW_FIR_FILTER_IMPL(id, input_type, order, ...) \
     static DEF_CALC_FIR(id, input_type) \
-    input_type calc_filter_fir_ ## id (input_type data) { \
+    bool calc_filter_fir_ ## id (input_type data, input_type *out) { \
         static input_type filter_taps [order] = {0}; \
         static float filter_coefficients [] = {__VA_ARGS__}; \
         static FirFilter settings = { \
@@ -55,14 +56,15 @@ input_type calc_next_datum_filter_fir_ ## id (input_type data, FirFilter *filter
             .tap_length = order, \
             .taps = filter_taps \
         }; \
-        return calc_next_datum_filter_fir_ ## id (data, & (settings)); \
+        *out = calc_next_datum_filter_fir_ ## id (data, & (settings)); \
+        return true; \
     }
 #endif
 
 
 #ifndef DEF_NEW_FIR_FILTER_PROTO
 #define DEF_NEW_FIR_FILTER_PROTO(id, input_type) \
-    input_type calc_filter_fir_ ## id (input_type data);
+    bool calc_filter_fir_ ## id (input_type data, input_type *out);
 #endif
 
 
