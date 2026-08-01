@@ -1,5 +1,6 @@
 #ifndef FILTER_MAVG_TEMPLATE_H
 #define FILTER_MAVG_TEMPLATE_H
+#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -13,7 +14,7 @@ typedef struct {
 
 #ifndef DEF_CALC_MAVG
 #define DEF_CALC_MAVG(id, input_type) \
-input_type calc_moving_average_ ## id (input_type data, MavgFilter *filter) { \
+input_type calc_next_datum_moving_average_ ## id (input_type data, MavgFilter *filter) { \
     uint16_t filter_tap_start = filter->tap_start; \
     uint16_t filter_tap_length = filter->tap_length; \
 \
@@ -39,7 +40,7 @@ input_type calc_moving_average_ ## id (input_type data, MavgFilter *filter) { \
 #ifndef DEF_NEW_MAVG_FILTER_IMPL
 #define DEF_NEW_MAVG_FILTER_IMPL(id, input_type, order, coeff) \
     static DEF_CALC_MAVG(id, input_type) \
-    input_type calc_moving_average_ ## id (input_type data) { \
+    bool calc_moving_average_ ## id (input_type data, input_type *out) { \
         static input_type filter_taps [order] = {0}; \
         static MavgFilter filter_params = { \
             .coefficients = coeff, \
@@ -47,13 +48,14 @@ input_type calc_moving_average_ ## id (input_type data, MavgFilter *filter) { \
             .tap_length = order, \
             .taps = filter_taps \
         }; \
-        return calc_moving_average (data, & (filter_params)); \
+        *out = calc_next_datum_moving_average_ ## id (data, & (filter_params)); \
+        return true; \
     }
 #endif
 
 #ifndef DEF_NEW_MAVG_FILTER_PROTO
 #define DEF_NEW_MAVG_FILTER_PROTO(id, input_type) \
-    input_type calc_moving_average_ ## id (input_type data);
+    bool calc_moving_average_ ## id (input_type data, input_type *out);
 #endif
 
 #endif

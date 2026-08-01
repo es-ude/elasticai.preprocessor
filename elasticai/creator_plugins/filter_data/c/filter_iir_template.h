@@ -1,5 +1,6 @@
 #ifndef FILTER_IIR_TEMPLATE_H
 #define FILTER_IIR_TEMPLATE_H
+#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -53,7 +54,7 @@ input_type calc_next_datum_filter_iir_ ## id (input_type data, IirFilter *filter
 #ifndef DEF_NEW_IIR_FILTER_IMPL
 #define DEF_NEW_IIR_FILTER_IMPL(id, input_type, coeff_lgth, tap_lgth, ...) \
     static DEF_CALC_IIR(id, input_type) \
-    input_type calc_filter_iir_ ## id (input_type data) { \
+    bool calc_filter_iir_ ## id (input_type data, input_type *out) { \
         static double filter_taps [tap_lgth] = {0.0}; \
         static double filter_coefficients [] = {__VA_ARGS__}; \
         static IirFilter settings = { \
@@ -63,14 +64,15 @@ input_type calc_next_datum_filter_iir_ ## id (input_type data, IirFilter *filter
             .taps = filter_taps, \
             .tap_length = tap_lgth \
         }; \
-        return calc_next_datum_filter_iir_ ## id (data, & (settings)); \
+        *out = calc_next_datum_filter_iir_ ## id (data, & (settings)); \
+        return true; \
     }
 #endif
 
 
 #ifndef DEF_NEW_IIR_FILTER_PROTO
 #define DEF_NEW_IIR_FILTER_PROTO(id, input_type) \
-    input_type calc_filter_iir_ ## id (input_type data);
+    bool calc_filter_iir_ ## id (input_type data, input_type *out);
 #endif
 
 
