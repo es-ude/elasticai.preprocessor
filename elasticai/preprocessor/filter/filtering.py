@@ -72,21 +72,22 @@ class Filtering(CommonDigitalFunctions):
         "notch",
         "allpass",
         "simple_low",
+        "moving_average",
     ]
     _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
     _coeff_b: np.ndarray
     _settings: SettingsFilter
 
-    def __init__(self, settings: SettingsFilter, use_filtfilt: bool = False):
+    def __init__(self, setting: SettingsFilter, use_filtfilt: bool = False):
         """Class for Emulating Digital Signal Processing on FPGA
-        :param settings:        Class for handling the filter stage (using SettingsFilter)
+        :param setting:         Class for handling the filter stage (using SettingsFilter)
         :param use_filtfilt:    Boolean for applying zero-phase filtering
         :return:                None
         """
         super().__init__()
         self.__logger = getLogger(__name__)
-        self._settings = settings
+        self._settings = setting
         self.__use_filtfilt = use_filtfilt
         self.__process_filter()
 
@@ -216,6 +217,8 @@ class Filtering(CommonDigitalFunctions):
                 self._coeff_b = np.array([0.5, 0.5])
             case "allpass":
                 self._coeff_b = self._coeff_a
+            case "moving_average":
+                self._coeff_b = np.ones(self._settings.n_order) / self._settings.n_order
             case _:
                 self._coeff_a = np.array(1.0)
                 self._coeff_b = scft.firwin(
@@ -503,6 +506,15 @@ class Filtering(CommonDigitalFunctions):
         if filter_type == "iir":
             c_compile.build_filter_iir(
                 settings=self._settings,
+                bitwidth=bitwidth,
+                signed=signed,
+                filter_id=id,
+                path2save=path2save,
+                define_path=".",
+            )
+        elif filter_type == "fir" and filter_structure == "moving_average":
+            c_compile.build_filter_mavg(
+                order=self._settings.n_order,
                 bitwidth=bitwidth,
                 signed=signed,
                 filter_id=id,
