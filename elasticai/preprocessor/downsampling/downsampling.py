@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
+import elasticai.creator_plugins.datarate as datarate_filters
 from elasticai.creator_plugins.downsampling.src import c_compile
 
 
@@ -98,6 +99,8 @@ class DownSampling:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if self._settings.dsr < 1:
             raise ValueError("dsr must be >= 1")
+        if num_stages < 1:
+            raise ValueError("num_stages must be >= 1")
         assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
 
         if target.lower() in ["mcu", "pc"]:
@@ -110,13 +113,22 @@ class DownSampling:
                 path2save=path2save,
                 num_stages=num_stages,
             )
-        else:
-            self._create_design_fpga(
+        elif target.lower() in ["fpga"]:
+            self._create_design_fpga_verilog(
+                method=method,
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+                n_dec=num_stages,
+            )
+        elif target.lower() in ["asic"]:
+            self._create_design_asic_verilog(
                 method=method,
                 id=id,
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
+                n_dec=num_stages,
             )
 
     def _create_design_c(
@@ -171,10 +183,66 @@ class DownSampling:
             case _:
                 raise NotImplementedError(f"Method {method} is not implemented")
 
-    def _create_design_fpga(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, signed: bool, path2save: Path
+    def _create_cic_verilog(self, id: str, bitwidth: int, dec_rate: int, n_dec: int) -> dict:
+        return {
+            "type": "cic",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
+        }
+
+    def _create_polydec_fpga_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
+        return {
+            "type": "polydec_fpga",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+        }
+
+    def _create_polydec_asic_verilog(self, id: str, bitwidth: int, poly_order: int) -> dict:
+        return {
+            "type": "polydec_asic",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+        }
+
+    def _create_design_fpga_verilog(
+        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
     ) -> None:
-        raise NotImplementedError("FPGA downsampling generation is not implemented")
+        match method:
+            case TargetsDownSampling.Subsampling:
+                raise NotImplementedError
+            case TargetsDownSampling.Simple:
+                raise NotImplementedError
+            case TargetsDownSampling.CIC:
+                params = self._create_cic_verilog(
+                    id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=n_dec
+                )
+            case TargetsDownSampling.Polyphase:
+                params = self._create_polydec_fpga_verilog(
+                    id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
+                )
+            case _:
+                raise ValueError
+        datarate_filters.load_and_plugin(packages=["datarate"], path2save=path2save, **params)
+
+    def _create_design_asic_verilog(
+        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
+    ) -> None:
+        match method:
+            case TargetsDownSampling.Subsampling:
+                raise NotImplementedError
+            case TargetsDownSampling.Simple:
+                raise NotImplementedError
+            case TargetsDownSampling.CIC:
+                params = self._create_cic_verilog(
+                    id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=n_dec
+                )
+            case TargetsDownSampling.Polyphase:
+                params = self._create_polydec_asic_verilog(
+                    id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
+                )
+            case _:
+                raise ValueError
+        datarate_filters.load_and_plugin(packages=["datarate"], path2save=path2save, **params)
 
     def do_simple(self, uin: np.ndarray) -> np.ndarray:
         """Performing a simple downsampling of the adc data stream
@@ -275,3 +343,4 @@ class DownSampling:
             else:
                 x = self._do_decimation_polyphase_order_two(x)
         return x
+
