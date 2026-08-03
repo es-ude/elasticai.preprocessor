@@ -126,7 +126,6 @@ class DownSampling:
                 method=method,
                 id=id,
                 bitwidth=bitwidth,
-                signed=signed,
                 path2save=path2save,
                 n_dec=num_stages,
             )
