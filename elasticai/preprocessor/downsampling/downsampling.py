@@ -97,7 +97,7 @@ class DownSampling:
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if self._settings.dsr < 1:
-            raise ValueError("dsr mut be >= 1")
+            raise ValueError("dsr must be >= 1")
         assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
 
         if target.lower() in ["mcu", "pc"]:
