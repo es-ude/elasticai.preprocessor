@@ -28,6 +28,7 @@ def build_downsampling_cic(
         downsampling_id:    ID appended to function names
         define_path:        Include path written into the generated #include line
     """
+    assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
     module_id = downsampling_id.lower()
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),

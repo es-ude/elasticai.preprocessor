@@ -379,6 +379,7 @@ class Filtering(CommonDigitalFunctions):
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
                 id=id,

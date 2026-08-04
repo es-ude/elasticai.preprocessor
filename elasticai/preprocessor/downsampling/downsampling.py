@@ -101,7 +101,7 @@ class DownSampling:
             raise ValueError("dsr must be >= 1")
         if num_stages < 1:
             raise ValueError("num_stages must be >= 1")
-        assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
+        assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(

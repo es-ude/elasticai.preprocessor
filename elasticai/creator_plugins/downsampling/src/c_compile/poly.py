@@ -34,7 +34,7 @@ def build_downsampling_polyphase(
         raise ValueError("dsr must be >= 1")
     if not np.log2(downsampling_ratio).is_integer():
         raise ValueError("dsr must be 2^n")
-    assert bitwidth in range(2, 65), "Bitwidth must be between 2 and 64"
+    assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
     module_id = downsampling_id.lower()
     params = {
