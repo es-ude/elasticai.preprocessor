@@ -155,6 +155,7 @@ in {
     "check:local" = {
       after = [
         "test:fast"
+        "test:simulation"
         "check:python-lint"
         "check:python-types"
         "check:toml-lint"
