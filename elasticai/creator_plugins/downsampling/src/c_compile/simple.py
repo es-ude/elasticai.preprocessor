@@ -26,8 +26,7 @@ def build_downsampling_simple(
         downsampling_id:    ID appended to function names
         define_path:        Include path written into the generated #include line.
     """
-    if bitwidth not in range(2, 65):
-        raise ValueError("Bitwidth must be between 2 and 64")
+    assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
     if downsampling_ratio <= 0:
         raise ValueError("dsr must be >= 1")
 
