@@ -94,9 +94,7 @@ def test_generated_subsampling_c_matches_python_frame(
             else:
                 c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"augment={augment}, index={index}: {reason}"
 
@@ -142,8 +140,6 @@ def test_generated_subsampling_c_matches_python_sinewave(
         if loader.get("calc_do_subsampling_0")(sample, out):
             c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"

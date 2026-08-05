@@ -431,11 +431,12 @@ dependencies = [
 
 [[package]]
 name = "elasticai-equi-checker"
-version = "0.1.1.dev5+g703be4c23"
-source = { git = "https://github.com/es-ude/elasticai.equi-checker.git?branch=main#703be4c23a2b8740a440a48634bd1fb4ecd4f15b" }
+version = "0.1.1"
+source = { git = "https://github.com/es-ude/elasticai.equi-checker.git?branch=main#e2489700009f5322bb58ee3a03dd723d252344f4" }
 dependencies = [
     { name = "cffi" },
     { name = "hypothesis" },
+    { name = "numpy" },
     { name = "pytest" },
 ]
 

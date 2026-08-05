@@ -39,10 +39,10 @@ def build_downsampling_polyphase(
     module_id = downsampling_id.lower()
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        "path2include":       define_path,
-        "template_name":      "downsampling_poly_template.h",
-        "device_id":          module_id.upper(),
-        "data_type":          get_embedded_datatype(bitwidth, signed),
+        "path2include": define_path,
+        "template_name": "downsampling_poly_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
         "downsampling_ratio": str(downsampling_ratio),
     }
     if take_first_order:
@@ -88,12 +88,13 @@ def _generate_downsampling_poly_one_template() -> dict[str, list[str]]:
     ]
     return {"head": header_template, "func": implementation_template}
 
+
 def _generate_downsampling_poly_two_template() -> dict[str, list[str]]:
     header_template = [
         "// --- Generating do_poly_two",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, dsr = {$downsampling_ratio}", 
+        "// Params: ID = {$device_id}, type = {$data_type}, dsr = {$downsampling_ratio}",
         '#include "{$path2include}/{$template_name}"',
         "DEF_DOWNSAMPLING_POLY_TWO_PROTO({$device_id}, {$data_type})",
     ]

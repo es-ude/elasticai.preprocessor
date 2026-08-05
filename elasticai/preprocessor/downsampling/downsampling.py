@@ -342,4 +342,3 @@ class DownSampling:
             else:
                 x = self._do_decimation_polyphase_order_two(x)
         return x
-

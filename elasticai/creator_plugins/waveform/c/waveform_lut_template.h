@@ -57,10 +57,10 @@ input_type read_waveform_value_runtime_full (WaveformSettings *filter, bool skip
         return read_waveform_value_runtime_full(& (settings_## id), skip_last_point); \
     }; \
     cnt_type get_waveform_pos_## id (void) { \
-        return settings_## id.lut_cnt; \
+        return settings_## id.lut_position; \
     }; \
     cnt_type get_waveform_lgth_## id (bool skip_last_point) { \
-        return lut_lgth - ((skip_last_point) ?  2 : 1); \
+        return lut_lgth - ((skip_last_point) ?  1 : 0); \
     }; \
     void rst_waveform_cnt_## id (void){ \
         settings_## id.lut_cnt = 0; \
@@ -106,14 +106,16 @@ input_type read_waveform_value_runtime_opt (WaveformSettings *filter, bool skip_
     } else if(filter->state == 3){ \
         data = filter->lut_offset - lut_values[filter->lut_position]; \
         filter->lut_position--; \
-        filter->lut_cnt++; \
         if(filter->lut_position == 0){ \
             if(skip_last_point){ \
+                filter->lut_cnt = 0; \
                 filter->state = 0; \
             } else { \
+                filter->lut_cnt++; \
                 filter->state = 4; \
             } \
         } else { \
+            filter->lut_cnt++; \
             filter->state = 3; \
         }; \
     } else if(filter->state == 4){ \
@@ -166,7 +168,7 @@ input_type read_waveform_value_runtime_opt (WaveformSettings *filter, bool skip_
     input_type get_waveform_value_ ## id (bool skip_last_point); \
     cnt_type get_waveform_lgth_## id (bool skip_last_point); \
     cnt_type get_waveform_pos_## id (void); \
-    void rst_waveform_cnt_## id(void);
+    void rst_waveform_cnt_## id (void);
 #endif
 
 
