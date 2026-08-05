@@ -45,9 +45,7 @@ def test_create_design_generates_poly_c_files(
 
 
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
-def test_create_design_rejects_invalid_downsampling_ratio(
-    tmp_path: Path, take_first_order: bool
-) -> None:
+def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_first_order: bool) -> None:
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
@@ -61,9 +59,7 @@ def test_create_design_rejects_invalid_downsampling_ratio(
 
 
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
-def test_create_design_rejects_downsampling_ratio_not_bin(
-    tmp_path: Path, take_first_order: bool
-) -> None:
+def test_create_design_rejects_downsampling_ratio_not_bin(tmp_path: Path, take_first_order: bool) -> None:
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
     with pytest.raises(ValueError, match=r"dsr must be 2\^n"):
         downsampler.create_design(
@@ -110,7 +106,9 @@ def test_generated_poly_c_matches_python_frame(
     loader.load()
 
     input_frame = np.arange(8, dtype=numpy_dtype)
-    expected_float = downsampler.do_decimation_polyphase(input_frame.astype(float), take_first_order=take_first_order)
+    expected_float = downsampler.do_decimation_polyphase(
+        input_frame.astype(float), take_first_order=take_first_order
+    )
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
@@ -119,9 +117,7 @@ def test_generated_poly_c_matches_python_frame(
         if loader.get(fn)(sample, out):
             c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"
 
@@ -163,7 +159,9 @@ def test_generated_poly_c_matches_python_sinewave(
     t = np.arange(64) / settings.sampling_rate
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
 
-    expected_float = downsampler.do_decimation_polyphase(input_frame.astype(float), take_first_order=take_first_order)
+    expected_float = downsampler.do_decimation_polyphase(
+        input_frame.astype(float), take_first_order=take_first_order
+    )
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
@@ -172,8 +170,6 @@ def test_generated_poly_c_matches_python_sinewave(
         if loader.get(fn)(sample, out):
             c_results.append(int(out[0]))
 
-    for index, (expected_value, c_value) in enumerate(
-        zip(expected.tolist(), c_results, strict=True)
-    ):
+    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(int(expected_value), c_value)
         assert passed, f"index={index}: {reason}"

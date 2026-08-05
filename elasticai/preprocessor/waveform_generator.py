@@ -462,17 +462,16 @@ class WaveformGenerator:
         do_opt: bool,
         path2include: str = "src/",
     ) -> list[int]:
-        self._logger.debug("Creating C design for Waveform Player")
+        self._logger.debug("Creating C design for Waveform Generator")
         # --- Step #1: Generating the waveform
-        datatype_data_ext = get_embedded_datatype(bitwidth=bitwidth, signed=is_signed)
-        bitwidth_mcu = int(datatype_data_ext.split("int")[-1].split("_")[0])
         wvf = hw_utils.prepare_waveform(
             waveform=waveform,
-            bitwidth=bitwidth_mcu,
+            bitwidth=bitwidth,
             num_params=num_params,
             do_opt=do_opt,
             is_signed=is_signed,
         )
+        wvf.reverse()
         # --- Step #2: Generating the values for parameter dict
         params = {
             "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
@@ -482,7 +481,7 @@ class WaveformGenerator:
             "datatype_cnt": get_embedded_datatype(bitwidth=int(np.ceil(np.log2(len(wvf)))), signed=False),
             "datatype_int": get_embedded_datatype(bitwidth, signed=is_signed),
             "num_lutsine": str(len(wvf)),
-            "lut_offset": str(0 if not do_opt else (0 if is_signed else (2 ** (bitwidth_mcu - 1)))),
+            "lut_offset": str(0 if not do_opt else (0 if is_signed else (2 ** (bitwidth - 1)))),
             "lut_data": ", ".join(map(str, wvf)),
         }
         # --- Step #3: Replace string parameters with real values
