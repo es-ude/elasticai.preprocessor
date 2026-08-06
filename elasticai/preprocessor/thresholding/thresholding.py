@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
+from pathlib import Path
 
+import elasticai.creator_plugins.mac as hw_thresholding
 import numpy as np
 
 
@@ -13,12 +15,14 @@ class SettingsThreshold:
                         'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
                         'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
                         'welford': Welford Online Algorithm for STD Calculation]
+        module_type:    Name of the module Type (eg. "mov_avg_norm")
         sampling_rate:  Sampling rate of the transient signal [Hz]
         gain:           Applied gain on threshold output
         window_sec:     Window length in sec.
     """
 
     method: str
+    module_type: str
     sampling_rate: float
     gain: float
     window_sec: float
@@ -30,7 +34,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3
+    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3, module_type="MOV_AVG_NORM"
 )
 
 
@@ -53,6 +57,88 @@ class Thresholding:
             "welford": "_welford_online",
             "wins": "_winsorization",
         }
+
+    def create_design(self, target: str, bitwidth: int, id: str, path2save: Path, **kwargs) -> None:
+        """Create hardware design for thresholding.
+
+        Currently only FPGA/Verilog generation is supported.
+        """
+
+        try:
+            countwidth = kwargs["countwidth"]
+        except KeyError:
+            countwidth = 0
+
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                id=id,
+                bitwidth=bitwidth,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_verilog(
+                id=id,
+                bitwidth=bitwidth,
+                countwidth=countwidth,
+                path2save=path2save,
+            )
+
+    def _create_design_c(
+        self,
+        id: str,
+        bitwidth: int,
+        path2save: Path,
+    ) -> None:
+
+        raise NotImplementedError(
+            "Target 'mcu/pc' is currently not supported. Only 'fpga' is implemented."
+        )
+
+    def _create_design_verilog(
+        self,
+        id: str,
+        bitwidth: int,
+        countwidth: int,
+        path2save: Path,
+    ) -> None:
+
+        if self._settings.module_type == "":
+            raise AttributeError("Top Module in Settings is missing")
+
+        match self._settings.method.lower():
+            case "mavg":
+                params = {
+                    "type": self._settings.module_type,
+                    "id": id,
+                    "params": {
+                        "BITWIDTH": bitwidth,
+                        "LENGTH": self._settings.window_steps,
+                    },
+                }
+            case "abs_mean":
+                params = {
+                    "type": self._settings.module_type,
+                    "id": id,
+                    "params": {
+                        "BITWIDTH": bitwidth,
+                        "COUNTWIDTH": countwidth,
+                    },
+                }
+
+            case _:
+                raise NotImplementedError(
+                    f"Threshold method '{self._settings.method}' does not have a Verilog implementation."
+                )
+
+        hw_thresholding.load_and_plugin(
+            packages=["thresholding"],
+            path2save=path2save,
+            **params,
+        )
 
     def get_overview(self) -> list:
         """Getting an overview of available thresholding methods
@@ -97,6 +183,48 @@ class Thresholding:
             pos = np.argwhere(xin0 >= xthr).flatten()
         pos_pre = int(self._settings.sampling_rate * pre_time)
         return np.array(self._get_values_non_incremented_change(pos)) - pos_pre
+
+    def get_threshold_list(self, data_in: list[int]) -> list[int]:
+        match self._settings.method:
+            case "mavg":
+                out = self._calc_mavg(data_in)
+            case "abs_mean":
+                out = self._calc_abs_mean(data_in)
+            case _:
+                raise ValueError(
+                    f"Thresholding method {self._settings.method} not available - Please change to {self.get_overview()}"
+                )
+
+        return out
+
+    def _calc_mavg(self, data_in: list[int]) -> list[int]:
+
+        length = self._settings.window_steps
+        taps = [0] * length
+        pos = 0
+        acc = 0
+        out = []
+
+        for sample in data_in:
+            acc = acc - taps[pos] + sample
+            taps[pos] = sample
+            pos = (pos + 1) % length
+
+            out.append(acc // length)
+
+        return out
+
+    def _calc_abs_mean(self, data_in: list[int]) -> list[int]:
+        out = []
+        abs_sum = 0
+        count = 1
+
+        for sample in data_in:
+            abs_sum += sample
+            out.append(abs_sum // count)
+            count += 1
+
+        return out
 
     @staticmethod
     def _get_values_non_incremented_change(data: np.ndarray) -> list:

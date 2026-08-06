@@ -70,6 +70,7 @@ class WindowSequencer:
         self._settings = settings
         self._settings_thr = SettingsThreshold(
             method="const",
+            module_type="",
             sampling_rate=self._settings.sampling_rate,
             gain=1.0,
             window_sec=self._settings.window_length / 2,
