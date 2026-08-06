@@ -10,8 +10,8 @@ def get_embedded_datatype(bitwidth: int, signed: bool) -> str:
     :param signed:      Boolean if datatype is signed or unsigned
     :return:            String with datatype in C
     """
-    if bitwidth not in range(1, 65):
-        raise ValueError("Allowed range of bitwidth should be >0 and <=64")
+    if bitwidth not in range(1, 33):
+        raise ValueError("Allowed range of bitwidth should be >0 and <=32")
     bit_compare = np.array((8, 16, 32, 64))
     used_bitval = np.argwhere((bit_compare / bitwidth) - 1 >= 0).flatten()[0]
     return ("" if signed else "u") + "int" + f"{bit_compare[used_bitval]}" + "_t"
