@@ -40,7 +40,7 @@ def build_adc_quant(
         "device_id": module_id.upper(),
         "data_type": get_embedded_datatype(settings.total_bits, settings.is_signed),
         "total_bits": str(settings.total_bits),
-        "is_signed": "1" if settings.is_signed else "0",
+        "is_signed": "true" if settings.is_signed else "false",
         "vneg": _c_float(settings.vneg),
         "vpos": _c_float(settings.vpos),
     }
