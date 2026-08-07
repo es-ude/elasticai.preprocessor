@@ -18,7 +18,7 @@
 
 
 module FIR_SIMPLE_LOW#(
-    parameter BITWIDTH = 6'd16
+    parameter integer BITWIDTH = 6'd16
 )(
     input wire CLK_SYS,
     input wire RSTN,
@@ -35,11 +35,11 @@ module FIR_SIMPLE_LOW#(
     wire do_process;
     assign DATA_OUT = sum[BITWIDTH-:BITWIDTH];
 
-    assign do_process = ~do_calc_dly[1] && do_calc_dly[0];
-    assign DVALID = first_run_done && ~do_process;
+    assign do_process = !do_calc_dly[1] && do_calc_dly[0];
+    assign DVALID = first_run_done && !do_process;
 
     always@(posedge CLK_SYS) begin
-        if(~(RSTN && EN)) begin
+        if(!(RSTN && EN)) begin
             do_calc_dly <= 1'b0;
             dly_data <= 'd0;
             sum <= 'd0;

@@ -20,8 +20,8 @@
 
 
 module FIR_DELAY#(
-    parameter BITWIDTH = 6'd8,
-    parameter LENGTH = 10'd8
+    parameter integer BITWIDTH = 6'd8,
+    parameter integer LENGTH = 10'd8
 )(
     input wire CLK_SYS,
     input wire RSTN,

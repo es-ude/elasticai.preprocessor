@@ -26,7 +26,7 @@ def load_and_plugin(
         )
     if add_mac:
         load_and_build_form_plugin(
-            "mac",
+            "mac_array",
             "",
             params={
                 "INPUT_BITWIDTH": params["BITWIDTH"],

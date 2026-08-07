@@ -112,9 +112,9 @@ async def filter_biquad(
         await RisingEdge(dut.CLK_SYS)
         run_time = t2 - t1
         assert run_time in [
-            period_clk * (ceil(5 / num_mult) + 5),
+            period_clk * (ceil(5 / num_mult) + 6),
+            period_clk * (ceil(5 / num_mult) + 4),
             period_clk * (ceil(5 / num_mult) + 3),
-            period_clk * (ceil(5 / num_mult) + 2),
         ]
         data_out.append(dut.DATA_OUT.value.to_signed())
         await RisingEdge(dut.CLK_SYS)
@@ -144,7 +144,8 @@ def test_filter_biquad_df1(
     cocotb_test_fixture.write({"data": data_in, "check": data_in})
     cocotb_test_fixture.set_top_module_name("BIQUAD_DF1")
     # cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac.v")
+    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_array.v")
+    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_core.v")
     cocotb_test_fixture.add_srcs_from_package(mult, "verilog/mult_dsp_signed.v")
     cocotb_test_fixture.add_srcs_from_package(windower, "verilog/ring_buffer.v")
     cocotb_test_fixture.run(

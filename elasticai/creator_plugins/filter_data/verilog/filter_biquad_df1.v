@@ -22,8 +22,8 @@
 // Input values are signed integers with size of BITWIDTH (no fixed point)
 // Internal operation with signed values and all weights have fraction width of BITWIDTH-2 [-2., +2.);
 module BIQUAD_DF1#(
-    parameter BITWIDTH = 6'd8,
-    parameter NUM_MULT = 3'd1
+    parameter integer BITWIDTH = 6'd8,
+    parameter integer NUM_MULT = 3'd1
 )(
     input wire CLK_SYS,
     input wire RSTN,
@@ -97,7 +97,7 @@ module BIQUAD_DF1#(
     integer i0;
     //Control-Structure
     always@(posedge CLK_SYS) begin
-        if(~(RSTN && EN)) begin
+        if(!(RSTN && EN)) begin
             do_calc_dly <= 1'd0;
             state <= STATE_IDLE;
             first_run_done <= 1'd0;
@@ -109,7 +109,7 @@ module BIQUAD_DF1#(
             do_calc_dly <= DO_CALC;
             case(state)
                 STATE_IDLE: begin
-                    state = (DO_CALC && ~do_calc_dly) ? STATE_MAC : STATE_IDLE;
+                    state = (DO_CALC && !do_calc_dly) ? STATE_MAC : STATE_IDLE;
                 end
                 STATE_MAC: begin
                     state <= (!mac_dvalid_int) ? STATE_CALC : STATE_MAC;
