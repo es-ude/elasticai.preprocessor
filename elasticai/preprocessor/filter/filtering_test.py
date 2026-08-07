@@ -509,7 +509,7 @@ class TestDigitalFilters(TestCase):
         path2save.mkdir(parents=True, exist_ok=True)
 
         Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = ["biquad_df1_0.v", "mac.v", "mult_dsp_signed.v"]
+        files_available = ["biquad_df1_0.v", "mac_array.v", "mac_core.v", "mult_dsp_signed.v"]
         for file in path2save.glob("*.v"):
             assert file.exists()
             assert file.name in files_available
@@ -526,7 +526,8 @@ class TestDigitalFilters(TestCase):
         Filtering(sets).create_design("fpga", 8, "0", path2save)
         files_available = [
             "fir_full_0.v",
-            "mac.v",
+            "mac_array.v",
+            "mac_core.v",
             "mult_dsp_signed.v",
             "ring_buffer.v",
         ]
@@ -546,7 +547,8 @@ class TestDigitalFilters(TestCase):
         Filtering(sets).create_design("fpga", 8, "0", path2save)
         files_available = [
             "fir_half_0.v",
-            "mac.v",
+            "mac_array.v",
+            "mac_core.v",
             "mult_dsp_signed.v",
             "ring_buffer.v",
         ]

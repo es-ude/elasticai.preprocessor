@@ -24,9 +24,9 @@
 // Input values are signed integers with size of BITWIDTH (no fixed point)
 // Internal operation with signed values and all weights have fraction width of BITWIDTH-1 [-0.15, +1.);
 module FIR_FULL#(
-	parameter BITWIDTH = 6'd8,
-	parameter LENGTH = 10'd11,
-	parameter NUM_MULT = 4'd1
+	parameter integer BITWIDTH = 6'd8,
+	parameter integer LENGTH = 10'd11,
+	parameter integer NUM_MULT = 4'd1
 )(
     input wire CLK_SYS,
     input wire RSTN,

@@ -420,7 +420,7 @@ wheels = [
 [[package]]
 name = "elasticai-creator"
 version = "0.68.0"
-source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#cf06d54586e50edcce9752e0a340f7fa85a5529c" }
+source = { git = "https://github.com/es-ude/elastic-ai.creator.git?branch=main#7406831af70034b39680b37f84cc971e7e8b6ed6" }
 dependencies = [
     { name = "cocotb" },
     { name = "numpy" },

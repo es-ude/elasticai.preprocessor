@@ -117,8 +117,7 @@ async def filter_fir(
         data_out.append(dut.DATA_OUT.value.to_signed())
         await RisingEdge(dut.CLK_SYS)
 
-    print(run_time)
-    assert run_time == [period_clk * (ceil(order / num_mult) + 2 + 2)] * len(run_time)
+    assert run_time == [period_clk * (ceil(order / num_mult) + 2 + 3)] * len(run_time)
     if not data == check:
         # plot_results(data_in=data, data_out=data_out, data_check=check)
         error = sum([abs(a - b) for a, b in zip(data_out, check)]) / len(data_out)
@@ -143,7 +142,8 @@ def test_filter_fir_half(
     cocotb_test_fixture.write({"data": data_in, "check": data_in})
     cocotb_test_fixture.set_top_module_name("FIR_HALF")
     # cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac.v")
+    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_array.v")
+    cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_core.v")
     cocotb_test_fixture.add_srcs_from_package(mult, "verilog/mult_dsp_signed.v")
     cocotb_test_fixture.add_srcs_from_package(windower, "verilog/ring_buffer.v")
     cocotb_test_fixture.run(
