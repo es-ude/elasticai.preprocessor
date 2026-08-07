@@ -3,8 +3,9 @@ import random
 import cocotb
 import elasticai.creator_plugins.bram as bram
 import pytest
-from cocotb.clock import Clock, Timer
-from cocotb.triggers import RisingEdge
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge
+from cocotb.utils import get_sim_time
 from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
@@ -37,27 +38,29 @@ async def wvf_ram_write_one_value_read_one_trial(
 
     # Start clock and make reset
     cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
-    for idx in range(4):
-        await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 4)
     for idx in range(4):
         await RisingEdge(dut.CLK_SYS)
         dut.RSTN.value = idx % 2
-    await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 4)
     dut.RSTN.value = 1
-    for idx in range(4):
-        await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 4)
 
     # Test #1: Read single frame
     dut.EN_FLAG.value = 1
     if mode_trgg:
+        await ClockCycles(dut.CLK_SYS, 1)
         cocotb.start_soon(Clock(dut.TRGG_CNT, 20 * period_clk, unit="ns").start())
-        await Timer(period_clk, unit="ns")
+
     for idx, _ in enumerate(check):
         if mode_trgg:
             await RisingEdge(dut.TRGG_CNT)
         else:
-            for _ in range(dut.WAIT_CYC.value):
-                await RisingEdge(dut.CLK_SYS)
+            dt0 = get_sim_time("ns")
+            await FallingEdge(dut.TRGG_NEW_SAMPLE)
+            dt1 = get_sim_time("ns")
+            ref = dut.WAIT_CYC.value.to_unsigned()
+            assert (dt1 - dt0) / period_clk in [ref - 2, ref, ref + 1, ref + 3]
 
         dut.EN_FLAG.value = 0
         if is_signed:

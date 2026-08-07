@@ -418,8 +418,8 @@ class WaveformGenerator:
 
         if use_bram:
             path2mem = path2save / "data.mem"
-            if do_opt:
-                wvf.reverse()
+            # if not do_opt:
+            wvf.reverse()
             write_mem_file(path=path2mem, data=wvf, bitwidth=bitwidth if do_opt else bitwidth - 1)
             verilog_type = "waveform_ram_full" if not do_opt else "waveform_ram_opt"
             params = {

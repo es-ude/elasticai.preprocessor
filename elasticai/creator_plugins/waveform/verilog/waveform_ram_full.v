@@ -39,6 +39,7 @@ module RAM_WAVEFORM_FULL#(
     `else
         input wire [WAIT_WIDTH-'d1:0] WAIT_CYC,
     `endif
+    output wire TRGG_NEW_SAMPLE,
     input wire RAM_WE,
     input wire [$clog2(RAMWIDTH)-'d1:0] RAM_ADR,
 	input wire [BITWIDTH-'d1:0] RAM_IN,
@@ -51,9 +52,9 @@ module RAM_WAVEFORM_FULL#(
     reg [$clog2(RAMWIDTH)-'d1:0] cnt_wvf_pos;
     wire [$clog2(RAMWIDTH)-'d1:0] sel_ram_adr;
     assign sel_ram_adr = (RAM_WE) ? RAM_ADR : cnt_wvf_pos;
+    assign RAM_END = (cnt_wvf_pos == RAMWIDTH -'d1);
     
     // --- Processing LUT data
-    assign RAM_END = (cnt_wvf_pos == (RAMWIDTH-'d1));
     BRAM_SINGLE#(BITWIDTH, RAMWIDTH, PATH2MEM) BRAM(
         .CLK_RAM(CLK_SYS),
         .EN(state || RAM_WE),
@@ -67,11 +68,11 @@ module RAM_WAVEFORM_FULL#(
     `ifndef TRGG_EXTERNAL
         reg [WAIT_WIDTH-'d1:0] cnt_wait;
         // --- Counter for Downsampling System Clock
-        always@(posedge CLK_SYS or negedge RSTN) begin
-            if(~(RSTN && state)) begin
+        always@(posedge CLK_SYS) begin
+            if(!RSTN) begin
                 cnt_wait <= 'd0;
             end else begin
-                if(cnt_wait == WAIT_CYC-'d1) begin
+                if(!state || cnt_wait == WAIT_CYC-'d1) begin
                     cnt_wait <= 'd0;
                 end else begin
                     cnt_wait <= cnt_wait + 'd1;
@@ -79,19 +80,21 @@ module RAM_WAVEFORM_FULL#(
             end
         end
         assign inc_cnt_pos = (cnt_wait == WAIT_CYC-'d1);
+        assign TRGG_NEW_SAMPLE = (cnt_wait == 'd1);
     `else
-        reg trgg_cnt_dly;
-        always@(posedge CLK_SYS or negedge RSTN) begin
-            trgg_cnt_dly <= (!RSTN) ? 1'b0 : TRGG_CNT;
+        reg [2:0] trgg_cnt_dly;
+        always@(posedge CLK_SYS) begin
+            trgg_cnt_dly <= (!RSTN) ? 3'd0 : {trgg_cnt_dly[1:0], TRGG_CNT};
         end
-        assign inc_cnt_pos = !trgg_cnt_dly && TRGG_CNT;
+        assign inc_cnt_pos = !trgg_cnt_dly[0] && TRGG_CNT;
+        assign TRGG_NEW_SAMPLE = !trgg_cnt_dly[2] && trgg_cnt_dly[1];
     `endif
 
     // --- Counter for Getting RAM value
     always@(posedge CLK_SYS) begin
-        if(~RSTN) begin
-            cnt_wvf_pos <= 'd0;
+        if(!RSTN) begin
             state = 'd0;
+            cnt_wvf_pos <= 'd0;
         end else begin
             state <= (EN_FLAG) ? 1'd1 : ((cnt_wvf_pos == RAMWIDTH-'d1 && inc_cnt_pos) ? 1'd0 : state);
             if(inc_cnt_pos && state) begin
