@@ -4,6 +4,7 @@ import cocotb
 import pytest
 from cocotb.clock import Clock, Timer
 from cocotb.triggers import RisingEdge
+from cocotb.utils import get_sim_time
 from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
@@ -79,8 +80,11 @@ async def wvf_lut_read_several_trials(
             if mode_trgg:
                 await RisingEdge(dut.TRGG_CNT)
             else:
-                for _ in range(dut.WAIT_CYC.value):
-                    await RisingEdge(dut.CLK_SYS)
+                dt0 = get_sim_time("ns")
+                await RisingEdge(dut.TRGG_NEW_SAMPLE)
+                dt1 = get_sim_time("ns")
+                ref = dut.WAIT_CYC.value.to_unsigned()
+                assert (dt1 - dt0) / period_clk in [ref, ref + 1]
 
             dut.EN_FLAG.value = num_ite < num_trials
             if is_signed:

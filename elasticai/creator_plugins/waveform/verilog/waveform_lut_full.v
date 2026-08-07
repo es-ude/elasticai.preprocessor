@@ -6,11 +6,11 @@
 // Copied on: 	    §{date_copy_created}
 // Module Name:     LUT Generator for Storing/Calling Full Waveforms
 // Target Devices:  ASIC, FPGA
-// Tool Versions:   1v1
+// Tool Versions:   1v2
 // Description:     Digital Direct Syntheziser with Analog Signal Waveforms (§{LUTWIDTH} x §{BITWIDTH} bit)
 // Dependencies:    None
 //
-// State:		    Works! (System Test done: 07.11.2024 on Arty A7-35T with 22% usage)
+// State:		    Works! (System Test done: 06.08.2026 on Lattice ice40up5k)
 // Improvements:    None
 // Parameters:      BITWIDTH   --> Bitwidth of the output value
 //                  LUTWIDTH   --> Length of LUT for saving waveform
@@ -29,11 +29,11 @@
 
 
 module LUT_WAVEFORM_FULL#(
-    parameter BITWIDTH = 6'd6,
+    parameter integer BITWIDTH = 6,
     `ifndef TRGG_EXTERNAL
-        parameter WAIT_WIDTH = 6'd6,
+        parameter integer WAIT_WIDTH = 6,
     `endif
-	parameter LUTWIDTH = 10'd23
+	parameter integer LUTWIDTH = 23
 )(
 	input wire CLK_SYS,
 	input wire RSTN,
@@ -43,6 +43,7 @@ module LUT_WAVEFORM_FULL#(
     `else
         input wire [WAIT_WIDTH-'d1:0] WAIT_CYC,
     `endif
+    output reg  TRGG_NEW_SAMPLE,
     `ifdef ACCESS_EXTERNAL
         input wire [BITWIDTH* LUTWIDTH - 'd1:0] LUT_DATA_EXT,
     `endif
@@ -61,17 +62,17 @@ module LUT_WAVEFORM_FULL#(
     `ifndef TRGG_EXTERNAL
         reg [WAIT_WIDTH-'d1:0] cnt_wait;
         // --- Counter for Downsampling System Clock
-        always@(posedge CLK_SYS or negedge RSTN) begin
-            if(~(RSTN && state)) begin
+        always@(posedge CLK_SYS) begin
+            if(!RSTN) begin
                 cnt_wait <= 'd0;
             end else begin
-                cnt_wait <= (cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
+                cnt_wait <= (!state || cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
             end
         end
         assign inc_cnt_pos = (cnt_wait == WAIT_CYC-'d1);
     `else
         reg trgg_cnt_dly;
-        always@(posedge CLK_SYS or negedge RSTN) begin
+        always@(posedge CLK_SYS) begin
             trgg_cnt_dly <= (!RSTN) ? 1'b0 : TRGG_CNT;
         end
         assign inc_cnt_pos = !trgg_cnt_dly && TRGG_CNT;
@@ -81,7 +82,7 @@ module LUT_WAVEFORM_FULL#(
     assign LUT_END = (cnt_wvf_pos == (LUTWIDTH-'d1));
     wire [BITWIDTH-'d1:0] lut_data_int [LUTWIDTH-'d1:0];
     assign LUT_OUT = lut_data_int[cnt_wvf_pos];
-    
+
     genvar i0;
     for(i0 = 'd0; i0 < LUTWIDTH; i0 = i0 + 'd1) begin
         `ifdef ACCESS_EXTERNAL
@@ -93,11 +94,14 @@ module LUT_WAVEFORM_FULL#(
 
     // --- Counter for Getting LUT Value
     always@(posedge CLK_SYS) begin
-        if(~RSTN) begin
-            cnt_wvf_pos <= 'd0;
+        if(!RSTN) begin
             state <= 1'd0;
+            TRGG_NEW_SAMPLE <= 1'b0;
+            cnt_wvf_pos <= 'd0;
+
         end else begin
             state <= (EN_FLAG) ? 1'd1 : ((cnt_wvf_pos == LUTWIDTH-'d1 && inc_cnt_pos) ? 1'd0 : state);
+            TRGG_NEW_SAMPLE <= inc_cnt_pos;
             if(inc_cnt_pos && state) begin
                 cnt_wvf_pos <= (cnt_wvf_pos == LUTWIDTH-'d1) ? ((EN_FLAG) ? 'd1 : 'd0) : cnt_wvf_pos + 'd1;
             end else begin

@@ -31,12 +31,12 @@
 
 
 module LUT_WAVEFORM_OPT#(
-	parameter BITWIDTH = 6'd6,
-	parameter LUTWIDTH = 10'd9,
+	parameter integer BITWIDTH = 6'd6,
+	parameter integer LUTWIDTH = 10'd9,
     `ifndef TRGG_EXTERNAL
-        parameter WAIT_WIDTH = 6'd6,
+        parameter integer WAIT_WIDTH = 6'd6,
     `endif
-    parameter SIGNED_OUT = 1'b0
+    parameter integer SIGNED_OUT = 1'b0
 )(
 	input wire CLK_SYS,
 	input wire RSTN,
@@ -46,6 +46,7 @@ module LUT_WAVEFORM_OPT#(
     `else
         input wire [WAIT_WIDTH-'d1:0] WAIT_CYC,
     `endif
+    output reg TRGG_NEW_SAMPLE,
     `ifdef ACCESS_EXTERNAL
         input wire [(BITWIDTH-'d1)* LUTWIDTH - 'd1:0] LUT_DATA_EXT,
     `endif
@@ -69,10 +70,10 @@ module LUT_WAVEFORM_OPT#(
         reg [WAIT_WIDTH-'d1:0] cnt_wait;
         // --- Counter for Downsampling System Clock
         always@(posedge CLK_SYS) begin
-            if(~(RSTN && state)) begin
+            if(!RSTN) begin
                 cnt_wait <= 'd0;
             end else begin
-                cnt_wait <= (cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
+                cnt_wait <= (!state || cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
             end
         end
         assign inc_cnt_pos = (cnt_wait == WAIT_CYC-'d1);
@@ -101,7 +102,7 @@ module LUT_WAVEFORM_OPT#(
 
     //--- Counter for Quarter Wave Reading (Symmetric)
     always@(posedge CLK_SYS) begin
-        if(~RSTN) begin
+        if(!RSTN) begin
             cnt_phase <= 2'd0;
             cnt_wvf_pos <= 'd0;
             state <= 1'd0;
@@ -109,6 +110,7 @@ module LUT_WAVEFORM_OPT#(
             state <= (EN_FLAG) ? 1'd1 :
                     ((cnt_wvf_pos == LUTWIDTH-'d1 && cnt_phase == 2'd3 && inc_cnt_pos) ? 1'd0 :
                     state);
+            TRGG_NEW_SAMPLE <= inc_cnt_pos;
             if(inc_cnt_pos && state) begin
                 cnt_phase   <= cnt_phase + ((cnt_wvf_pos == LUTWIDTH-'d1) ? 2'd1 : 2'd0);
                 cnt_wvf_pos <= (cnt_wvf_pos == (LUTWIDTH-'d1)) ?

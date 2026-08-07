@@ -3,8 +3,9 @@ import random
 import cocotb
 import elasticai.creator_plugins.bram as bram
 import pytest
-from cocotb.clock import Clock, Timer
-from cocotb.triggers import RisingEdge
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge
+from cocotb.utils import get_sim_time
 from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
@@ -20,8 +21,10 @@ async def wvf_ram_write_one_value_read_one_trial(
     dut, bitwidth: int, num_params: int, is_signed: bool, check: list[int]
 ):
     period_clk = 5
+    period_trg = 20 * period_clk
+
     ramrange = num_params
-    ram_data_out = [0 for _ in range(ramrange)]
+    ram_data_out = []
     mode_trgg = False if "WAIT_CYC" in dir(dut) else True
 
     if mode_trgg:
@@ -37,39 +40,53 @@ async def wvf_ram_write_one_value_read_one_trial(
 
     # Start clock and make reset
     cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
+    await ClockCycles(dut.CLK_SYS, 4, RisingEdge)
     for idx in range(4):
-        await RisingEdge(dut.CLK_SYS)
-    for idx in range(4):
-        await RisingEdge(dut.CLK_SYS)
+        await ClockCycles(dut.CLK_SYS, 2, RisingEdge)
         dut.RSTN.value = idx % 2
     await RisingEdge(dut.CLK_SYS)
     dut.RSTN.value = 1
-    for idx in range(4):
-        await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 4, RisingEdge)
 
     # Test #1: Read single frame
     dut.EN_FLAG.value = 1
-    if mode_trgg:
-        cocotb.start_soon(Clock(dut.TRGG_CNT, 20 * period_clk, unit="ns").start())
-        await Timer(period_clk, unit="ns")
-    for idx in range(ramrange):
-        if mode_trgg:
-            await RisingEdge(dut.TRGG_CNT)
-        else:
-            for _ in range(dut.WAIT_CYC.value):
-                await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 2)
+    dut.EN_FLAG.value = 0
 
-        dut.EN_FLAG.value = 0
+    if mode_trgg:
+        await ClockCycles(dut.CLK_SYS, 10)
+        cocotb.start_soon(Clock(dut.TRGG_CNT, period_trg, unit="ns").start())
         if is_signed:
-            ram_data_out[idx] = dut.RAM_OUT.value.to_signed()
+            ram_data_out.append(dut.RAM_OUT.value.to_signed())
         else:
-            ram_data_out[idx] = dut.RAM_OUT.value.to_unsigned()
+            ram_data_out.append(dut.RAM_OUT.value.to_unsigned())
+        offset = 1
+    else:
+        offset = 0
+
+    for idx in range(num_params - offset):
+        dt0 = get_sim_time("ns")
+        await FallingEdge(dut.TRGG_NEW_SAMPLE)
+        dt1 = get_sim_time("ns")
+
+        if not mode_trgg:
+            ref = dut.WAIT_CYC.value.to_unsigned()
+        else:
+            ref = int(period_trg / period_clk)
+        if idx > 0:
+            assert (dt1 - dt0) / period_clk in [ref - 1, ref, ref + 1]
+
+        if is_signed:
+            ram_data_out.append(dut.RAM_OUT.value.to_signed())
+        else:
+            ram_data_out.append(dut.RAM_OUT.value.to_unsigned())
 
     assert dut.RAM_END.value == 1
-    if not ram_data_out == check:
-        print("REF", check)
-        print("OUT", ram_data_out)
-    assert ram_data_out == check
+    passed = ram_data_out == check
+    if not passed:
+        print("OUT", len(ram_data_out), ram_data_out)
+        print("REF", len(check), check)
+    assert passed
 
     # Test #2 --- Change data
     change_idx = [random.randint(0, ramrange - 1) for _ in range(4)]
