@@ -14,36 +14,52 @@ pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compil
 ADC_CONFIGS = [
     pytest.param(
         SettingsResampler(
-            total_bits=8, frac_bits=0, is_signed=True,
-            srate_orig=1.0, srate_new=1.0,
-            vneg=-1.0, vpos=1.0,
+            total_bits=8,
+            frac_bits=0,
+            is_signed=True,
+            srate_orig=1.0,
+            srate_new=1.0,
+            vneg=-1.0,
+            vpos=1.0,
         ),
         "signed char",
         id="int8_signed",
     ),
     pytest.param(
         SettingsResampler(
-            total_bits=8, frac_bits=0, is_signed=False,
-            srate_orig=1.0, srate_new=1.0,
-            vneg=0.0, vpos=3.3,
+            total_bits=8,
+            frac_bits=0,
+            is_signed=False,
+            srate_orig=1.0,
+            srate_new=1.0,
+            vneg=0.0,
+            vpos=3.3,
         ),
         "unsigned char",
         id="uint8_unsigned",
     ),
     pytest.param(
         SettingsResampler(
-            total_bits=12, frac_bits=0, is_signed=True,
-            srate_orig=1.0, srate_new=1.0,
-            vneg=-3.3, vpos=3.3,
+            total_bits=12,
+            frac_bits=0,
+            is_signed=True,
+            srate_orig=1.0,
+            srate_new=1.0,
+            vneg=-3.3,
+            vpos=3.3,
         ),
         "signed short",
         id="int16_12bit",
     ),
     pytest.param(
         SettingsResampler(
-            total_bits=16, frac_bits=0, is_signed=False,
-            srate_orig=1.0, srate_new=1.0,
-            vneg=0.0, vpos=5.0,
+            total_bits=16,
+            frac_bits=0,
+            is_signed=False,
+            srate_orig=1.0,
+            srate_new=1.0,
+            vneg=0.0,
+            vpos=5.0,
         ),
         "unsigned short",
         id="uint16_16bit",
@@ -53,13 +69,13 @@ ADC_CONFIGS = [
 
 def _py_adc(voltage: float, settings: SettingsResampler) -> int:
     """Python-Referenz: spiegelt die C-Formel aus adc_template.h exakt wider."""
-    lsb = (settings.vpos - settings.vneg) / (2 ** settings.total_bits)
+    lsb = (settings.vpos - settings.vneg) / (2**settings.total_bits)
     if settings.is_signed:
         min_int = -(2 ** (settings.total_bits - 1))
         max_int = 2 ** (settings.total_bits - 1) - 1
     else:
         min_int = 0
-        max_int = 2 ** settings.total_bits - 1
+        max_int = 2**settings.total_bits - 1
     clamped = max(float(settings.vneg), min(float(settings.vpos), voltage))
     steps = round((clamped - settings.vneg) / lsb)
     ival = steps + min_int
@@ -75,9 +91,13 @@ def _make_test_voltages(settings: SettingsResampler) -> np.ndarray:
 
 def test_build_adc_quant_generates_c_files(tmp_path: Path) -> None:
     settings = SettingsResampler(
-        total_bits=12, frac_bits=0, is_signed=True,
-        srate_orig=1.0, srate_new=1.0,
-        vneg=-3.3, vpos=3.3,
+        total_bits=12,
+        frac_bits=0,
+        is_signed=True,
+        srate_orig=1.0,
+        srate_new=1.0,
+        vneg=-3.3,
+        vpos=3.3,
     )
     build_adc_quant(settings=settings, path2save=tmp_path, adc_id="0")
     assert (tmp_path / "adc_template.h").exists()
@@ -115,6 +135,5 @@ def test_adc_c_matches_python(
         c_value = int(out[0])
         passed, reason = compare_values(python_value, c_value)
         assert passed, (
-            f"index={index}: voltage={voltage:.4f}V, "
-            f"python={python_value}, c={c_value}: {reason}"
+            f"index={index}: voltage={voltage:.4f}V, python={python_value}, c={c_value}: {reason}"
         )

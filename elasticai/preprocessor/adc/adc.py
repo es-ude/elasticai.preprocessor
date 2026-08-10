@@ -233,7 +233,9 @@ class TransientResampler:
         xin = self._do_resample(data)
         return self._quantize_digital(xin, is_int_input=True, is_int_output=is_int_output)
 
-    def create_design(self, target: str, id: str, path2save: Path, data: np.ndarray, trgg: list = []):
+    def create_design_as_replayer(
+        self, target: str, id: str, path2save: Path, data: np.ndarray, trgg: list = []
+    ):
         """Function for creating the hardware design to use pre-recorded in simulations
         :param target:      Target for hardware design (MCU, FPGA, PC)
         :param id:          ID of hardware designs
@@ -251,16 +253,16 @@ class TransientResampler:
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if target.lower() in ["mcu", "pc"]:
-            self._create_design_c(
+            self._create_design_c_replayer(
                 id=id,
                 data=data,
                 trgg=trgg,
                 path2save=path2save,
             )
         else:
-            self._create_design_verilog(id=id, data=data, trgg=trgg, path2save=path2save)
+            self._create_design_verilog_replayer(id=id, data=data, trgg=trgg, path2save=path2save)
 
-    def _create_design_c(
+    def _create_design_c_replayer(
         self, id: str, path2save: Path, data: np.ndarray, trgg: list = [], define_path: str = "src"
     ):
         from elasticai.creator_plugins.player.src import c_compile
@@ -286,7 +288,9 @@ class TransientResampler:
                 path2save=path2save,
             )
 
-    def _create_design_verilog(self, id: str, path2save: Path, data: np.ndarray, trgg: list = []) -> None:
+    def _create_design_verilog_replayer(
+        self, id: str, path2save: Path, data: np.ndarray, trgg: list = []
+    ) -> None:
         use_trgg = len(trgg) > 0
 
         path2data = path2save / f"replayer_{id}_data.mem"
@@ -308,3 +312,35 @@ class TransientResampler:
             packages=["player"],
             path2save=path2save,
         )
+
+    def create_design_for_streaming(self, target: str, id: str, path2save: Path):
+        """Function for creating the hardware design to process raw data in streaming processes
+        :param target:      Target for hardware design (MCU, FPGA, PC)
+        :param id:          ID of hardware designs
+        :param path2save:   Path to the saved hardware designs
+        :return:            None
+        """
+        supported_targets = ["mcu", "pc", "fpga"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c_stream(
+                id=id,
+                path2save=path2save,
+                define_path="src",
+            )
+        else:
+            self._create_design_verilog_stream(id=id, path2save=path2save)
+
+    def _create_design_c_stream(self, id: str, path2save: Path, define_path: str = "src"):
+        from elasticai.creator_plugins.adc.src import c_compile
+
+        c_compile.build_adc_quant(
+            adc_id=id,
+            define_path=define_path,
+            settings=self._settings,
+            path2save=path2save,
+        )
+
+    def _create_design_verilog_stream(self, id: str, path2save: Path) -> None:
+        raise NotImplementedError("FPGA design is not implemented yet")
