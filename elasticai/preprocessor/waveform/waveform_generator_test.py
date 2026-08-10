@@ -3,8 +3,7 @@ from unittest import TestCase, main
 import numpy as np
 
 from elasticai.preprocessor import get_path_to_project
-
-from .waveform_generator import WaveformGenerator
+from elasticai.preprocessor.waveform import WaveformGenerator
 
 
 class TestWaveformGenerator(TestCase):

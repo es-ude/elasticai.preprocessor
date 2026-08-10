@@ -10,7 +10,7 @@ from elasticai.preprocessor.translation import load_and_build_form_plugin
 def prepare_waveform(
     waveform: str, bitwidth: int, num_params: int, do_opt: bool = False, is_signed: bool = True
 ) -> list[int]:
-    from elasticai.preprocessor.waveform_generator import WaveformGenerator
+    from elasticai.preprocessor.waveform import WaveformGenerator
 
     params = num_params if not do_opt else 4 * num_params - 3
 

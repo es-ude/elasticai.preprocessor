@@ -7,7 +7,7 @@ from elasticai.equichecker import CompileLoader, get_c_type
 
 from elasticai.creator_plugins.waveform.utils import prepare_waveform
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.waveform_generator import WaveformGenerator
+from elasticai.preprocessor.waveform import WaveformGenerator
 
 
 @pytest.fixture(scope="session", autouse=True)

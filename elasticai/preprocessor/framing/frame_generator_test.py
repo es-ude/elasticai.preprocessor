@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 
 from elasticai.preprocessor._check_funcs import compare_timestamps
-from elasticai.preprocessor.waveform_generator import WaveformGenerator
+from elasticai.preprocessor.waveform import WaveformGenerator
 
 from .frame_generator import (
     DefaultSettingsFrame,
