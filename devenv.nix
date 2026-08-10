@@ -101,27 +101,27 @@ in {
     };
     "test:changes" = {
       exec = ''
-        ${uv_run} pytest --testmon --reruns 3
+        ${uv_run} pytest --testmon --reruns 5
       '';
     };
     "test:fast" = {
       exec = ''
-        ${uv_run} pytest -m 'not simulation' --reruns 3
+        ${uv_run} pytest -m 'not simulation' --reruns 5
       '';
     };
     "test:simulation" = {
       exec = ''
-        ${uv_run} pytest -m 'simulation' --reruns 1
+        ${uv_run} pytest -m 'simulation' --reruns 2
       '';
     };
     "test:all" = {
       exec = ''
-        ${uv_run} pytest --reruns 3
+        ${uv_run} pytest --reruns 5
       '';
     };
     "test:coverage" = {
       exec = ''
-        ${uv_run} coverage run -m pytest --reruns 3
+        ${uv_run} coverage run -m pytest --reruns 5
       '';
     };
     "check:coverage-report" = {

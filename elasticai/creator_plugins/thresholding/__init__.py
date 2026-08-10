@@ -1,4 +1,6 @@
-from .src.mean_avg import mean_avg as mean_avg
+from .src.const import const as const
+from .src.mov_avg_abs_norm import mov_avg_abs_norm as mov_avg_abs_norm
+from .src.mov_avg_abs_pow2 import mov_avg_abs_pow2 as mov_avg_abs_pow2
 from .src.mov_avg_norm import mov_avg_norm as mov_avg_norm
 from .src.mov_avg_pow2 import mov_avg_pow2 as mov_avg_pow2
-from .src.steady_return import steady_return as steady_return
+from .utils import load_and_plugin as load_and_plugin

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-import elasticai.creator_plugins.thresholding as hw_thresholding
+import elasticai.creator_plugins.thresholding.utils as hw_utils
 
 
 @dataclass
@@ -15,17 +15,16 @@ class SettingsThreshold:
                         'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
                         'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
                         'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
-                        'welford': Welford Online Algorithm for STD Calculation,
-                        'wins': Wins-Orization]
+                        'welford': Welford Online Algorithm for STD Calculation]
         sampling_rate:  Sampling rate of the transient signal [Hz]
-        gain:           Applied gain on threshold output
-        window_sec:     Window length in sec.
+        window_sec:     Window length in sec [Only applied in moving methods]
+        do_quant:       Boolean for performing quantized operations
     """
 
     method: str
     sampling_rate: float
-    gain: float
     window_sec: float
+    do_quant: bool
 
     @property
     def window_steps(self) -> int:
@@ -34,7 +33,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method="const", sampling_rate=20e3, gain=1.0, window_sec=10e-3
+    method="const", sampling_rate=1e3, window_sec=10e-3, do_quant=False
 )
 
 
@@ -55,84 +54,106 @@ class Thresholding:
             "rms_norm": "_root_mean_squared_normal",
             "rms_black": "_root_mean_squared_blackrock",
             "welford": "_welford_online",
-            "wins": "_winsorization",
+        }
+        self._hwmap = {
+            "const": "const",
+            "abs_mean": "const",
+            "mad": "const",
+            "mavg": "mov_avg_norm",
+            "mavg_abs": "mov_avg_abs_norm",
+            "rms_norm": "const",
+            "rms_black": "const",
         }
 
-    def create_design(
-        self, module_type: str, target: str, bitwidth: int, id: str, path2save: Path, **kwargs
-    ) -> None:
-        """Create hardware design for thresholding.
+    def _map_method_to_hardware(self) -> str:
+        if self._settings.method.lower() not in list(self._hwmap.keys()):
+            raise ValueError(f"Method '{self._settings.method}' in hardware generation is not supported.")
+        return self._hwmap[self._settings.method]
 
-        Currently only FPGA/Verilog generation is supported.
+    @staticmethod
+    def _is_power_of_two(M: int) -> bool:
+        return M > 0 and (M & (M - 1)) == 0
+
+    def create_design(
+        self, data: np.ndarray, id: str, target: str, bitwidth: int, path2save: Path, **kwargs
+    ) -> int:
+        """Create hardware design for thresholding.
+        :param data:        Numpy array with transient signal
+        :param id:          String with additional ID
+        :param target:      String with target hardware type ["mcu", "pc", "fpga"]
+        :param bitwidth:    Integer with bitwidth for target hardware type
+        :param path2save:   Path to save the design
+        :return:            Integer value of the threshold value (for testing purposes)
         """
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
+        thr_val0 = int(self.get_threshold(xin=data, **kwargs)[0])
+
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
-                module_type=module_type,
+                thr_val=thr_val0,
                 id=id,
                 bitwidth=bitwidth,
                 path2save=path2save,
             )
         else:
             self._create_design_verilog(
-                module_type=module_type,
+                thr_val=thr_val0,
                 id=id,
                 bitwidth=bitwidth,
                 path2save=path2save,
             )
+        return thr_val0
 
     def _create_design_c(
         self,
-        module_type: str,
+        thr_val: int,
         id: str,
         bitwidth: int,
         path2save: Path,
     ) -> None:
 
-        raise NotImplementedError(
-            "Target 'mcu/pc' is currently not supported. Only 'fpga' is implemented."
-        )
+        raise NotImplementedError("Target 'mcu/pc' is currently not supported.")
 
     def _create_design_verilog(
         self,
-        module_type: str,
+        thr_val: int,
         id: str,
         bitwidth: int,
         path2save: Path,
     ) -> None:
 
-        if module_type == "":
-            raise AttributeError("Top Module in Settings is missing")
-
+        module_type = self._map_method_to_hardware()
+        params = {
+            "type": module_type,
+            "id": id,
+            "params": {
+                "BITWIDTH": bitwidth,
+            },
+        }
         match self._settings.method.lower():
+            case "const":
+                params["params"].update({"CONST_THR": thr_val})
             case "mavg":
-                params = {
-                    "type": module_type,
-                    "id": id,
-                    "params": {
-                        "BITWIDTH": bitwidth,
-                        "LENGTH": self._settings.window_steps,
-                    },
-                }
-            case "abs_mean":
-                params = {
-                    "type": module_type,
-                    "id": id,
-                    "params": {
-                        "BITWIDTH": bitwidth,
-                        "COUNTWIDTH": 8,
-                    },
-                }
-
+                if self._is_power_of_two(self._settings.window_steps):
+                    params["type"] = "mov_avg_pow2"
+                else:
+                    params["type"] = "mov_avg_norm"
+                params["params"].update({"LENGTH": self._settings.window_steps})
+            case "mavg_abs":
+                if self._is_power_of_two(self._settings.window_steps):
+                    params["type"] = "mov_avg_abs_pow2"
+                else:
+                    params["type"] = "mov_avg_abs_norm"
+                params["params"].update({"LENGTH": self._settings.window_steps})
             case _:
                 raise NotImplementedError(
                     f"Threshold method '{self._settings.method}' does not have a Verilog implementation."
                 )
 
-        hw_thresholding.load_and_plugin(
+        hw_utils.load_and_plugin(
             packages=["thresholding"],
             path2save=path2save,
             **params,
@@ -141,40 +162,39 @@ class Thresholding:
     def _get_overview(self) -> list:
         return [key.lower() for key in self._methods.keys()]
 
-    def get_threshold(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
+    def get_threshold(self, xin: np.ndarray, gain: float = 1.0, **kwargs) -> np.ndarray:
         """Function for getting the thresholding value from input
         :param xin:     Numpy array with transient raw signal
-        :param do_abs:  Apply absolute xin for thresholding or not
+        :param gain:    Float with gain applied on threshold output
         :return:        Numpy array with thresholding value from applied method
         """
-        if self._settings.method.lower() == "const" and "thr_val" not in kwargs.keys():
+        used_method = self._settings.method.lower()
+        if used_method == "const" and "thr_val" not in list(kwargs.keys()):
             raise TypeError(
                 "Constant threshold method needs the definition of 'thr_val' (threshold value) "
                 "as float, like thr_val=0.5 in kwargs"
             )
 
-        if self._settings.method.lower() not in self._get_overview():
+        if used_method not in self._get_overview():
             raise ValueError(
-                f"Thresholding method {self._settings.method} not available - Please change to {self._get_overview()}"
+                f"Thresholding method {used_method} not available - Please change to {self._get_overview()}"
             )
-        xin0 = np.abs(xin) if do_abs else xin
-        return getattr(self, self._methods[self._settings.method])(xin0, **kwargs)
+        val = gain * getattr(self, self._methods[used_method])(xin, **kwargs)
+        return np.floor(val).astype(int) if self._settings.do_quant else val
 
     def get_threshold_position(
-        self, xin: np.ndarray, pre_time: float = 0.0, do_abs: bool = False, **kwargs
+        self, xin: np.ndarray, pre_time: float = 0.0, gain: float = 1.0, **kwargs
     ) -> np.ndarray:
         """Function for getting the crosspoints of thresholding value and transient input
         :param xin:         Numpy array with transient raw signal
         :param pre_time:    Floating value with pre-time in the window before event is detected [s]
-        :param do_abs:      Boolean for applying absolute xin for getting position and threshold
         :return:            Numpy array with thresholding value from applied method
         """
-        xin0 = np.abs(xin) if do_abs else xin
-        xthr = self.get_threshold(xin0, do_abs, **kwargs)
+        xthr = self.get_threshold(xin=xin, gain=gain, **kwargs)
         if xthr.min() < 0:
-            pos = np.argwhere(xin0 < xthr).flatten()
+            pos = np.argwhere(xin < xthr).flatten()
         else:
-            pos = np.argwhere(xin0 >= xthr).flatten()
+            pos = np.argwhere(xin >= xthr).flatten()
         pos_pre = int(self._settings.sampling_rate * pre_time)
         return np.array(self._get_values_non_incremented_change(pos)) - pos_pre
 
@@ -193,27 +213,26 @@ class Thresholding:
         return np.zeros_like(xin) + thr_val
 
     def _absolute_median(self, xin: np.ndarray) -> np.ndarray:
-        return np.zeros_like(xin) + self._settings.gain * np.median(np.abs(xin), axis=0)
+        return np.zeros_like(xin) + np.median(np.abs(xin), axis=0)
 
     def _median_absolute_derivation(self, xin: np.ndarray) -> np.ndarray:
         median = np.median(xin, axis=0, keepdims=True)
         mad = np.median(np.abs(xin - median), axis=0, keepdims=True)
         std_estimate = mad / 0.6745
-        threshold = self._settings.gain * std_estimate
+        threshold = std_estimate
         return np.zeros_like(xin) + threshold
 
     def _moving_average(self, xin: np.ndarray) -> np.ndarray:
         M = self._settings.window_steps
-        conv = np.convolve(xin, np.ones(M) / M, mode="same")
-        return self._settings.gain * conv
+        xin_padded = np.pad(xin, (M - 1, 0), mode="constant")
+        conv = np.convolve(xin_padded, np.ones(M) / M, mode="valid")
+        return conv
 
     def _moving_absolute_average(self, xin: np.ndarray) -> np.ndarray:
-        M = self._settings.window_steps
-        conv = np.convolve(np.abs(xin), np.ones(M) / M, mode="same")
-        return self._settings.gain * conv
+        return self._moving_average(np.abs(xin))
 
     def _root_mean_squared_normal(self, xin: np.ndarray) -> np.ndarray:
-        return np.zeros_like(xin) + self._settings.gain * np.sqrt(np.sum(xin**2) / xin.size)
+        return np.zeros_like(xin) + np.sqrt(np.sum(xin**2) / xin.size)
 
     def _root_mean_squared_blackrock(self, xin: np.ndarray) -> np.ndarray:
         return 4.5 * self._root_mean_squared_normal(xin)
@@ -232,4 +251,4 @@ class Thresholding:
             std_out[idx] = sigma
 
         std_out[0:1] = std_out[2]
-        return self._settings.gain * np.sqrt(std_out)
+        return np.sqrt(std_out)

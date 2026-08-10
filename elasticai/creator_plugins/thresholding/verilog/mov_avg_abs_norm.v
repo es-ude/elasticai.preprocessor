@@ -4,7 +4,7 @@
 // 
 // Create Date: 	10.08.2026 12:38:44
 // Copied on: 	    §{date_copy_created}
-// Module Name:     FIR-based Moving Average Filter (Binary division)
+// Module Name:     FIR-based Moving Average Absolute Filter
 // Target Devices:  ASIC / FPGA
 // Tool Versions:   1v1
 // Description:     Moving Average with N = {$length} for signed input data
@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module MOVING_AVERAGE#(
+module MOVING_AVERAGE_ABSOLUTE#(
     parameter integer BITWIDTH = 8,
     parameter integer LENGTH = 4
 )(
@@ -28,7 +28,7 @@ module MOVING_AVERAGE#(
     input wire EN,
     input wire DO_CALC,
     input wire signed [BITWIDTH-'d1:0] DATA_IN,
-    output wire signed [BITWIDTH-'d1:0] DATA_OUT,
+    output reg signed [BITWIDTH-'d1:0] DATA_OUT,
     output wire DVALID
 );
     // --- Control Signals
@@ -39,7 +39,6 @@ module MOVING_AVERAGE#(
     reg signed [BITWIDTH + $clog2(LENGTH)-'d1:0] pre_out;
 
     assign DVALID = first_run_done && do_calc_dly && !DO_CALC;
-    assign DATA_OUT = pre_out[$clog2(LENGTH)+:BITWIDTH];
 
     // --- Performing computation
     integer i0;
@@ -52,18 +51,21 @@ module MOVING_AVERAGE#(
             pre_out <= 'd0;
             first_run_done <= 1'd0;
             cnt_pos <= 'd0;
+            DATA_OUT <= 'd0;
         end else begin
             do_calc_dly <= DO_CALC;
             if(!do_calc_dly && DO_CALC && EN) begin
-                taps_fir[cnt_pos] <= DATA_IN;
-                pre_out <= pre_out - taps_fir[cnt_pos] + DATA_IN;
+                taps_fir[cnt_pos] <= (DATA_IN[BITWIDTH-'d1]) ? ~DATA_IN : DATA_IN;
+                pre_out <= pre_out - taps_fir[cnt_pos] + ((DATA_IN[BITWIDTH-'d1]) ? ~DATA_IN : DATA_IN);
                 first_run_done <= 1'd1;
                 cnt_pos <= (cnt_pos == 'd0) ? LENGTH -'d1 : cnt_pos - 'd1;
+                DATA_OUT <= pre_out / LENGTH;
             end else begin
                 taps_fir[cnt_pos] <= taps_fir[cnt_pos];
                 pre_out <= pre_out;
                 first_run_done <= first_run_done;
                 cnt_pos <= cnt_pos;
+                DATA_OUT <= DATA_OUT;
             end
         end
     end

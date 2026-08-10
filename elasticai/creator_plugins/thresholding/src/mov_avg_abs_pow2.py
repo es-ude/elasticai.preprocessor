@@ -12,15 +12,14 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def mean_avg(impl: DataGraph, _: Registry) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.thresholding"  # change this to current module
-    path2file = "verilog/mean_avg.v"  # change this to current module
+def mov_avg_abs_pow2(impl: DataGraph, _: Registry) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.thresholding"
+    path2file = "verilog/mov_avg_abs_pow2.v"
 
-    # Parameters need to fit to verilog module
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
-        .parameter("COUNTWIDTH")
+        .parameter("LENGTH")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()

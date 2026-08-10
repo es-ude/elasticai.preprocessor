@@ -71,8 +71,8 @@ class WindowSequencer:
         self._settings_thr = SettingsThreshold(
             method="const",
             sampling_rate=self._settings.sampling_rate,
-            gain=1.0,
             window_sec=self._settings.window_length / 2,
+            do_quant=False,
         )
         self._window_normalization = transformation_window_method(
             window_size=self._settings.window_length, method=""
@@ -107,21 +107,18 @@ class WindowSequencer:
             x=signal, axis=0, window_shape=self._settings.window_length, writeable=True
         )[::delta_steps]
 
-    def window_event_detected(
-        self, signal: np.ndarray, thr: float, pre_time: float, do_abs: bool = False
-    ) -> np.ndarray:
+    def window_event_detected(self, signal: np.ndarray, thr: float, pre_time: float) -> np.ndarray:
         """Building a window sequencer based on an event-detection (absolute input)
         :param signal:      Numpy array with input signal to build the sequence with shape=(N, )
         :param thr:         Floating value with absolute threshold value
         :param pre_time:    Floating value with pre-time in the window before event is detected
-        :param do_abs:      Boolean for applying absolute signal to threshold calculation
         :return:            Numpy array of sequence signals with shape=(M, window length)
         """
         if thr < 0.0:
             raise ValueError("Threshold must be positive")
 
         xpos_event = Thresholding(settings=self._settings_thr).get_threshold_position(
-            xin=signal, pre_time=pre_time, do_abs=do_abs, thr_val=thr
+            xin=signal, pre_time=pre_time, thr_val=thr
         )
 
         if not xpos_event.tolist():

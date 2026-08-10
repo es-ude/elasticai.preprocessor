@@ -12,15 +12,14 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def mov_avg_norm(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def const(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.thresholding"
-    path2file = "verilog/mov_avg_norm.v"
+    path2file = "verilog/const.v"
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
-        .parameter("LENGTH")
-        .add_module_name()
+        .parameter("CONST_THR")
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()
     )
@@ -29,7 +28,6 @@ def mov_avg_norm(impl: DataGraph, _: Registry) -> Iterable[Code]:
         (
             impl.name,
             _template.substitute(
-                module_name=impl.name.upper(),
                 date_copy_created=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
                 **impl.attributes,
             ),
