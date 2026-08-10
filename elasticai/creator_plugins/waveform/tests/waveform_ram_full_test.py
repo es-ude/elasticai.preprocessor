@@ -12,7 +12,7 @@ from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_me
 
 from elasticai.creator_plugins.waveform.tests.waveform_lut_full_test import reconstruct_signal
 from elasticai.creator_plugins.waveform.utils import load_and_plugin
-from elasticai.preprocessor.waveform_generator import WaveformGenerator
+from elasticai.preprocessor.waveform import WaveformGenerator
 
 
 @cocotb.test()
