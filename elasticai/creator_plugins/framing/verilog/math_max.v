@@ -18,7 +18,7 @@
 
 
 module MATH_MAX#(
-    parameter BITWIDTH = 5'd16  
+    parameter integer BITWIDTH = 16
 )(
     input wire signed [BITWIDTH-'d1:'d0] A,
     input wire signed [BITWIDTH-'d1:'d0] B,

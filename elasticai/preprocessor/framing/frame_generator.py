@@ -92,6 +92,7 @@ class FrameGenerator:
                 method=self._settings.mode_thr,
                 sampling_rate=self._settings.sampling_rate,
                 window_sec=2 * self._settings.window_sec,
+                do_quant=False,
             )
         )
 
@@ -138,25 +139,19 @@ class FrameGenerator:
         return getattr(self, method)(frame_in)
 
     # --------- Frame Generation -------------
-    def get_threshold(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
+    def get_threshold(self, xin: np.ndarray, **kwargs) -> np.ndarray:
         """Function for returning the threshold array in dependency of the transient input
         :param xin:     Numpy array with the transient raw input
-        :param do_abs:  Boolean flag to apply absolute input for thresholding
         :return:        Numpy array with threshold value
         """
-        return self._threshold.get_threshold(
-            xin=xin, do_abs=do_abs, gain=self._settings.thr_gain, **kwargs
-        )
+        return self._threshold.get_threshold(xin=xin, gain=self._settings.thr_gain, **kwargs)
 
-    def get_threshold_position(self, xin: np.ndarray, do_abs: bool = False, **kwargs) -> np.ndarray:
+    def get_threshold_position(self, xin: np.ndarray, **kwargs) -> np.ndarray:
         """Function for returning the positions of the crossing-points between input and threshold
         :param xin:     Numpy array with the transient raw input
-        :param do_abs:  Boolean flag to apply absolute input for thresholding
         :return:        Numpy array with threshold value
         """
-        return self._threshold.get_threshold_position(
-            xin=xin, do_abs=do_abs, gain=self._settings.thr_gain, **kwargs
-        )
+        return self._threshold.get_threshold_position(xin=xin, gain=self._settings.thr_gain, **kwargs)
 
     def __frame_extraction(self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int = 0) -> FrameWaveform:
         f0 = self._settings.length_offset_int
@@ -203,9 +198,7 @@ class FrameGenerator:
         :param do_abs:  Boolean for applying absolute input for thresholding
         :return:        Class FrameWaveform with waveforms, positions and labels
         """
-        xpos = self.get_threshold_position(
-            xin=xsda, pre_time=self._settings.offset_sec, do_abs=do_abs, **kwargs
-        )
+        xpos = self.get_threshold_position(xin=xsda, pre_time=self._settings.offset_sec, **kwargs)
         return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=0)
 
     def frame_generation_with_position(

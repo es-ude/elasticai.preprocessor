@@ -173,9 +173,7 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(
-            signal=stimuli, thr=0.25, pre_time=0.01, do_abs=False
-        )
+        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.01)
         self.assertEqual(sequence.shape, (num_trials, set0.window_length))
         chck0 = [np.sum(frame == frame[0]) for frame in sequence]
         self.assertTrue(all(x == chck0[0] for x in chck0))
@@ -185,10 +183,8 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(
-            signal=stimuli, thr=0.25, pre_time=0.01, do_abs=True
-        )
-        self.assertEqual(sequence.shape, (2 * num_trials, set0.window_length))
+        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.01)
+        self.assertEqual(sequence.shape, (num_trials, set0.window_length))
         chck0 = [np.sum(frame == frame[0]) for frame in sequence]
         self.assertTrue(all(x == chck0[0] for x in chck0))
 
@@ -209,9 +205,7 @@ class TestWindowSequencer(TestCase):
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         stimuli[int(set0.window_length / 2)] = 1.5
         stimuli[-int(set0.window_length / 2)] = 1.5
-        sequence = WindowSequencer(set0).window_event_detected(
-            signal=stimuli, thr=1.2, pre_time=0.05, do_abs=False
-        )
+        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=1.2, pre_time=0.05)
         chck0 = np.sum(sequence[-2, :] == sequence[-2, -1])
         chck1 = np.sum(sequence[-1, :] == sequence[-1, -1])
         self.assertGreater(chck1, chck0)
@@ -222,9 +216,7 @@ class TestWindowSequencer(TestCase):
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         try:
-            WindowSequencer(set0).window_event_detected(
-                signal=stimuli, thr=-1.0, pre_time=0.01, do_abs=False
-            )
+            WindowSequencer(set0).window_event_detected(signal=stimuli, thr=-1.0, pre_time=0.01)
         except ValueError:
             assert True
         else:
@@ -235,9 +227,7 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(
-            signal=stimuli, thr=100.0, pre_time=0.01, do_abs=False
-        )
+        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=100.0, pre_time=0.01)
         assert sequence == np.asarray([0])
 
     def test_create_verilog_windower(self):

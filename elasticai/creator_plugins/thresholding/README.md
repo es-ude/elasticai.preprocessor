@@ -1,14 +1,7 @@
-# Verilog Filters
+# Verilog Thresholding
 
-This plugin provides different filters implemented in verilog:
+This plugin provides different thresholding methods implemented in Verilog:
 
-- Finite Impulse Response (FIR) filters
-  - full
-  - half
-  - moving average (normal)
-  - moving average (binary division)
-- Infinite Impulse Response (IIR) filters
-  - biquad (DF1)
-- Moving average (MA) filters
-    - normal
-    - binary division
+- Constant value
+- Moving average (normal, pow2)
+- Moving Absolute Average (normal, pow2)

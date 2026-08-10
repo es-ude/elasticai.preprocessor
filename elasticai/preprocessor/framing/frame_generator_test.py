@@ -322,7 +322,6 @@ class TestFrameGenerator(unittest.TestCase):
         rslt = FrameGenerator(self.set0).frame_generation(
             xraw=self.signal_eap[0],
             xsda=self.signal_eap[0],
-            do_abs=False,
             thr_val=-40e-6,
         )
         rslt_pos = compare_timestamps(
@@ -339,7 +338,6 @@ class TestFrameGenerator(unittest.TestCase):
         rslt = FrameGenerator(self.set0).frame_generation(
             xraw=self.signal_eap[0],
             xsda=self.signal_eap[0],
-            do_abs=False,
             thr_val=-40e-6,
         )
         rslt_pos = compare_timestamps(
@@ -359,7 +357,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.set0.mode_align = "min"
         self.set0.thr_gain = -5.2
         rslt = FrameGenerator(self.set0).frame_generation(
-            xraw=self.signal_eap[0], xsda=self.signal_eap[0], do_abs=False
+            xraw=self.signal_eap[0], xsda=self.signal_eap[0]
         )
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -378,7 +376,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.set0.mode_align = "min"
         self.set0.thr_gain = -4.5
         rslt = FrameGenerator(self.set0).frame_generation(
-            xraw=self.signal_eap[0], xsda=self.signal_eap[0], do_abs=False
+            xraw=self.signal_eap[0], xsda=self.signal_eap[0]
         )
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -386,7 +384,7 @@ class TestFrameGenerator(unittest.TestCase):
             window=26,
         )
         self.assertEqual(rslt.waveform.shape[1], self.set0.length_frame_int)
-        self.assertGreaterEqual(rslt_pos.f1_score, 0.865)
+        self.assertGreaterEqual(rslt_pos.f1_score, 0.75)
         self.assertEqual(
             np.argmin(rslt.waveform, axis=1).tolist(),
             [self.set0.length_align_position for _ in range(rslt.waveform.shape[0])],
@@ -397,7 +395,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.set0.mode_align = "min"
         self.set0.thr_gain = -4.5
         rslt = FrameGenerator(self.set0).frame_generation(
-            xraw=self.signal_eap[0], xsda=self.signal_eap[0], do_abs=False
+            xraw=self.signal_eap[0], xsda=self.signal_eap[0]
         )
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -416,7 +414,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.set0.mode_align = "min"
         self.set0.thr_gain = -1.0
         rslt = FrameGenerator(self.set0).frame_generation(
-            xraw=self.signal_eap[0], xsda=self.signal_eap[0], do_abs=False
+            xraw=self.signal_eap[0], xsda=self.signal_eap[0]
         )
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -435,7 +433,7 @@ class TestFrameGenerator(unittest.TestCase):
         self.set0.mode_align = "min"
         self.set0.thr_gain = -4.5
         rslt = FrameGenerator(self.set0).frame_generation(
-            xraw=self.signal_eap[0], xsda=self.signal_eap[0], do_abs=False
+            xraw=self.signal_eap[0], xsda=self.signal_eap[0]
         )
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),

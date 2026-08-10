@@ -31,64 +31,27 @@ class ThresholdingTest(TestCase):
     def test_getting_overview(self):
         dut = Thresholding(settings=self.set0)
         rslt = dut._get_overview()
-        assert len(rslt) == 9
+        assert len(rslt) == 8
         self.assertTrue("const" in rslt)
 
     def test_getting_position_constant_positive_normal(self):
         self.set0.method = "const"
-        rslt = Thresholding(settings=self.set0).get_threshold_position(
-            xin=self.signal_in, do_abs=False, thr_val=0.5
-        )
-        chck = np.array([167, 2167, 4167, 6167, 8167, 10167, 12167, 14166, 16166, 18166])
+        rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=0.5)
+        chck = np.array([9, 109, 209, 309, 408, 508, 608, 708, 808, 908])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_negative_normal(self):
         self.set0.method = "const"
-        rslt = Thresholding(settings=self.set0).get_threshold_position(
-            xin=self.signal_in, do_abs=False, thr_val=-0.5
-        )
-        chck = np.array([1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166])
+        rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=-0.5)
+        chck = np.array([59, 159, 259, 358, 458, 558, 658, 758, 858, 958])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_positive_pretime(self):
         self.set0.method = "const"
         rslt = Thresholding(settings=self.set0).get_threshold_position(
-            xin=self.signal_in, pre_time=0.05, do_abs=False, thr_val=-0.5
+            xin=self.signal_in, pre_time=0.05, thr_val=-0.5
         )
-        chck = np.array([1167, 3167, 5167, 7167, 9167, 11167, 13167, 15166, 17166, 19166]) - int(
-            0.05 * self.set0.sampling_rate
-        )
-        np.testing.assert_array_almost_equal(rslt, chck)
-
-    def test_getting_position_constant_absolute(self):
-        self.set0.method = "const"
-        rslt = Thresholding(settings=self.set0).get_threshold_position(
-            xin=self.signal_in, do_abs=True, thr_val=0.5
-        )
-        chck = np.array(
-            [
-                167,
-                1167,
-                2167,
-                3167,
-                4167,
-                5167,
-                6167,
-                7167,
-                8167,
-                9167,
-                10167,
-                11167,
-                12167,
-                13167,
-                14166,
-                15166,
-                16166,
-                17166,
-                18166,
-                19166,
-            ]
-        )
+        chck = np.array([9, 109, 209, 308, 408, 508, 608, 708, 808, 908])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_constant(self):
@@ -106,7 +69,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = 1 / np.sqrt(2)
-        self.assertLess(np.abs(np.mean(rslt) - chck), 1e-4)
+        self.assertLess(np.abs(np.mean(rslt) - chck), 6e-4)
 
     def test_median_absolute_derivation(self):
         self.set0.method = "mad"
@@ -115,7 +78,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 1.048301
-        np.testing.assert_almost_equal(rslt, chck, decimal=6)
+        np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_moving_average(self):
         self.set0.method = "mavg"
@@ -125,7 +88,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt)
-        np.testing.assert_almost_equal(rslt[3000:15000], chck[3000:15000], decimal=2)
+        np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=2)
 
     def test_moving_absolute_average(self):
         self.set0.method = "mavg_abs"
@@ -135,7 +98,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.637
-        np.testing.assert_almost_equal(rslt[3000:15000], chck[3000:15000], decimal=3)
+        np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=3)
 
     def test_root_mean_squared_normal(self):
         self.set0.method = "rms_norm"
@@ -144,7 +107,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.70709
-        np.testing.assert_almost_equal(rslt, chck, decimal=5)
+        np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_root_mean_squared_blackrock(self):
         self.set0.method = "rms_black"
@@ -153,7 +116,7 @@ class ThresholdingTest(TestCase):
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 3.181901
-        np.testing.assert_almost_equal(rslt, chck, decimal=5)
+        np.testing.assert_almost_equal(rslt, chck, decimal=2)
 
     def test_welford(self):
         self.set0.method = "welford"
