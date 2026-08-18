@@ -7,6 +7,7 @@ from elasticai.preprocessor.eventdetection.eventdetection import (
     SettingsEventDetection,
 )
 
+
 def make_detector(threshold=100, hysteresis=0.25, hysteresis_type="normal"):
     return EventDetection(
         SettingsEventDetection(
@@ -68,7 +69,7 @@ class TestNormalMode:
         det = make_detector(threshold=100, hysteresis_type="normal")
         det.detect_event(np.array([200]))   # leaves _int_state = True
         xout = det.detect_event(np.array([50]))
-        assert xout[0] == False
+        assert not xout[0]
 
 
 class TestPosHystMode:
@@ -85,7 +86,7 @@ class TestPosHystMode:
     def test_triggers_at_thr_on(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="pos_hyst")
         xout = det.detect_event(np.array([125]))
-        assert xout[0] == True
+        assert xout[0]
 
     def test_stays_active_at_thr_off(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="pos_hyst")
@@ -114,7 +115,7 @@ class TestNegHystMode:
     def test_triggers_at_thr_on(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="neg_hyst")
         xout = det.detect_event(np.array([100]))
-        assert xout[0] == True
+        assert xout[0]
 
     def test_stays_active_above_thr_off(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="neg_hyst")
@@ -149,7 +150,7 @@ class TestDoubleHystMode:
     def test_triggers_at_thr_on(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="double_hyst")
         xout = det.detect_event(np.array([125]))
-        assert xout[0] == True
+        assert xout[0]
 
     def test_stays_active_above_thr_off(self):
         det = make_detector(threshold=100, hysteresis=0.25, hysteresis_type="double_hyst")

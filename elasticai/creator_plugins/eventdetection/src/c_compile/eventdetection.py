@@ -8,6 +8,7 @@ from elasticai.preprocessor.translation.ir2c import (
     replace_variables_with_parameters,
 )
 
+
 def build_eventdetection(
     threshold:       int,
     hysteresis:      float,
