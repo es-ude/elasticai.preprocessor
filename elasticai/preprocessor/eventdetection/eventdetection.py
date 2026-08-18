@@ -11,7 +11,7 @@ from elasticai.creator_plugins.eventdetection.src import c_compile
 class SettingsEventDetection:
     """Settings class for configuring the properties of the eventdetection module
     Attributes: 
-        threshold:  threshold defining an event 
+        # threshold:  threshold defining an event 
         hysteresis: Hysteresis window [%]
         hysteresis_type: Applied types of hysteresis [
             'normal': no hysteresis, 
@@ -20,13 +20,11 @@ class SettingsEventDetection:
             'double_hyst': später einschalten, später ausschalten]
         out_invert: Is event low [True] or event high [False]
     """
-    threshold:       int 
     hysteresis:      float 
     hysteresis_type: str
     
 
 DefaultSettingsEventDetection = SettingsEventDetection(
-    threshold=100, 
     hysteresis=0.25,
     hysteresis_type="normal",
 )
@@ -43,8 +41,8 @@ class EventDetection:
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
         
-    def _type_hysteresis(self, mode: str) -> list:
-        thr_zero = self._settings.threshold
+    def _type_hysteresis(self, mode: str, threshold: int) -> list:
+        thr_zero = threshold
         thr_pos = thr_zero + thr_zero * self._settings.hysteresis
         thr_neg = thr_zero - thr_zero * self._settings.hysteresis
         match mode: 
@@ -66,58 +64,54 @@ class EventDetection:
                 )
         return list_out
 
-    def detect_event(self, xin: np.ndarray) -> np.ndarray:
-        thr = self._type_hysteresis(self._settings.hysteresis_type)
+    def detect_event(self, xin: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
         xout = np.zeros(len(xin), dtype=bool)
         self._int_state = False
         # int_state == 0 -> no event, int_state == 1 -> event detected
         for idx, val in enumerate(xin):     
+            thr = self._type_hysteresis(self._settings.hysteresis_type, thresholds[idx].astype(int))
             if self._int_state:
                 xout[idx] = val >= thr[1]
             else:
                 xout[idx] = val >= thr[0]
             self._int_state = xout[idx]
         return xout
-        
+
     def create_design(
         self,
         target: str,
         bitwidth: int,
         id: str,
         path2save: Path,
-        threshold: int,
         hysteresis: float,
         hysteresis_type: str,
         signed: bool = True,
     ) -> None:
-        """Generate the hardware design to detect events on hardware
+        """
+        Generate the hardware design to detect events on hardware
         :param target:          Target platform ["mcu", "pc", "fpga", "asic"],
         :param bitwidth:        Bitwidth,
         :param id:              ID of the target structure,
         :param path2save:       Path to save eventdetection,
         :param signed:          for use in datatype,
-        :param threshold:       threshold for eventdetection,
         :param hysteresis:      relative hysteresis factor,
         :param hysteresis_type: applied type of hysteresis["normal", "pos_hyst", "neg_hyst", "double_hyst"],
         :return:                None,
         """
-        supported_targets = ["mcu", "pc", "fpga", "asic"]
+       
+        supported_targets = ["mcu", "pc"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
-        if target.lower() in ["mcu", "pc"]:
-            self._create_design_c(
-                id=id,
-                bitwidth=bitwidth,
-                signed=signed,
-                path2save=path2save,
-                threshold=threshold,
-                hysteresis=hysteresis,
-                hysteresis_type=hysteresis_type,
-            )
-        else:
-            raise ValueError(f"No design for Target {target} established.")
+        self._create_design_c(
+            id=id,
+            bitwidth=bitwidth,
+            signed=signed,
+            path2save=path2save,
+            hysteresis=hysteresis,
+            hysteresis_type=hysteresis_type,
+        )
 
     def _create_design_c(
         self,
@@ -125,12 +119,10 @@ class EventDetection:
         bitwidth: int,
         signed: bool,
         path2save: Path,
-        threshold: int = 100,
         hysteresis: float = 0.25,
         hysteresis_type: str = "eventdetection_double_hyst",
     ) -> None:
         c_compile.build_eventdetection(
-            threshold=threshold,
             hysteresis=hysteresis,
             hysteresis_type=hysteresis_type,
             bitwidth=bitwidth,

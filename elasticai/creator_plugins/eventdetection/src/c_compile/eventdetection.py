@@ -10,7 +10,6 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_eventdetection(
-    threshold:       int,
     hysteresis:      float,
     hysteresis_type: str,
     bitwidth: int,
@@ -21,7 +20,6 @@ def build_eventdetection(
 ) -> None:
     """Generate C files for eventdetection.
     Args: 
-        threshold:  Integer with threshold if sample is event. 
         hysteresis: relative hysteresis factor. 
         hysteresis_type: Applied types of hysteresis[ 
             'eventdetection_normal': no hysteresis,
@@ -46,7 +44,6 @@ def build_eventdetection(
         "module_id": module_id,
         "device_id": module_id.upper(),
         "data_type": get_embedded_datatype(bitwidth, signed),
-        "threshold": str(threshold),
         "hysteresis": str(hysteresis),
         "hysteresis_type": hyster_type,
     }
@@ -66,7 +63,7 @@ def _generate_eventdetection_template() -> dict[str, list[str]]:
         "// --- Generating eventdetection",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, threshold = {$threshold},",
+        "// Params: ID = {$device_id}, type = {$data_type},",
         "// hysteresis = {$hysteresis}, hysteresis_type = {$hysteresis_type}",
         '#include "{$path2include}/{$template_name}"',
         "EVENT_SETTINGS({$device_id}, {$data_type})",
@@ -76,10 +73,10 @@ def _generate_eventdetection_template() -> dict[str, list[str]]:
         "// --- Generating eventdetection",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, threshold = {$threshold},",
+        "// Params: ID = {$device_id}, type = {$data_type},",
         "// hysteresis = {$hysteresis}, hysteresis_type = {$hysteresis_type}",
         '#include "{$path2include}/eventdetection_{$module_id}.h"',
         "TYPE_HYSTERESIS({$device_id}, {$data_type})",
-        "DEF_NEW_EVENTDETECTION_IMPL({$device_id}, {$data_type}, {$threshold}, {$hysteresis}, {$hysteresis_type})",
+        "DEF_NEW_EVENTDETECTION_IMPL({$device_id}, {$data_type}, {$hysteresis}, {$hysteresis_type})",
     ]
     return {"head": header_template, "func": implementation_template}
