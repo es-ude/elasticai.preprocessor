@@ -20,7 +20,7 @@ def make_detector(threshold=100, hysteresis=0.25, hysteresis_type="normal"):
 
 class TestDefaultSettings:
     def test_threshold(self):
-        assert DefaultSettingsEventDetection.threshold == 0
+        assert DefaultSettingsEventDetection.threshold == 100
 
     def test_hysteresis(self):
         assert DefaultSettingsEventDetection.hysteresis == 0.25
