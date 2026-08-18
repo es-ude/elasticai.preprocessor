@@ -23,14 +23,13 @@ HYSTERESIS_TYPE_CONFIGS = [
         ]
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: str) -> None:
-    eventdetector = EventDetection(SettingsEventDetection(threshold=100, hysteresis=0.25, hysteresis_type="eventdetection_double_hyst"))
+    eventdetector = EventDetection(SettingsEventDetection(hysteresis=0.25, hysteresis_type="eventdetection_double_hyst"))
     eventdetector.create_design(
         target=target,
         bitwidth=8,
         id="0",
         path2save=tmp_path,
         signed=True,
-        threshold=100,
         hysteresis=0.25,
         hysteresis_type="eventdetection_double_hyst"
     )
@@ -48,7 +47,7 @@ def test_generated_eventdetection_c_matches_python_frame(
     c_hysteresis: str,
     py_hysteresis: str,
 ) -> None:
-    settings = SettingsEventDetection(threshold=100, hysteresis=0.25, hysteresis_type=py_hysteresis)
+    settings = SettingsEventDetection(hysteresis=0.25, hysteresis_type=py_hysteresis)
     eventdetector = EventDetection(settings)
     output_dir = tmp_path / "src"
     eventdetector.create_design(
@@ -56,14 +55,13 @@ def test_generated_eventdetection_c_matches_python_frame(
         bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        threshold=100,
         hysteresis=0.25,
         hysteresis_type=c_hysteresis,
         signed=True,
     )
 
     adapter = tmp_path / "adapter.h"
-    adapter.write_text(f"_Bool is_event_0({c_type} data);\n")
+    adapter.write_text(f"_Bool is_event_0({c_type} data, {c_type} threshold);\n")
     loader = CompileLoader(
         headers=str(adapter),
         sources=[str(output_dir / "eventdetection_0.c")],
@@ -73,11 +71,12 @@ def test_generated_eventdetection_c_matches_python_frame(
     loader.load()
 
     input_frame = np.array([90, 100, 125, 100, 99, 75, 74, 100], dtype=numpy_dtype)
-    expected = eventdetector.detect_event(input_frame).astype(numpy_dtype)
+    thresholds_frame = np.array([100, 100, 100, 100, 100, 100, 100, 100], dtype=numpy_dtype)
+    expected = eventdetector.detect_event(input_frame,thresholds_frame).astype(numpy_dtype)
 
     c_results = []
-    for sample in input_frame.tolist():
-        c_results.append(loader.get("is_event_0")(sample))
+    for idx, sample in enumerate(input_frame.tolist()):
+        c_results.append(loader.get("is_event_0")(sample, thresholds_frame[idx]))
 
     for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
         passed, reason = compare_values(expected_value, c_value)

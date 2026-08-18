@@ -14,7 +14,6 @@ typedef enum {
 #ifndef EVENT_SETTINGS
 #define EVENT_SETTINGS(id, input_type) \
 typedef struct { \
-    input_type threshold; \
     float      hysteresis; \
     bool       int_state; \
     EventDetectionHysteresisType hysteresis_type; \
@@ -23,8 +22,8 @@ typedef struct { \
 
 #ifndef TYPE_HYSTERESIS
 #define TYPE_HYSTERESIS(id, input_type) \
-void get_limits_ ## id(EventSettings_ ## id settings, input_type *limits) { \
-    input_type thr_zero = settings.threshold; \
+void get_limits_ ## id(EventSettings_ ## id settings, input_type threshold, input_type *limits) { \
+    input_type thr_zero = threshold; \
     input_type thr_pos = thr_zero + thr_zero * settings.hysteresis; \
     input_type thr_neg = thr_zero - thr_zero * settings.hysteresis; \
     switch (settings.hysteresis_type) { \
@@ -48,40 +47,36 @@ void get_limits_ ## id(EventSettings_ ## id settings, input_type *limits) { \
 }
 #endif//TYPE_HYSTERESIS
 
-#ifndef DEF_EVENTDETECTION
-#define DEF_EVENTDETECTION(id, input_type) \
-bool is_still_event_ ## id(input_type data, bool is_event, input_type *limits) { \
-    if (is_event) \
-        { \
-            return (data >= limits[1]); \
-        } \
-    return (data >= limits[0]); \
-}
-#endif//DEF_EVENTDETECTION
-
 #ifndef DEF_NEW_EVENTDETECTION_IMPL
-#define DEF_NEW_EVENTDETECTION_IMPL(id, input_type, thresh, hyster, hyster_type) \
-static DEF_EVENTDETECTION(id, input_type) \
-bool is_event_ ## id(input_type data) {  \
+#define DEF_NEW_EVENTDETECTION_IMPL(id, input_type, hyster, hyster_type) \
+bool is_event_ ## id(input_type data, input_type threshold) {  \
     static EventSettings_ ## id settings = { \
-        .threshold       = thresh, \
         .hysteresis      = hyster, \
         .int_state       = false, \
         .hysteresis_type = hyster_type, \
     }; \
-    static input_type limits[2] = {0}; \
-    get_limits_ ## id(settings, limits); \
-    if (is_still_event_ ## id(data, settings.int_state, limits)) { \
+    input_type limits[2] = {0}; \
+    get_limits_ ## id(settings, threshold, limits); \
+    if (settings.int_state) \
+    { \
+        if (data >= limits[1]) \
+        { \
+            return true; \
+        } \
+        settings.int_state = false; \
+        return false; \
+    } \
+    if (data >= limits[0]) \
+    { \
         settings.int_state = true; \
         return true; \
     } \
-    settings.int_state = false; \
     return false; \
 }
 #endif//DEF_NEW_EVENTDETECTION_IMPL
 
 #ifndef DEF_NEW_EVENTDETECTION_PROTO
 #define DEF_NEW_EVENTDETECTION_PROTO(id, input_type) \
-bool is_event_ ## id(input_type data);
+bool is_event_ ## id(input_type data, input_type threshold);
 #endif//DEF_NEW_EVENTDETECTION_PROTO
 #endif//EVENTDETECTION_TEMPLATE_H
