@@ -6,6 +6,7 @@ import numpy as np
 
 from elasticai.creator_plugins.eventdetection.src import c_compile
 
+
 @dataclass
 class SettingsEventDetection:
     """Settings class for configuring the properties of the eventdetection module
