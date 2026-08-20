@@ -53,15 +53,15 @@ class DownSampling:
             raise ValueError("dsr must be >= 1")
         if factor == 1:
             return data
-        if data.ndim < 2:
-            raise ValueError("subsampling expects a sample axis")
+        if data.ndim < 1:
+            raise ValueError("subsampling expects an array")
 
         output_length = data[..., 0::factor].shape[-1]
         downsampled_offsets = [
             self._pad_last_axis(data[..., offset::factor], output_length) for offset in range(factor)
         ]
         if not augment:
-            return downsampled_offsets[0]
+            return downsampled_offsets[factor-1]
         return np.concatenate(downsampled_offsets, axis=0)
 
     @staticmethod
