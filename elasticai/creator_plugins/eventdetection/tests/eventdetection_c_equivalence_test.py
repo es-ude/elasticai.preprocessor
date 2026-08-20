@@ -70,8 +70,8 @@ def test_generated_eventdetection_c_matches_python_frame(
     )
     loader.load()
 
-    input_frame = np.array([90, 100, 125, 100, 99, 75, 74, 100], dtype=numpy_dtype)
-    thresholds_frame = np.array([100, 100, 100, 100, 100, 100, 100, 100], dtype=numpy_dtype)
+    input_frame = np.array([90, 100, 125, 100, 99, 75, 74, 100, 35, 40, 52, 60, 65, 65, 50, 100, 35, 90], dtype=numpy_dtype)
+    thresholds_frame = np.array([100, 100, 100, 100, 100, 100, 100, 100, 52, 52, 52, 52, 52, 80, 80, 80, 100, 80], dtype=numpy_dtype)
     expected = eventdetector.detect_event(input_frame,thresholds_frame).astype(numpy_dtype)
 
     c_results = []
