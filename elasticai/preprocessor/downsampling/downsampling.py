@@ -41,29 +41,6 @@ class DownSampling:
     def sampling_rate_out(self) -> float:
         return self._settings.sampling_rate / self._settings.dsr
 
-    def do_subsampling(self, data: np.ndarray, augment: bool = False) -> np.ndarray:
-        """Downsample datasets by taking every dsr-th value along the last axis.
-
-        When augment is True, additional samples are generated from the
-        remaining offsets and concatenated along the sample axis. Missing tail
-        values are zero-padded so all generated samples have equal length.
-        """
-        factor = self._settings.dsr
-        if factor < 1:
-            raise ValueError("dsr must be >= 1")
-        if factor == 1:
-            return data
-        if data.ndim < 1:
-            raise ValueError("subsampling expects an array")
-
-        output_length = data[..., 0::factor].shape[-1]
-        downsampled_offsets = [
-            self._pad_last_axis(data[..., offset::factor], output_length) for offset in range(factor)
-        ]
-        if not augment:
-            return downsampled_offsets[factor-1]
-        return np.concatenate(downsampled_offsets, axis=0)
-
     @staticmethod
     def _pad_last_axis(data: np.ndarray, output_length: int) -> np.ndarray:
         pad_length = output_length - data.shape[-1]
@@ -74,7 +51,7 @@ class DownSampling:
 
     def create_design(
         self,
-        method: TargetsDownSampling,
+        method: int | TargetsDownSampling,
         target: str,
         bitwidth: int,
         id: str,
@@ -132,7 +109,7 @@ class DownSampling:
 
     def _create_design_c(
         self,
-        method: TargetsDownSampling,
+        method: int | TargetsDownSampling,
         take_first_order: bool,
         id: str,
         bitwidth: int,
@@ -203,14 +180,32 @@ class DownSampling:
             "params": {"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
         }
 
+    def _create_subsampler_verilog(self, id: str, bitwidth: int, order: int) -> dict:
+        return {
+            "type": "subsampler",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth, "DEC_RATE": order, "INDEX": 0},
+        }
+
+    def _create_downsampler_mean_verilog(self, id: str, bitwidth: int, order: int) -> dict:
+        return {
+            "type": "downsampler_mean",
+            "id": id,
+            "params": {"BITWIDTH": bitwidth, "DEC_RATE": order},
+        }
+
     def _create_design_fpga_verilog(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
+        self, method: int | TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
     ) -> None:
         match method:
             case TargetsDownSampling.Subsampling:
-                raise NotImplementedError
+                params = self._create_subsampler_verilog(
+                    id=id, bitwidth=bitwidth, order=self._settings.dsr
+                )
             case TargetsDownSampling.Simple:
-                raise NotImplementedError
+                params = self._create_downsampler_mean_verilog(
+                    id=id, bitwidth=bitwidth, order=self._settings.dsr
+                )
             case TargetsDownSampling.CIC:
                 params = self._create_cic_verilog(
                     id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=n_dec
@@ -224,7 +219,7 @@ class DownSampling:
         datarate_filters.load_and_plugin(packages=["datarate"], path2save=path2save, **params)
 
     def _create_design_asic_verilog(
-        self, method: TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
+        self, method: int | TargetsDownSampling, id: str, bitwidth: int, path2save: Path, n_dec: int = 2
     ) -> None:
         match method:
             case TargetsDownSampling.Subsampling:
@@ -251,6 +246,31 @@ class DownSampling:
         n = uin.size // self._settings.dsr * self._settings.dsr
         data = uin[:n]
         return data.reshape(-1, self._settings.dsr).mean(axis=1)
+
+    def do_subsampling(self, data: np.ndarray, augment: bool = False, take_sample: int = 0) -> np.ndarray:
+        """Downsample datasets by taking every dsr-th value along the last axis.
+        :param data:        Numpy array with transient signal input (high sampling rate)
+        :param augment:     When augment is True, additional samples are generated from the
+                            remaining offsets and concatenated along the sample axis. Missing tail
+                            values are zero-padded so all generated samples have equal length.
+        :param take_sample: Number of samples to take
+        :return:            Numpy array with transient signal output (low sampling rate)
+        """
+        factor = self._settings.dsr
+        if factor < 1:
+            raise ValueError("dsr must be >= 1")
+        if factor == 1:
+            return data
+        if data.ndim < 1:
+            raise ValueError("subsampling expects an array")
+
+        output_length = data[..., 0::factor].shape[-1]
+        downsampled_offsets = [
+            self._pad_last_axis(data[..., offset::factor], output_length) for offset in range(factor)
+        ]
+        if not augment:
+            return downsampled_offsets[take_sample]
+        return np.concatenate(downsampled_offsets, axis=0)
 
     def do_cic(self, uin: np.ndarray, num_stages: int = 5) -> np.ndarray:
         """Performing the CIC filter at the output of oversampled ADC

@@ -18,6 +18,9 @@ def subsampler(impl: DataGraph, _: Registry) -> Iterable[Code]:
 
     _template = (
         TemplateDirector()
+        .parameter("BITWIDTH")
+        .parameter("DEC_RATE")
+        .parameter("INDEX")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()

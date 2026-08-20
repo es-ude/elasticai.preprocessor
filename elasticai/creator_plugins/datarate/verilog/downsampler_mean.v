@@ -1,63 +1,62 @@
+//////////////////////////////////////////////////////////////////////////////////
+// Company:         University of Duisburg-Essen, Intelligent Embedded Systems Lab
+// Engineer:        ND, AE
+//
+// Create Date:     10.08.2026, 17:54:12
+// Copied on: 	    §{date_copy_created}
+// Module Name:     Simple Datarate Subsampler
+// Target Devices:  FPGA
+// Tool Versions:   1v0
+// Processing:      Data applied on posedge CLK_SYS
+// Dependencies:    None
+//
+// State: 	        Not tested!
+// Improvements:    None
+// Parameters:      BITWIDTH --> Bitwidth of input data
+//                  DEC_RATE --> Decimation rate
+//////////////////////////////////////////////////////////////////////////////////
+
 
 module DOWNSAMPLER_MEAN #(
-    parameter integer DATA_WIDTH = 16,             
-    parameter integer DSR        = 8,              
-    parameter integer ACC_WIDTH  = DATA_WIDTH + 8 
+    parameter integer BITWIDTH = 16,
+    parameter integer DEC_RATE = 8
 )(
-    input  wire                          clk,
-    input  wire                          rst_n,     
-    input  wire                          in_valid,  
-    input  wire signed [DATA_WIDTH-1:0]  din,       // Eingangssample 
-
-    output reg                           out_valid, // 1 Takt lang high, wenn dout gültig ist
-    output reg  signed [DATA_WIDTH-1:0]  dout        // Mittelwert der letzten DSR Samples
+    input wire                          CLK_SYS,
+    input wire                          RSTN,
+    input wire                          EN,
+    input wire                          IN_VALID,
+    input wire signed [BITWIDTH-1:0]    DATA_IN,
+    output reg                          DATA_RDY,
+    output reg  signed [BITWIDTH-1:0]   DATA_OUT
 );
-    localparam integer CNT_WIDTH = (DSR <= 1) ? 1 : $clog2(DSR);
-    localparam          IS_POW2   = (DSR != 0) && ((DSR & (DSR - 1)) == 0);
-    
-    reg [CNT_WIDTH-1:0]        sample_cnt;
+
+    localparam integer ACC_WIDTH = BITWIDTH + $clog2(DEC_RATE);
+    localparam integer IS_POW2 = (DEC_RATE != 0) && ((DEC_RATE & (DEC_RATE - 1)) == 0);
+
+    reg in_valid_dly;
+    reg [$clog2(DEC_RATE):0] sample_cnt;
     reg signed [ACC_WIDTH-1:0] sum_reg;
 
-    wire signed [ACC_WIDTH-1:0] sum_with_new_sample = sum_reg + din;
-    wire                        group_complete      = in_valid && (sample_cnt == DSR - 1);
-    wire signed [ACC_WIDTH-1:0] mean_value;
-
-
-// Mittelwert: Bitshift bei Zweierpotenz-DSR, sonst echte Division.
-    generate
-        if (IS_POW2) begin : g_shift
-            assign mean_value = sum_with_new_sample >>> $clog2(DSR);
-        end else begin : g_div
-            assign mean_value = sum_with_new_sample / DSR;
-        end
-    endgenerate
-
-// Zähler, wird am Ende zurückgesetzt
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            sample_cnt <= {CNT_WIDTH{1'b0}};
-        else if (in_valid)
-            sample_cnt <= group_complete ? {CNT_WIDTH{1'b0}} : sample_cnt + 1'b1;
-    end
-
-// Akkumulator
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            sum_reg <= {ACC_WIDTH{1'b0}};
-        else if (in_valid)
-            sum_reg <= group_complete ? {ACC_WIDTH{1'b0}} : sum_with_new_sample;
-    end
-
-// Output: Mittelwert + Valid-Puls (1 Takt)
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            dout      <= {DATA_WIDTH{1'b0}};
-            out_valid <= 1'b0;
+    always @(posedge CLK_SYS) begin
+        if (!RSTN) begin
+            in_valid_dly <= 1'd0;
+            sample_cnt <= DEC_RATE - 'd1;
+            sum_reg    <= 'd0;
+            DATA_RDY  <= 1'b0;
+            DATA_OUT  <= 'd0;
         end else begin
-            out_valid <= group_complete;
-            if (group_complete)
-                dout <= mean_value;
+            in_valid_dly <= IN_VALID;
+            if (IN_VALID && !in_valid_dly && EN) begin
+                sample_cnt <= (sample_cnt == DEC_RATE - 'd1) ? 'd0 : sample_cnt + 'd1;
+                sum_reg    <= (sample_cnt == DEC_RATE - 'd1) ? {{$clog2(DEC_RATE){DATA_IN[BITWIDTH-1]}}, DATA_IN} : sum_reg + {{$clog2(DEC_RATE){DATA_IN[BITWIDTH-1]}}, DATA_IN};
+                DATA_OUT <= (sample_cnt == DEC_RATE - 'd1) ? ((IS_POW2) ? (sum_reg >>> $clog2(DEC_RATE)) : (sum_reg / DEC_RATE)) : DATA_OUT;
+                DATA_RDY <= (sample_cnt == DEC_RATE - 'd1);
+            end else begin
+                sample_cnt <= sample_cnt;
+                sum_reg <= sum_reg;
+                DATA_OUT <= DATA_OUT;
+                DATA_RDY <= DATA_RDY;
+            end
         end
     end
-
 endmodule

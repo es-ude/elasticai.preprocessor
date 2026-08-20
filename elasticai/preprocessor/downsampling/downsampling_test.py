@@ -160,21 +160,65 @@ class TestDownSampling(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(
-            method=TargetsDownSampling.CIC,
-            id="0",
-            target="fpga",
-            bitwidth=16,
-            signed=True,
-            path2save=path2save,
-            num_stages=2,
-        )
-        files_available = [
-            "cic_0.v",
-        ]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            DownSampling(sets).create_design(
+                method=TargetsDownSampling.CIC,
+                id="0",
+                target="fpga",
+                bitwidth=16,
+                signed=True,
+                path2save=path2save,
+                num_stages=2,
+            )
+            files_available = [
+                "cic_0.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_subsampling_verilog(self):
+        sets = deepcopy(test_settings)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
+
+            DownSampling(sets).create_design(
+                method=TargetsDownSampling.Subsampling,
+                id="0",
+                target="fpga",
+                bitwidth=16,
+                signed=True,
+                path2save=path2save,
+                num_stages=2,
+            )
+            files_available = [
+                "subsampler_0.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_simple_verilog(self):
+        sets = deepcopy(test_settings)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
+
+            DownSampling(sets).create_design(
+                method=TargetsDownSampling.Simple,
+                id="0",
+                target="fpga",
+                bitwidth=16,
+                signed=True,
+                path2save=path2save,
+                num_stages=2,
+            )
+            files_available = [
+                "downsampler_mean_0.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_polydec_fpga_verilog(self):
         sets = deepcopy(test_settings)
@@ -182,20 +226,20 @@ class TestDownSampling(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(
-            method=TargetsDownSampling.Polyphase,
-            id="0",
-            target="fpga",
-            bitwidth=16,
-            signed=True,
-            path2save=path2save,
-        )
-        files_available = [
-            "polydec_fpga_0.v",
-        ]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            DownSampling(sets).create_design(
+                method=TargetsDownSampling.Polyphase,
+                id="0",
+                target="fpga",
+                bitwidth=16,
+                signed=True,
+                path2save=path2save,
+            )
+            files_available = [
+                "polydec_fpga_0.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_polydec_asic_verilog(self):
         sets = deepcopy(test_settings)
@@ -204,20 +248,20 @@ class TestDownSampling(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-        DownSampling(sets).create_design(
-            method=TargetsDownSampling.Polyphase,
-            id="0",
-            target="asic",
-            bitwidth=16,
-            signed=True,
-            path2save=path2save,
-        )
-        files_available = [
-            "polydec_asic_0.v",
-        ]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            DownSampling(sets).create_design(
+                method=TargetsDownSampling.Polyphase,
+                id="0",
+                target="asic",
+                bitwidth=16,
+                signed=True,
+                path2save=path2save,
+            )
+            files_available = [
+                "polydec_asic_0.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
 
 if __name__ == "__main__":

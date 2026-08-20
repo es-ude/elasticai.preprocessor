@@ -18,6 +18,8 @@ def downsampler_mean(impl: DataGraph, _: Registry) -> Iterable[Code]:
 
     _template = (
         TemplateDirector()
+        .parameter("BITWIDTH")
+        .parameter("DEC_RATE")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()
