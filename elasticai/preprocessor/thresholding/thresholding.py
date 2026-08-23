@@ -106,7 +106,7 @@ class Thresholding:
             raise ValueError(f"Method '{self._settings.method}' in hardware generation is not supported.")
         return self._hwmap[self._settings.method]
 
-    def _map_method_to_c(self) -> str:
+    def _map_method_to_c(self) -> TargetsTresholding:
         if self._settings.method.lower() not in list(self._cmap.keys()):
             raise ValueError(f"Method '{self._settings.method}' in C generation is not supported.")
         return self._cmap[self._settings.method]
