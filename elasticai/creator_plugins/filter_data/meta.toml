@@ -1,5 +1,5 @@
 [[plugins]]
-name = "filters"
+name = "filter_data"
 version = "0.1"
 api_version = "0.1"
 target_runtime = "verilog"

@@ -9,7 +9,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
-from elasticai.preprocessor.translation.cocotb_test import temporary_directory
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 def build_test_signal(
@@ -76,7 +76,7 @@ async def cic_access(dut, bitwidth: int, dec_rate: int, n_dec: int, sig_in: list
 @pytest.mark.parametrize("bitwidth", [2, 6, 8, 12, 16])
 @pytest.mark.parametrize("dec_rate", [1])
 @pytest.mark.parametrize("n_dec", [2])
-def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
+def test_template(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_samples=20,
@@ -97,9 +97,7 @@ def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_r
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("dec_rate", [1])
 @pytest.mark.parametrize("n_dec", [2])
-def test_filter_cic_build(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int
-):
+def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_samples=20,
@@ -127,9 +125,7 @@ def test_filter_cic_build(
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("dec_rate", [2])
 @pytest.mark.parametrize("n_dec", [2])
-def test_filter_cic_build_equal(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int
-):
+def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     dut = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0,

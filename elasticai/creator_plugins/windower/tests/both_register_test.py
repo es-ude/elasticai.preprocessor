@@ -5,6 +5,8 @@ from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+
 
 @cocotb.test()
 @eai_testbench
@@ -59,9 +61,11 @@ async def both_register_tb(dut, bitwidth: int, samples: int):
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, samples", [(8, 12), (6, 128)])
 def test_output_shift_and_ringbuffer(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, samples: int):
-    cocotb_test_fixture.set_top_module_name("BOTH_REGISTER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/both_register.v")
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/shift_register.v")
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/ring_buffer.v")
-    cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "SAMPLES": samples}, defines={})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("BOTH_REGISTER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("windower", "verilog/both_register.v")
+        cocotb_test_fixture.add_srcs_from_package("windower", "verilog/shift_register.v")
+        cocotb_test_fixture.add_srcs_from_package("windower", "verilog/ring_buffer.v")
+        cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "SAMPLES": samples}, defines={})

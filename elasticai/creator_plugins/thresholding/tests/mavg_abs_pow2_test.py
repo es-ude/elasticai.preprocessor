@@ -8,6 +8,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.mac import load_and_plugin
 
 from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @cocotb.test()
@@ -56,13 +57,10 @@ async def filter_moving_average_test(
         await FallingEdge(dut.DO_CALC)
         dout.append(int(dut.DATA_OUT.value.to_signed()))
 
-    await FallingEdge(dut.DO_CALC)
-    dout.append(int(dut.DATA_OUT.value.to_signed()))
-
     await ClockCycles(dut.CLK_SYS, int(period_data / period_clk) - 2)
 
     passed = True
-    for val, exp in zip(dout[1:], check):
+    for val, exp in zip(dout, check):
         passed = passed and val in [exp - 1, exp, exp + 1]
 
     if not passed:
@@ -80,7 +78,7 @@ async def filter_moving_average_test(
         (8, 4),
     ],
 )
-def test_func(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
@@ -93,22 +91,24 @@ def test_func(
     ).tolist()
     check_data = [31, 59, 82, 101, 84, 67, 50, 33, 20, 16, 20, 33, 50, 67, 84, 101]
 
-    cocotb_test_fixture.write(
-        {
-            "data_in": data_in,
-            "check": check_data,
-        }
-    )
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("thresholding", "verilog/mov_avg_abs_norm.v")
-    cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE_ABSOLUTE")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "LENGTH": length,
-        },
-        defines={},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write(
+            {
+                "data_in": data_in,
+                "check": check_data,
+            }
+        )
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("thresholding", "verilog/mov_avg_abs_pow2.v")
+        cocotb_test_fixture.set_top_module_name("MOVING_AVERAGE")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "LENGTH": length,
+            },
+            defines={},
+        )
 
 
 # --- build test
@@ -124,50 +124,48 @@ def test_build(
     bitwidth: int,
     length: int,
 ):
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    # Directory for artifact
-    artifact_dir = cocotb_test_fixture.get_artifact_dir()
-    build_dir = artifact_dir / "verilog"
+        load_and_plugin(
+            type="mov_avg_abs_pow2",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "LENGTH": length,
+            },
+            packages=["thresholding"],
+            path2save=build_dir,
+        )
 
-    load_and_plugin(
-        type="mov_avg_abs_norm",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "LENGTH": length,
-        },
-        packages=["thresholding"],
-        path2save=build_dir,
-    )
+        # --- input data
+        cnv = int_arithmetic(total_bits=bitwidth, signed=True)
+        data_in = np.linspace(
+            cnv.minimum_as_integer, cnv.maximum_as_integer, num=16, dtype=int, endpoint=True
+        ).tolist()
+        check_data = [31, 59, 82, 101, 84, 67, 50, 33, 20, 16, 20, 33, 50, 67, 84, 101]
 
-    # --- input data
-    cnv = int_arithmetic(total_bits=bitwidth, signed=True)
-    data_in = np.linspace(
-        cnv.minimum_as_integer, cnv.maximum_as_integer, num=16, dtype=int, endpoint=True
-    ).tolist()
-    check_data = [31, 59, 82, 101, 84, 67, 50, 33, 20, 16, 20, 33, 50, 67, 84, 101]
+        cocotb_test_fixture.write(
+            {
+                "data_in": data_in,
+                "check": check_data,
+            }
+        )
 
-    cocotb_test_fixture.write(
-        {
-            "data_in": data_in,
-            "check": check_data,
-        }
-    )
-
-    # start test
-    cocotb_test_fixture.set_top_module_name("MOV_AVG_ABS_NORM_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        # start test
+        cocotb_test_fixture.set_top_module_name("MOV_AVG_ABS_POW2_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
 
 
-# --- Check equivalence to reference function (build_test_data)
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, length", [(8, 6), (6, 10), (10, 28)])
-def test_equal(
+@pytest.mark.parametrize("bitwidth, length", [(8, 4), (6, 8), (10, 32)])
+def test_build_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     length: int,
@@ -188,28 +186,31 @@ def test_equal(
     threshold = Thresholding(settings)
     checked_data = threshold.get_threshold(data_in)
 
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    threshold.create_design(
-        data=data_in,
-        target="fpga",
-        bitwidth=bitwidth,
-        id=f"{id}",
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write(
-        {
-            "data_in": data_in.tolist(),
-            "check": checked_data.tolist(),
-        }
-    )
+        threshold.create_design(
+            data=data_in,
+            target="fpga",
+            bitwidth=bitwidth,
+            id=f"{id}",
+            path2save=build_dir,
+        )
 
-    top_module = f"MOV_AVG_ABS_NORM_{id}"
-    cocotb_test_fixture.set_top_module_name(top_module)
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
+        cocotb_test_fixture.write(
+            {
+                "data_in": data_in.tolist(),
+                "check": checked_data.tolist(),
+            }
+        )
 
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        top_module = f"MOV_AVG_ABS_POW2_{id}"
+        cocotb_test_fixture.set_top_module_name(top_module)
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )

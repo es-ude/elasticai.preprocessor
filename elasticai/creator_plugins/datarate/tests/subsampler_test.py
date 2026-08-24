@@ -8,7 +8,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
-from elasticai.preprocessor.translation.cocotb_test import temporary_directory
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @cocotb.test()
@@ -64,7 +64,7 @@ async def subsampler_access(
         (8, False, 8, 1),
     ],
 )
-def test_subsampler(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int, index: int
 ):
     arith = int_arithmetic(total_bits=bitwidth, signed=is_signed)
@@ -98,7 +98,7 @@ def test_subsampler(
         (8, False, 8, 1),
     ],
 )
-def test_subsampler_build(
+def test_build(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int, index: int
 ):
     arith = int_arithmetic(total_bits=bitwidth, signed=is_signed)
@@ -134,7 +134,7 @@ def test_subsampler_build(
         (8, False, 8, 0),
     ],
 )
-def test_subsampler_build_equal(
+def test_build_equal(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int, index: int
 ):
     arith = int_arithmetic(total_bits=bitwidth, signed=is_signed)

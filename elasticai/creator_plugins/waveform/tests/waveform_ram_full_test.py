@@ -12,6 +12,7 @@ from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_me
 
 from elasticai.creator_plugins.waveform.tests.waveform_lut_full_test import reconstruct_signal
 from elasticai.creator_plugins.waveform.utils import load_and_plugin
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from elasticai.preprocessor.waveform import WaveformGenerator
 
 
@@ -115,103 +116,43 @@ async def wvf_ram_write_one_value_read_one_trial(
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params", [(6, 23)])
 @pytest.mark.parametrize("is_signed", [False])
-def test_waveform_ram_full_normal(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
     is_signed: bool,
 ):
     waveform = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 31, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0]
-    build_dir = cocotb_test_fixture.get_artifact_dir()
-    path2file = build_dir / "data.mem"
-    write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
 
-    check = [waveform[0]]
-    for _ in range(1):
-        check.extend(waveform[1:])
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        path2file = tmpdir / "data" / "data.mem"
+        write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
 
-    cocotb_test_fixture.write({"check": check})
-    cocotb_test_fixture.set_top_module_name("RAM_WAVEFORM_FULL")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_ram_full.v")
-    cocotb_test_fixture.add_srcs_from_package(bram, "verilog/bram_single_port.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "RAMWIDTH": num_params,
-            "PATH2MEM": translate_path_to_int(path2file),
-        },
-        defines={},
-    )
+        check = [waveform[0]]
+        for _ in range(1):
+            check.extend(waveform[1:])
 
-
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, num_params", [(6, 23)])
-@pytest.mark.parametrize("is_signed", [False])
-def test_waveform_ram_full_normal_build(
-    cocotb_test_fixture: CocotbTestFixture,
-    bitwidth: int,
-    num_params: int,
-    is_signed: bool,
-):
-    waveform = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 31, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0]
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    path2file = build_dir / "data.mem"
-
-    write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
-    load_and_plugin(
-        type="waveform_ram_full",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "RAMWIDTH": num_params,
-            "PATH2MEM": translate_path_to_int(path2file),
-        },
-        path2save=build_dir,
-        use_bram=True,
-    )
-
-    check = reconstruct_signal(waveform=waveform, num_trials=1)
-
-    cocotb_test_fixture.write({"check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_FULL_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
-
-
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, num_params", [(6, 21)])
-@pytest.mark.parametrize("is_signed", [False])
-def test_waveform_ram_full_normal_build2(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, is_signed: bool
-):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    data0 = WaveformGenerator(100.0).create_design(
-        waveform="SINE_FULL",
-        num_params=num_params,
-        is_signed=is_signed,
-        target="fpga",
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-        use_bram=True,
-        do_opt=False,
-    )
-    check = reconstruct_signal(waveform=data0, num_trials=1)
-    cocotb_test_fixture.write({"check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_FULL_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+        cocotb_test_fixture.write({"check": check})
+        cocotb_test_fixture.set_top_module_name("RAM_WAVEFORM_FULL")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_ram_full.v")
+        cocotb_test_fixture.add_srcs_from_package(bram, "verilog/bram_single_port.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "RAMWIDTH": num_params,
+                "PATH2MEM": translate_path_to_int(path2file),
+            },
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params", [(6, 23)])
 @pytest.mark.parametrize("is_signed", [False, True])
-def test_waveform_ram_full_ext_trigger(
+def test_template_trigger(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
@@ -223,24 +164,91 @@ def test_waveform_ram_full_ext_trigger(
         for _ in range(num_params)
     ]
 
-    build_dir = cocotb_test_fixture.get_artifact_dir()
-    path2file = build_dir / "data.mem"
-    write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        path2file = tmpdir / "data" / "data.mem"
+        write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
 
-    check = [waveform[0]]
-    for _ in range(1):
-        check.extend(waveform[1:])
+        check = [waveform[0]]
+        for _ in range(1):
+            check.extend(waveform[1:])
 
-    cocotb_test_fixture.write({"check": check})
-    cocotb_test_fixture.set_top_module_name("RAM_WAVEFORM_FULL")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_ram_full.v")
-    cocotb_test_fixture.add_srcs_from_package(bram, "verilog/bram_single_port.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "RAMWIDTH": num_params,
-            "PATH2MEM": translate_path_to_int(path2file),
-        },
-        defines={"TRGG_EXTERNAL": True},
-    )
+        cocotb_test_fixture.write({"check": check})
+        cocotb_test_fixture.set_top_module_name("RAM_WAVEFORM_FULL")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_ram_full.v")
+        cocotb_test_fixture.add_srcs_from_package(bram, "verilog/bram_single_port.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "RAMWIDTH": num_params,
+                "PATH2MEM": translate_path_to_int(path2file),
+            },
+            defines={"TRGG_EXTERNAL": True},
+        )
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params", [(6, 23)])
+@pytest.mark.parametrize("is_signed", [False])
+def test_build(
+    cocotb_test_fixture: CocotbTestFixture,
+    bitwidth: int,
+    num_params: int,
+    is_signed: bool,
+):
+    waveform = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 31, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0]
+
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+        path2file = tmpdir / "data" / "data.mem"
+
+        write_mem_file(path=path2file, data=waveform, bitwidth=bitwidth)
+        load_and_plugin(
+            type="waveform_ram_full",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "RAMWIDTH": num_params,
+                "PATH2MEM": translate_path_to_int(path2file),
+            },
+            path2save=build_dir,
+            use_bram=True,
+        )
+
+        check = reconstruct_signal(waveform=waveform, num_trials=1)
+
+        cocotb_test_fixture.write({"check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_FULL_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params", [(6, 21)])
+@pytest.mark.parametrize("is_signed", [False])
+def test_build2(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, is_signed: bool):
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        data0 = WaveformGenerator(100.0).create_design(
+            waveform="SINE_FULL",
+            num_params=num_params,
+            is_signed=is_signed,
+            target="fpga",
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+            use_bram=True,
+            do_opt=False,
+        )
+        check = reconstruct_signal(waveform=data0, num_trials=1)
+        cocotb_test_fixture.write({"check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_RAM_FULL_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})

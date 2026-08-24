@@ -8,7 +8,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
-from elasticai.preprocessor.translation.cocotb_test import temporary_directory
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @cocotb.test()
@@ -62,9 +62,7 @@ async def downsampler_mean_access(
         (8, False, 3),
     ],
 )
-def test_downsampler_mean_po2(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int
-):
+def test_func_po2(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int):
     sig_in_po2 = [1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8]
     check_po2 = [2, 6]
 
@@ -91,9 +89,7 @@ def test_downsampler_mean_po2(
         (8, False, 3),
     ],
 )
-def test_downsampler_mean(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int
-):
+def test_func_mean(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int):
     sig_in = [1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9]
     check = [2, 5, 8]
 
@@ -120,9 +116,7 @@ def test_downsampler_mean(
         (8, False, 3),
     ],
 )
-def test_downsampler_mean_build(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int
-):
+def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int):
     sig_in = [1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9]
     check = [2, 5, 8]
 
@@ -154,7 +148,7 @@ def test_downsampler_mean_build(
         (10, True, 6),
     ],
 )
-def test_downsampler_mean_build_equal(
+def test_build_equal(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, is_signed: bool, num_dsr: int
 ):
     dut = DownSampling(

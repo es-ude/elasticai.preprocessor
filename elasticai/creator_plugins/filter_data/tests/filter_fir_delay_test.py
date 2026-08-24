@@ -10,6 +10,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 import elasticai.creator_plugins.windower as windower
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
 from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 def build_testdata(
@@ -85,7 +86,7 @@ async def fir_delay(dut, bitwidth: int, fracwidth: int, length: int, data: list[
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7)])
 @pytest.mark.parametrize("length", [11])
-def test_filter_fir_delay(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
@@ -116,38 +117,28 @@ def test_filter_fir_delay(
     ).tolist()
     data_check = arith_data.cut_as_integer(data_check)
 
-    cocotb_test_fixture.write({"data": data_in, "check": data_check})
-    cocotb_test_fixture.set_top_module_name("FIR_DELAY")
-    cocotb_test_fixture.add_srcs_from_package(windower, "verilog/ring_buffer.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "LENGTH": length},
-        defines={},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write({"data": data_in, "check": data_check})
+        cocotb_test_fixture.set_top_module_name("FIR_DELAY")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("filter_data", "verilog/filter_fir_delay.v")
+        cocotb_test_fixture.add_srcs_from_package(windower, "verilog/ring_buffer.v")
+        cocotb_test_fixture.run(
+            params={"BITWIDTH": bitwidth, "LENGTH": length},
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7), (12, 4)])
 @pytest.mark.parametrize("length", [11, 20, 40])
-def test_filter_fir_delay_build(
+def test_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
     length: int,
 ):
-    load_and_plugin(
-        type="fir_delay",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "LENGTH": length,
-        },
-        packages=["filter_data"],
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-        add_ringbuffer=True,
-        add_mac=False,
-        use_dsp_mult=False,
-    )
-
     dut = Filtering(
         SettingsFilter(
             gain=1.0,
@@ -172,11 +163,35 @@ def test_filter_fir_delay_build(
     ).tolist()
     data_check = arith_data.cut_as_integer(data_check)
 
-    cocotb_test_fixture.write({"data": data_in, "check": data_check})
-    cocotb_test_fixture.set_top_module_name("FIR_DELAY_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        load_and_plugin(
+            type="fir_delay",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "LENGTH": length,
+            },
+            packages=["filter_data"],
+            path2save=build_dir,
+            add_ringbuffer=True,
+            add_mac=False,
+            use_dsp_mult=False,
+        )
+
+        cocotb_test_fixture.write({"data": data_in, "check": data_check})
+        cocotb_test_fixture.set_top_module_name("FIR_DELAY_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
+
+
+@pytest.mark.simulation
+@pytest.mark.skip("No Python func available")
+def test_build_equal():
+    pass
