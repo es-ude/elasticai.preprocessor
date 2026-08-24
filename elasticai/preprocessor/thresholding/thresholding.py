@@ -89,7 +89,7 @@ class Thresholding:
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
-        thr_val0 = int(self.get_threshold(xin=data, **kwargs)[0])
+        thr_val0 = int(self.get_threshold(xin=data, gain=1.0, **kwargs)[0])
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
@@ -187,6 +187,7 @@ class Thresholding:
     ) -> np.ndarray:
         """Function for getting the crosspoints of thresholding value and transient input
         :param xin:         Numpy array with transient raw signal
+        :param gain:        Float with additional gain on threshold
         :param pre_time:    Floating value with pre-time in the window before event is detected [s]
         :return:            Numpy array with thresholding value from applied method
         """

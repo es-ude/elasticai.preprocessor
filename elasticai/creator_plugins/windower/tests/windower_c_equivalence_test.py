@@ -14,17 +14,26 @@ pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compil
 WINDOWER_CONFIGS = [
     pytest.param(
         SettingsWindow(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05),
-        16, True, "signed short", np.int16,
+        16,
+        True,
+        "signed short",
+        np.int16,
         id="int16_window10_overlap5",
     ),
     pytest.param(
         SettingsWindow(sampling_rate=100.0, window_sec=0.08, overlap_sec=0.04),
-        8, True, "signed char", np.int8,
+        8,
+        True,
+        "signed char",
+        np.int8,
         id="int8_window8_overlap4",
     ),
     pytest.param(
         SettingsWindow(sampling_rate=100.0, window_sec=0.06, overlap_sec=0.0),
-        8, False, "unsigned char", np.uint8,
+        8,
+        False,
+        "unsigned char",
+        np.uint8,
         marks=pytest.mark.filterwarnings(
             "ignore::RuntimeWarning"
             # window_size=6 triggers gaussian(6, int(0.16*6)=0) in

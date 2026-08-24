@@ -1,10 +1,9 @@
 from copy import deepcopy
-from shutil import rmtree
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
-
-from elasticai.preprocessor import get_path_to_project
 
 from .adc import SettingsResampler, TransientResampler
 
@@ -613,113 +612,117 @@ def test_adc_quantize_from_voltage_to_int(
 def test_create_replayer_verilog_only_data(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
-    path = get_path_to_project("build_files") / "replayer0"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_design_as_replayer(target="fpga", data=data, path2save=path, id="0")
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    files_check = ["replayer_0.v", "replayer_0_data.mem"]
-    files_check.sort()
-    files_avai = [file.name for file in path.glob("*.*")]
-    files_avai.sort()
+        TransientResampler(sets).create_design_as_replayer(
+            target="fpga", data=data, path2save=path2save, id="0"
+        )
 
-    assert len(files_check) == len(files_avai)
-    assert files_check == files_avai
+        files_check = ["replayer_0.v", "replayer_0_data.mem"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
 
 
 def test_create_replayer_verilog_trgg_data(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
-    path = get_path_to_project("build_files") / "replayer1"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_design_as_replayer(
-        target="fpga", data=data, path2save=path, id="0", trgg=trgg
-    )
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    files_check = ["replayer_0.v", "replayer_0_data.mem", "replayer_0_trgg.mem"]
-    files_check.sort()
-    files_avai = [file.name for file in path.glob("*.*")]
-    files_avai.sort()
+        TransientResampler(sets).create_design_as_replayer(
+            target="fpga", data=data, path2save=path2save, id="0", trgg=trgg
+        )
 
-    assert len(files_check) == len(files_avai)
-    assert files_check == files_avai
+        files_check = ["replayer_0.v", "replayer_0_data.mem", "replayer_0_trgg.mem"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
 
 
 def test_create_replayer_c_only_data(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
-    path = get_path_to_project("build_files") / "replayer2"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_design_as_replayer(target="mcu", data=data, path2save=path, id="0")
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    files_check = ["replayer_0.c", "replayer_0.h", "replayer_template.h"]
-    files_check.sort()
-    files_avai = [file.name for file in path.glob("*.*")]
-    files_avai.sort()
+        TransientResampler(sets).create_design_as_replayer(
+            target="mcu", data=data, path2save=path2save, id="0"
+        )
 
-    assert len(files_check) == len(files_avai)
-    assert files_check == files_avai
+        files_check = ["replayer_0.c", "replayer_0.h", "replayer_template.h"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
 
 
 def test_create_replayer_c_trgg_data(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
-    path = get_path_to_project("build_files") / "replayer3"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_design_as_replayer(
-        target="mcu", data=data, path2save=path, id="1", trgg=trgg
-    )
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    files_check = ["replayer_1.c", "replayer_1.h", "replayer_template.h"]
-    files_check.sort()
-    files_avai = [file.name for file in path.glob("*.*")]
-    files_avai.sort()
+        TransientResampler(sets).create_design_as_replayer(
+            target="mcu", data=data, path2save=path2save, id="1", trgg=trgg
+        )
 
-    assert len(files_check) == len(files_avai)
-    assert files_check == files_avai
+        files_check = ["replayer_1.c", "replayer_1.h", "replayer_template.h"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
+
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai
 
 
 def test_create_stream_verilog(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
-    path = get_path_to_project("build_files") / "adc0"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    try:
-        TransientResampler(sets).create_design_for_streaming(target="fpga", path2save=path, id="0")
-    except NotImplementedError:
-        assert True
-    else:
-        assert False
+        try:
+            TransientResampler(sets).create_design_for_streaming(
+                target="fpga", path2save=path2save, id="0"
+            )
+        except NotImplementedError:
+            assert True
+        else:
+            assert False
 
 
 def test_create_stream_c(adc_sets: SettingsResampler):
     sets = deepcopy(adc_sets)
-    path = get_path_to_project("build_files") / "adc1"
-    if path.exists():
-        rmtree(path)
-    path.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory() as directory:
+        path2save = Path(directory)
+        path2save.mkdir(parents=True, exist_ok=True)
 
-    TransientResampler(sets).create_design_for_streaming(target="mcu", path2save=path, id="1")
+        TransientResampler(sets).create_design_for_streaming(target="mcu", path2save=path2save, id="1")
 
-    files_check = ["adc_1.c", "adc_1.h", "adc_template.h"]
-    files_check.sort()
-    files_avai = [file.name for file in path.glob("*.*")]
-    files_avai.sort()
+        files_check = ["adc_1.c", "adc_1.h", "adc_template.h"]
+        files_check.sort()
+        files_avai = [file.name for file in path2save.glob("*.*")]
+        files_avai.sort()
 
-    assert len(files_check) == len(files_avai)
-    assert files_check == files_avai
+        assert len(files_check) == len(files_avai)
+        assert files_check == files_avai

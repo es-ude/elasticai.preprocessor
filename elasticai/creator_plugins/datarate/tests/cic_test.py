@@ -9,6 +9,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.translation.cocotb_test import temporary_directory
 
 
 def build_test_signal(
@@ -80,13 +81,16 @@ def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_r
         bitwidth=bitwidth,
         num_samples=20,
     )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
-    cocotb_test_fixture.set_top_module_name("FILTER_CIC")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/cic.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec}, defines={}
-    )
+
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
+        cocotb_test_fixture.set_top_module_name("FILTER_CIC")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/cic.v")
+        cocotb_test_fixture.run(
+            params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec}, defines={}
+        )
 
 
 @pytest.mark.simulation
@@ -96,25 +100,27 @@ def test_filter_cic(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_r
 def test_filter_cic_build(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_samples=20,
     )
 
-    load_and_plugin(
-        type="cic",
-        id="0",
-        params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
-        packages=["datarate"],
-        path2save=build_dir,
-    )
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
-    cocotb_test_fixture.set_top_module_name("CIC_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        load_and_plugin(
+            type="cic",
+            id="0",
+            params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
+            packages=["datarate"],
+            path2save=build_dir,
+        )
+        cocotb_test_fixture.write({"sig_in": data_in, "check": data_in})
+        cocotb_test_fixture.set_top_module_name("CIC_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=build_dir, glob_pattern="*.v")
+        cocotb_test_fixture.run(params={}, defines={})
 
 
 @pytest.mark.simulation
@@ -124,7 +130,6 @@ def test_filter_cic_build(
 def test_filter_cic_build_equal(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     dut = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0,
@@ -136,22 +141,25 @@ def test_filter_cic_build_equal(
         bitwidth=bitwidth,
         num_samples=20,
     )
-
     data_checked = dut.do_cic(uin=np.asarray(data_in), num_stages=n_dec).tolist()
 
-    dut.create_design(
-        target="fpga",
-        method=TargetsDownSampling.CIC,
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
-    cocotb_test_fixture.set_top_module_name("CIC_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
-        defines={},
-    )
+        dut.create_design(
+            target="fpga",
+            method=TargetsDownSampling.CIC,
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("CIC_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=build_dir, glob_pattern="*.v")
+        cocotb_test_fixture.run(
+            params={"BITWIDTH": bitwidth, "DEC_RATE": dec_rate, "N_DEC": n_dec},
+            defines={},
+        )

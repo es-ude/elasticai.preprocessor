@@ -1,4 +1,6 @@
 from copy import deepcopy
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
 import numpy as np
@@ -126,6 +128,93 @@ class ThresholdingTest(TestCase):
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.707
         np.testing.assert_almost_equal(rslt[5000:], chck[5000:], decimal=1)
+
+    def test_create_design_fpga_const(self):
+        self.set0.method = "const"
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, thr_val=2
+            )
+            files_available = [
+                "const_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_norm(self):
+        self.set0.method = "mavg"
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_norm_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_shift(self):
+        self.set0.method = "mavg"
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1.28e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_pow2_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_abs_norm(self):
+        self.set0.method = "mavg_abs"
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_abs_norm_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_abs_shit(self):
+        self.set0.method = "mavg_abs"
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1.28e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_abs_pow2_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
 
 if __name__ == "__main__":

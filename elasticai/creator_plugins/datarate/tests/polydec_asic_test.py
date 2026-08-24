@@ -8,6 +8,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.translation.cocotb_test import temporary_directory
 
 
 def build_test_signal(bitwidth: int, frac: int = 0, num_periods: int = 2, n_samples: int = 22) -> list:
@@ -79,14 +80,16 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
     ],
 )
 def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int):
-    sig_in = FIXED_SIG_IN  # Bitwidth nicht mehr berücksichtigt
+    sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
-    cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_asic.v")
-    cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_ASIC")
-    cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("datarate", "verilog/polydec_asic.v")
+        cocotb_test_fixture.set_top_module_name("FILTER_POLYDEC_ASIC")
+        cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order}, defines={})
 
 
 @pytest.mark.simulation
@@ -99,23 +102,26 @@ def test_filter_polydec_asic(cocotb_test_fixture: CocotbTestFixture, poly_order:
 def test_filter_polydec_asic_build_first_order(
     cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    sig_in = FIXED_SIG_IN  # Bitwidth nicht mehr berücksichtigt
+    sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
-    load_and_plugin(
-        type="polydec_asic",
-        id="0",
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        packages=["datarate"],
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
-    cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+        load_and_plugin(
+            type="polydec_asic",
+            id="0",
+            params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+            packages=["datarate"],
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
+        cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=build_dir, glob_pattern="*.v")
+        cocotb_test_fixture.run(params={}, defines={})
 
 
 @pytest.mark.simulation
@@ -128,23 +134,26 @@ def test_filter_polydec_asic_build_first_order(
 def test_filter_polydec_asic_build_second_order(
     cocotb_test_fixture: CocotbTestFixture, poly_order: int, bitwidth: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    sig_in = FIXED_SIG_IN  # Bitwidth nicht mehr berücksichtigt
+    sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
-    load_and_plugin(
-        type="polydec_asic",
-        id="0",
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        packages=["datarate"],
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
-    cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+        load_and_plugin(
+            type="polydec_asic",
+            id="0",
+            params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+            packages=["datarate"],
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"sig_in": sig_in, "check": check})
+        cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})
 
 
 @pytest.mark.simulation
@@ -152,38 +161,38 @@ def test_filter_polydec_asic_build_second_order(
 def test_filter_polydec_asic_build_equal_first_order(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,  # Default Settings
-            dsr=10,
+            sampling_rate=1000.0,
+            dsr=poly_order,
         )
     )
-    # Test-Signal
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_periods=2,
         n_samples=22,
     )
-
     data_checked = (dut._do_decimation_polyphase_order_one(uin=np.asarray(data_in))).tolist()
 
-    dut.create_design(
-        target="asic",
-        method=TargetsDownSampling.Polyphase,
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+        dut.create_design(
+            target="asic",
+            method=TargetsDownSampling.Polyphase,
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+        )
 
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
-    cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        defines={},
-    )
+        cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
 
 
 @pytest.mark.simulation
@@ -191,11 +200,10 @@ def test_filter_polydec_asic_build_equal_first_order(
 def test_filter_polydec_asic_build_equal_second_order(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,  # Default Settings
-            dsr=10,
+            sampling_rate=1000.0,
+            dsr=poly_order,
         )
     )
     data_in = build_test_signal(
@@ -206,19 +214,23 @@ def test_filter_polydec_asic_build_equal_second_order(
 
     data_checked = (dut._do_decimation_polyphase_order_two(uin=np.asarray(data_in))).tolist()
 
-    dut.create_design(
-        target="asic",
-        method=TargetsDownSampling.Polyphase,
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
-    cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
-        defines={},
-    )
+        dut.create_design(
+            target="asic",
+            method=TargetsDownSampling.Polyphase,
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"sig_in": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("POLYDEC_ASIC_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )

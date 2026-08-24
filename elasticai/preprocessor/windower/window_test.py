@@ -1,10 +1,9 @@
 from copy import deepcopy
-from shutil import rmtree
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
 import numpy as np
-
-from elasticai.preprocessor import get_path_to_project
 
 from .window import (
     SettingsWindow,
@@ -236,22 +235,19 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
-        path2save = get_path_to_project("build_files") / "windower_test"
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        if path2save.exists():
-            rmtree(path2save)
+            WindowSequencer(set0).create_design("fpga", 8, "0", path2save)
+            files_available = [
+                "windower_0.v",
+                "ring_buffer.v",
+            ]
 
-        path2save.mkdir(parents=True, exist_ok=True)
-
-        WindowSequencer(set0).create_design("fpga", 8, "0", path2save)
-        files_available = [
-            "windower_0.v",
-            "ring_buffer.v",
-        ]
-
-        for filename in files_available:
-            file = path2save / filename
-            assert file.exists()
+            for filename in files_available:
+                file = path2save / filename
+                assert file.exists()
 
 
 if __name__ == "__main__":
