@@ -37,14 +37,14 @@ def build_filter_fir(
     if do_optimized and len(coeff_b) % 2 == 0:
         raise NotImplementedError("Please add an odd number to filter order!")
 
-    module_id = f"{settings.b_type.lower().split('pass')[0]}{filter_id.lower()}"
+    module_id = f"{settings.b_type.lower().split('pass')[0]}_{filter_id.lower()}"
     coeff_used = coeff_b if not do_optimized else coeff_b[: int(len(coeff_b) / 2) + 1]
     data_type_filter = get_embedded_datatype(bitwidth, signed)
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "filter_fir_template.h",
-        "device_id": module_id.upper(),
+        "device_id": module_id.lower(),
         "data_type": data_type_filter,
         "fs": f"{settings.fs}",
         "filter_type": f"{settings.b_type}, {settings.f_type}",

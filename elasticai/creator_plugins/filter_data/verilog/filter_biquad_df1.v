@@ -22,8 +22,8 @@
 // Input values are signed integers with size of BITWIDTH (no fixed point)
 // Internal operation with signed values and all weights have fraction width of BITWIDTH-2 [-2., +2.);
 module BIQUAD_DF1#(
-    parameter integer BITWIDTH = 6'd8,
-    parameter integer NUM_MULT = 3'd1
+    parameter integer BITWIDTH = 8,
+    parameter integer NUM_MULT = 1
 )(
     input wire CLK_SYS,
     input wire RSTN,

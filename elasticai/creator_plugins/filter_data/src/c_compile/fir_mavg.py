@@ -9,7 +9,7 @@ from elasticai.preprocessor.translation.ir2c import (
 )
 
 
-def build_filter_mavg(
+def build_filter_simple(
     order: int,
     bitwidth: int,
     signed: bool,
@@ -37,7 +37,7 @@ def build_filter_mavg(
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "filter_mavg_template.h",
-        "device_id": f"MAVG{filter_id.upper()}",
+        "device_id": f"{filter_id.upper()}",
         "data_type": data_type,
         "filter_order": str(order),
         "coeff": str(coeff),
@@ -47,7 +47,7 @@ def build_filter_mavg(
     generate_c_files(
         path2save=path2save,
         template_name=params["template_name"],
-        file_name="filter_mavg",
+        file_name="filter_fir_mavg",
         module_id=filter_id.lower(),
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),

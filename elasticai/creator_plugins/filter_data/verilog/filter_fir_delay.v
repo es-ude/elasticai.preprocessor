@@ -20,8 +20,8 @@
 
 
 module FIR_DELAY#(
-    parameter integer BITWIDTH = 6'd8,
-    parameter integer LENGTH = 10'd8
+    parameter integer BITWIDTH = 8,
+    parameter integer LENGTH = 8
 )(
     input wire CLK_SYS,
     input wire RSTN,
@@ -31,7 +31,7 @@ module FIR_DELAY#(
     output reg [BITWIDTH-'d1:0] DATA_OUT,
     output wire DVALID
 );
-    RING_BUFFER#(BITWIDTH, LENGTH) BUFFER(
+    RING_BUFFER#(BITWIDTH, LENGTH-'d1) BUFFER(
         .CLK_SYS(CLK_SYS),
         .RSTN(RSTN),
         .EN(EN),
