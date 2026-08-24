@@ -1,5 +1,4 @@
 from pathlib import Path
-from shutil import rmtree
 from uuid import uuid4
 
 import pytest
@@ -7,16 +6,16 @@ from elasticai.equichecker import CompileLoader, get_c_type
 
 from elasticai.creator_plugins.waveform.utils import prepare_waveform
 from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from elasticai.preprocessor.waveform import WaveformGenerator
 
 
 @pytest.fixture(scope="session", autouse=True)
 def build_path():
-    BUILD_PATH = get_path_to_project("build_test") / "waveform_c"
-    if BUILD_PATH.exists():
-        rmtree(BUILD_PATH, ignore_errors=True)
-    BUILD_PATH.mkdir(parents=True, exist_ok=True)
-    yield BUILD_PATH
+    backup = get_path_to_project("build_test") / "waveform_c"
+    backup.mkdir(parents=True, exist_ok=True)
+    with temporary_directory(backup=backup) as tmpdir:
+        yield tmpdir
 
 
 @pytest.mark.parametrize("bitwidth", [4, 8, 12, 18, 30])

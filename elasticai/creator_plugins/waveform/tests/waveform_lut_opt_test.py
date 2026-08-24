@@ -9,6 +9,7 @@ from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.waveform.utils import load_and_plugin, prepare_waveform
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from elasticai.preprocessor.waveform import WaveformGenerator
 
 
@@ -102,7 +103,7 @@ async def wvf_lut_read_several_trials(
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 9, 3)])
 @pytest.mark.parametrize("is_signed", [True, False])
-def test_waveform_lut_opt_normal(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
@@ -114,26 +115,27 @@ def test_waveform_lut_opt_normal(
         waveform=waveform, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
     )
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "LUTWIDTH": num_params,
-            "SIGNED_OUT": 1 if is_signed else 0,
-        },
-        defines={},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "LUTWIDTH": num_params,
+                "SIGNED_OUT": 1 if is_signed else 0,
+            },
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 9, 3)])
 @pytest.mark.parametrize("is_signed", [True, False])
-def test_waveform_lut_opt_normal_build(
+def test_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
@@ -148,64 +150,70 @@ def test_waveform_lut_opt_normal_build(
         waveform=waveform, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
     )
 
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    load_and_plugin(
-        type="waveform_lut_opt",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "LUTWIDTH": len(waveform),
-            "LUT_DATA": conv.integer_to_decimal_string_array_verilog(waveform),
-            "SIGNED_OUT": 1 if is_signed else 0,
-        },
-        path2save=build_dir,
-        use_bram=False,
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+        load_and_plugin(
+            type="waveform_lut_opt",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "LUTWIDTH": len(waveform),
+                "LUT_DATA": conv.integer_to_decimal_string_array_verilog(waveform),
+                "SIGNED_OUT": 1 if is_signed else 0,
+            },
+            path2save=build_dir,
+            use_bram=False,
+        )
+
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 5, 3)])
 @pytest.mark.parametrize("is_signed", [True, False])
-def test_waveform_lut_opt_normal_build2(
+def test_build2(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
     num_trials: int,
     is_signed: bool,
 ):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    data0 = WaveformGenerator(100.0).create_design(
-        waveform="SINE_FULL",
-        num_params=num_params,
-        is_signed=is_signed,
-        target="fpga",
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-        use_bram=False,
-        do_opt=True,
-    )
-    check = reconstruct_signal(
-        waveform=data0, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
-    )
-    cocotb_test_fixture.write({"waveform": data0, "check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        data0 = WaveformGenerator(100.0).create_design(
+            waveform="SINE_FULL",
+            num_params=num_params,
+            is_signed=is_signed,
+            target="fpga",
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+            use_bram=False,
+            do_opt=True,
+        )
+        check = reconstruct_signal(
+            waveform=data0, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
+        )
+        cocotb_test_fixture.write({"waveform": data0, "check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_OPT_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 9, 3)])
 @pytest.mark.parametrize("is_signed", [True, False])
-def test_waveform_lut_opt_ext_trigger(
+def test_template_external_trigger(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
@@ -217,14 +225,16 @@ def test_waveform_lut_opt_ext_trigger(
         waveform=waveform, bitwidth=bitwidth, is_signed=is_signed, num_trials=num_trials
     )
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth, "LUTWIDTH": num_params, "SIGNED_OUT": 1 if is_signed else 0},
-        defines={"TRGG_EXTERNAL": True},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
+        cocotb_test_fixture.run(
+            params={"BITWIDTH": bitwidth, "LUTWIDTH": num_params, "SIGNED_OUT": 1 if is_signed else 0},
+            defines={"TRGG_EXTERNAL": True},
+        )
 
 
 @pytest.mark.simulation
@@ -235,7 +245,7 @@ def test_waveform_lut_opt_ext_trigger(
     ],
 )
 @pytest.mark.parametrize("is_signed", [True, False])
-def test_waveform_lut_opt_ext_data(
+def test_template_external(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     num_params: int,
@@ -252,16 +262,18 @@ def test_waveform_lut_opt_ext_data(
     )
     waveform.reverse()
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": 4,
-            "LUTWIDTH": num_params,
-            "SIGNED_OUT": 1 if is_signed else 0,
-        },
-        defines={"ACCESS_EXTERNAL": True},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_OPT")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_opt.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": 4,
+                "LUTWIDTH": num_params,
+                "SIGNED_OUT": 1 if is_signed else 0,
+            },
+            defines={"ACCESS_EXTERNAL": True},
+        )

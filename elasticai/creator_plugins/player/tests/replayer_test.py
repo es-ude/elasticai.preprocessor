@@ -6,6 +6,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 
 from elasticai.creator_plugins.player.utils import load_and_plugin
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @cocotb.test()
@@ -67,7 +68,7 @@ async def emulator(
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, is_signed, num_samples, num_repeat", [(8, True, 12, 2)])
-def test_replayer_only_data(
+def test_replay_only_data(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     is_signed: bool,
@@ -78,28 +79,28 @@ def test_replayer_only_data(
     for _ in range(num_repeat):
         data.extend([val for val in range(num_samples)])
 
-    build_dir = cocotb_test_fixture.get_artifact_dir()
-    path2file = build_dir / "replay_data.mem"
-    write_mem_file(path=path2file, data=data, bitwidth=bitwidth)
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        path2file = tmpdir / "data" / "replay_data.mem"
+        write_mem_file(path=path2file, data=data, bitwidth=bitwidth)
 
-    cocotb_test_fixture.write({"check": data, "trgg": data})
-
-    cocotb_test_fixture.set_top_module_name("REPLAYER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "NUM_VALUES": num_samples,
-            "PATH2DATA": translate_path_to_int(path2file),
-        },
-        defines={},
-    )
+        cocotb_test_fixture.write({"check": data, "trgg": data})
+        cocotb_test_fixture.set_top_module_name("REPLAYER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "NUM_VALUES": num_samples,
+                "PATH2DATA": translate_path_to_int(path2file),
+            },
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, is_signed, num_samples, num_repeat", [(8, True, 12, 2)])
-def test_replayer_data_trgg(
+def test_replay_data_trgg(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     is_signed: bool,
@@ -112,31 +113,33 @@ def test_replayer_data_trgg(
         data.extend([val for val in range(num_samples)])
         trgg.extend([val % 3 == 0 for val in range(num_samples)])
 
-    build_dir = cocotb_test_fixture.get_artifact_dir()
-    path2data = build_dir / "replay_data.mem"
-    write_mem_file(path=path2data, data=data, bitwidth=bitwidth)
-    path2trgg = build_dir / "replay_trgg.mem"
-    write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "data"
+        path2data = build_dir / "replay_data.mem"
+        write_mem_file(path=path2data, data=data, bitwidth=bitwidth)
+        path2trgg = build_dir / "replay_trgg.mem"
+        write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
 
-    cocotb_test_fixture.write({"check": data, "trgg": trgg})
+        cocotb_test_fixture.write({"check": data, "trgg": trgg})
 
-    cocotb_test_fixture.set_top_module_name("REPLAYER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "NUM_VALUES": num_samples,
-            "PATH2DATA": translate_path_to_int(path2data),
-            "PATH2TRGG": translate_path_to_int(path2trgg),
-        },
-        defines={"ADD_TRIGGER": False},
-    )
+        cocotb_test_fixture.set_top_module_name("REPLAYER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "NUM_VALUES": num_samples,
+                "PATH2DATA": translate_path_to_int(path2data),
+                "PATH2TRGG": translate_path_to_int(path2trgg),
+            },
+            defines={"ADD_TRIGGER": True},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, is_signed, num_samples, num_repeat", [(8, True, 12, 2)])
-def test_replayer_data_trgg_build(
+def test_replay_data_trgg_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     is_signed: bool,
@@ -149,31 +152,33 @@ def test_replayer_data_trgg_build(
         data.extend([val for val in range(num_samples)])
         trgg.extend([val % 3 == 0 for val in range(num_samples)])
 
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    path2data = build_dir / "replay_data.mem"
-    write_mem_file(path=path2data, data=data, bitwidth=bitwidth)
-    path2trgg = build_dir / "replay_trgg.mem"
-    write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+        path2data = tmpdir / "data" / "replay_data.mem"
+        write_mem_file(path=path2data, data=data, bitwidth=bitwidth)
+        path2trgg = tmpdir / "data" / "replay_trgg.mem"
+        write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
 
-    load_and_plugin(
-        type="replayer",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "NUM_VALUES": num_samples,
-            "PATH2DATA": translate_path_to_int(path2data),
-            "PATH2TRGG": translate_path_to_int(path2trgg),
-            "ADD_TRIGGER": True,
-        },
-        packages=["player"],
-        path2save=build_dir,
-    )
+        load_and_plugin(
+            type="replayer",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "NUM_VALUES": num_samples,
+                "PATH2DATA": translate_path_to_int(path2data),
+                "PATH2TRGG": translate_path_to_int(path2trgg),
+                "ADD_TRIGGER": True,
+            },
+            packages=["player"],
+            path2save=build_dir,
+        )
 
-    cocotb_test_fixture.write({"check": data, "trgg": trgg})
-    cocotb_test_fixture.set_top_module_name("REPLAYER_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        cocotb_test_fixture.write({"check": data, "trgg": trgg})
+        cocotb_test_fixture.set_top_module_name("REPLAYER_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )

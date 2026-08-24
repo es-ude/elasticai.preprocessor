@@ -8,6 +8,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 from elasticai.creator.arithmetic import FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from elasticai.preprocessor.windower import SettingsWindow, WindowSequencer
 
 
@@ -110,7 +111,7 @@ async def check_transfer_function(
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("samples", [32])
 @pytest.mark.parametrize("num_shift", [4])
-def test_windower(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     samples: int,
@@ -118,33 +119,35 @@ def test_windower(
 ):
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
 
-    cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
-    cocotb_test_fixture.set_top_module_name("WINDOWER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package(
-        "windower",
-        "verilog/ring_buffer.v",
-    )
-    cocotb_test_fixture.add_srcs_from_package(
-        "windower",
-        "verilog/windower.v",
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
+        cocotb_test_fixture.set_top_module_name("WINDOWER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package(
+            "windower",
+            "verilog/ring_buffer.v",
+        )
+        cocotb_test_fixture.add_srcs_from_package(
+            "windower",
+            "verilog/windower.v",
+        )
 
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "SAMPLES": samples,
-            "NUM_SHIFT": num_shift,
-        },
-        defines={},
-    )
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "SAMPLES": samples,
+                "NUM_SHIFT": num_shift,
+            },
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("samples", [32])
 @pytest.mark.parametrize("num_shift", [4])
-def test_windower_build(
+def test_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     samples: int,
@@ -161,28 +164,32 @@ def test_windower_build(
 
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
 
-    dut.create_design(
-        target="fpga",
-        bitwidth=bitwidth,
-        id="",
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
-    cocotb_test_fixture.set_top_module_name("WINDOWER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        dut.create_design(
+            target="fpga",
+            bitwidth=bitwidth,
+            id="",
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"data_in": data_in, "check": data_in})
+        cocotb_test_fixture.set_top_module_name("WINDOWER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("samples", [32])
 @pytest.mark.parametrize("num_shift", [4])
-def test_sliding_windower_build_equal(
+def test_sliding_build_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     samples: int,
@@ -196,33 +203,35 @@ def test_sliding_windower_build_equal(
             overlap_sec=(samples - num_shift) / sampling_rate,
         )
     )
-
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-
     data_checked = dut.slide(np.asarray(data_in)).tolist()
 
-    dut.create_design(
-        target="fpga",
-        bitwidth=bitwidth,
-        id="",
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
-    cocotb_test_fixture.set_top_module_name("WINDOWER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        dut.create_design(
+            target="fpga",
+            bitwidth=bitwidth,
+            id="",
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("WINDOWER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [8])
 @pytest.mark.parametrize("samples", [32])
 @pytest.mark.parametrize("num_shift", [32])
-def test_sequence_windower_build_equal(
+def test_sequence_build_equal(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     samples: int,
@@ -236,23 +245,25 @@ def test_sequence_windower_build_equal(
             overlap_sec=(samples - num_shift) / sampling_rate,
         )
     )
-
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-
     data_checked = dut.sequence(np.asarray(data_in)).tolist()
 
-    dut.create_design(
-        target="fpga",
-        bitwidth=bitwidth,
-        id="",
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
-    cocotb_test_fixture.set_top_module_name("WINDOWER")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        dut.create_design(
+            target="fpga",
+            bitwidth=bitwidth,
+            id="",
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"data_in": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("WINDOWER")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )

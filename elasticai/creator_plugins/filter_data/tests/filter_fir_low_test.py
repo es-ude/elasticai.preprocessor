@@ -9,6 +9,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
 from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 def build_testdata(
@@ -108,7 +109,7 @@ async def fir_simple_low(dut, bitwidth: int, fracwidth: int, data: list[int], ch
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7), (12, 4), (8, 4)])
-def test_filter_fir_low(
+def test_template(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
@@ -135,61 +136,78 @@ def test_filter_fir_low(
     ).tolist()
     data_check = arith_data.cut_as_integer(data_check)
 
-    cocotb_test_fixture.write({"data": data_in, "check": data_check})
-    cocotb_test_fixture.set_top_module_name("FIR_SIMPLE_LOW")
-    cocotb_test_fixture.run(
-        params={"BITWIDTH": bitwidth},
-        defines={},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.write({"data": data_in, "check": data_check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("filter_data", "verilog/filter_fir_low.v")
+        cocotb_test_fixture.set_top_module_name("FIR_SIMPLE_LOW")
+        cocotb_test_fixture.run(
+            params={"BITWIDTH": bitwidth},
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7)])
-def test_filter_fir_low_build(
+def test_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
 ):
-    load_and_plugin(
-        type="fir_low",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-        },
-        packages=["filter_data"],
-        path2save=cocotb_test_fixture.get_artifact_dir() / "verilog",
-        add_ringbuffer=False,
-        add_mac=False,
-        use_dsp_mult=False,
-    )
 
-    dut = Filtering(
-        SettingsFilter(
-            gain=1.0,
-            fs=2e3,
-            n_order=1,
-            f_filt=[0.99 * 1e3],
-            type="fir",
-            f_type="butter",
-            b_type="simple_low",
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        load_and_plugin(
+            type="fir_low",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+            },
+            packages=["filter_data"],
+            path2save=build_dir,
+            add_ringbuffer=False,
+            add_mac=False,
+            use_dsp_mult=False,
         )
-    )
-    data_in = build_testdata(bitwidth=bitwidth, frac=fracwidth, order=1, taps_signal=10, num_repeats=10)
 
-    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
-    data_check = dut.filt_quantized(
-        np.asarray(data_in) * 2 ** (-fracwidth),
-        total_bitwidth=bitwidth,
-        fraction_width=fracwidth,
-        is_signed=True,
-    ).tolist()
-    data_check = arith_data.cut_as_integer(data_check)
+        dut = Filtering(
+            SettingsFilter(
+                gain=1.0,
+                fs=2e3,
+                n_order=1,
+                f_filt=[0.99 * 1e3],
+                type="fir",
+                f_type="butter",
+                b_type="simple_low",
+            )
+        )
+        data_in = build_testdata(
+            bitwidth=bitwidth, frac=fracwidth, order=1, taps_signal=10, num_repeats=10
+        )
 
-    cocotb_test_fixture.write({"data": data_in, "check": data_check})
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.set_top_module_name("FIR_LOW_0")
-    cocotb_test_fixture.run(
-        params={},
-        defines={},
-    )
+        arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
+        data_check = dut.filt_quantized(
+            np.asarray(data_in) * 2 ** (-fracwidth),
+            total_bitwidth=bitwidth,
+            fraction_width=fracwidth,
+            is_signed=True,
+        ).tolist()
+        data_check = arith_data.cut_as_integer(data_check)
+
+        cocotb_test_fixture.write({"data": data_in, "check": data_check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.set_top_module_name("FIR_LOW_0")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )
+
+
+@pytest.mark.simulation
+@pytest.mark.skip("No Python func available")
+def test_build_equal():
+    pass

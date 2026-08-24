@@ -9,6 +9,7 @@ from elasticai.creator.arithmetic import int_arithmetic, int_converter
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.waveform.utils import load_and_plugin, prepare_waveform
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from elasticai.preprocessor.waveform import WaveformGenerator
 
 
@@ -83,7 +84,7 @@ async def wvf_lut_read(
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 23, 3)])
-def test_waveform_lut_full_normal(
+def test_template_int(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int
 ):
     waveform = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 31, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0]
@@ -91,87 +92,25 @@ def test_waveform_lut_full_normal(
     for _ in range(num_trials):
         check.extend(waveform[1:])
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "LUTWIDTH": num_params,
-        },
-        defines={},
-    )
-
-
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 23, 3)])
-def test_waveform_lut_full_normal_build(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int
-):
-
-    conv = int_converter(total_bits=bitwidth, signed=True)
-
-    data = prepare_waveform(
-        waveform="SINE_FULL",
-        bitwidth=bitwidth,
-        num_params=num_params,
-    )
-    data0 = data.copy()
-    data0.reverse()
-    check = reconstruct_signal(waveform=data0, num_trials=num_trials)
-
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    load_and_plugin(
-        type="waveform_lut_full",
-        id="0",
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": bitwidth,
-            "LUTWIDTH": num_params,
-            "LUT_DATA": conv.integer_to_decimal_string_array_verilog(data),
-        },
-        path2save=build_dir,
-    )
-
-    cocotb_test_fixture.write({"waveform": data0, "check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_0")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
-
-
-@pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 21, 3)])
-def test_waveform_lut_full_normal_build2(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int
-):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
-    data0 = WaveformGenerator(sampling_rate=100.0).create_design(
-        waveform="SINE_FULL",
-        num_params=num_params,
-        is_signed=True,
-        target="fpga",
-        bitwidth=bitwidth,
-        id="1",
-        path2save=build_dir,
-        use_bram=False,
-        do_opt=False,
-    )
-    data0.reverse()
-    check = reconstruct_signal(waveform=data0, num_trials=num_trials)
-    cocotb_test_fixture.write({"waveform": data0, "check": check})
-    cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_1")
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.run(params={}, defines={})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "LUTWIDTH": num_params,
+            },
+            defines={},
+        )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 23, 3)])
-def test_waveform_lut_full_ext_trigger(
+def test_template_ext_trigger(
     cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int
 ):
     waveform = [0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 31, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0]
@@ -179,18 +118,19 @@ def test_waveform_lut_full_ext_trigger(
     for _ in range(num_trials):
         check.extend(waveform[1:])
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
-
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "LUTWIDTH": num_params,
-        },
-        defines={"TRGG_EXTERNAL": True},
-    )
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "LUTWIDTH": num_params,
+            },
+            defines={"TRGG_EXTERNAL": True},
+        )
 
 
 @pytest.mark.simulation
@@ -206,16 +146,83 @@ def test_waveform_lut_full_ext_data(
     for _ in range(num_trials):
         check.extend(waveform[1:])
 
-    cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
-    cocotb_test_fixture.write({"waveform": waveform, "check": check})
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.set_top_module_name("LUT_WAVEFORM_FULL")
+        cocotb_test_fixture.write({"waveform": waveform, "check": check})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
+        cocotb_test_fixture.run(
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": 4,
+                "LUTWIDTH": num_params,
+            },
+            defines={"ACCESS_EXTERNAL": True},
+        )
 
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("waveform", "verilog/waveform_lut_full.v")
-    cocotb_test_fixture.run(
-        params={
-            "BITWIDTH": bitwidth,
-            "WAIT_WIDTH": 4,
-            "LUTWIDTH": num_params,
-        },
-        defines={"ACCESS_EXTERNAL": True},
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 23, 3)])
+def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int):
+
+    conv = int_converter(total_bits=bitwidth, signed=True)
+
+    data = prepare_waveform(
+        waveform="SINE_FULL",
+        bitwidth=bitwidth,
+        num_params=num_params,
     )
+    data0 = data.copy()
+    data0.reverse()
+    check = reconstruct_signal(waveform=data0, num_trials=num_trials)
+
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        load_and_plugin(
+            type="waveform_lut_full",
+            id="0",
+            params={
+                "BITWIDTH": bitwidth,
+                "WAIT_WIDTH": bitwidth,
+                "LUTWIDTH": num_params,
+                "LUT_DATA": conv.integer_to_decimal_string_array_verilog(data),
+            },
+            path2save=build_dir,
+        )
+
+        cocotb_test_fixture.write({"waveform": data0, "check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.parametrize("bitwidth, num_params, num_trials", [(6, 21, 3)])
+def test_build2(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, num_params: int, num_trials: int):
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        data0 = WaveformGenerator(sampling_rate=100.0).create_design(
+            waveform="SINE_FULL",
+            num_params=num_params,
+            is_signed=True,
+            target="fpga",
+            bitwidth=bitwidth,
+            id="1",
+            path2save=build_dir,
+            use_bram=False,
+            do_opt=False,
+        )
+        data0.reverse()
+        check = reconstruct_signal(waveform=data0, num_trials=num_trials)
+
+        cocotb_test_fixture.write({"waveform": data0, "check": check})
+        cocotb_test_fixture.set_top_module_name("WAVEFORM_LUT_FULL_1")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(params={}, defines={})

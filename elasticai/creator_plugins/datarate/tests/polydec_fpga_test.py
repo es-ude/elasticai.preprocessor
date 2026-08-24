@@ -8,7 +8,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
 from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
-from elasticai.preprocessor.translation.cocotb_test import temporary_directory
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 def build_test_signal(bitwidth: int, frac: int = 0, num_periods: int = 2, n_samples: int = 22) -> list:
@@ -83,7 +83,7 @@ async def polyphase_access(dut, bitwidth: int, poly_order: int, sig_in: list[int
         (3, 2),
     ],
 )
-def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
+def test_template(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
@@ -103,9 +103,7 @@ def test_filter_polydec_fpga(cocotb_test_fixture: CocotbTestFixture, bitwidth: i
         (3, 1),
     ],
 )
-def test_filter_polydec_fpga_build_first_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
-):
+def test_build_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
@@ -135,9 +133,7 @@ def test_filter_polydec_fpga_build_first_order(
         (3, 2),
     ],
 )
-def test_filter_polydec_fpga_build_second_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
-):
+def test_build_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     sig_in = FIXED_SIG_IN
     check = FIXED_CHECK[poly_order]
 
@@ -162,9 +158,7 @@ def test_filter_polydec_fpga_build_second_order(
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, poly_order", [(3, 1)])
-def test_filter_polydec_fpga_build_equal_first_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
-):
+def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0,
@@ -195,17 +189,14 @@ def test_filter_polydec_fpga_build_equal_first_order(
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.run(
-            params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+            params={},
             defines={},
         )
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, poly_order", [(3, 2)])
-def test_filter_polydec_fpga_build_equal_second_order(
-    cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int
-):
-    build_dir = cocotb_test_fixture.get_artifact_dir() / "verilog"
+def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
             sampling_rate=1000.0,
@@ -237,6 +228,6 @@ def test_filter_polydec_fpga_build_equal_second_order(
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.run(
-            params={"BITWIDTH": bitwidth, "POLY_ORDER": poly_order},
+            params={},
             defines={},
         )

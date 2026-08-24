@@ -6,6 +6,7 @@ from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.windower.utils import load_and_plugin
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @cocotb.test()
@@ -68,30 +69,39 @@ async def shifting_data(dut, bitwidth: int, elements: int):
         (16, 256),
     ],
 )
-def test_shift_register(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
-    cocotb_test_fixture.clear_srcs()
-    cocotb_test_fixture.add_srcs_from_package("windower", "verilog/shift_register.v")
-
-    cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER")
-    cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "SAMPLES": elements}, defines={})
+def test_template(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup):
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_package("windower", "verilog/shift_register.v")
+        cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER")
+        cocotb_test_fixture.run(params={"BITWIDTH": bitwidth, "SAMPLES": elements}, defines={})
 
 
 @pytest.mark.simulation
 @pytest.mark.parametrize(["bitwidth", "elements"], [(8, 6)])
-def test_shift_register_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
-    cocotb_test_fixture.clear_srcs()
-    path2build = cocotb_test_fixture.get_artifact_dir() / "verilog"
+def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: int):
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
 
-    load_and_plugin(
-        type="shift_register",
-        id="0",
-        params={"BITWIDTH": bitwidth, "SAMPLES": elements},
-        packages=["windower"],
-        path2save=path2build,
-        add_ringbuffer=False,
-    )
-    assert (path2build / "shift_register_0.v").exists()
+        load_and_plugin(
+            type="shift_register",
+            id="0",
+            params={"BITWIDTH": bitwidth, "SAMPLES": elements},
+            packages=["windower"],
+            path2save=build_dir,
+            add_ringbuffer=False,
+        )
+        assert (build_dir / "shift_register_0.v").exists()
 
-    cocotb_test_fixture.add_srcs_from_artifact_dir("verilog/*.v")
-    cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER_0")
-    cocotb_test_fixture.run(params={}, defines={})
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER_0")
+        cocotb_test_fixture.run(params={}, defines={})
+
+
+@pytest.mark.simulation
+@pytest.mark.skip("No Python func available")
+def test_build_equal(cocotb_test_fixture: CocotbTestFixture):
+    pass
