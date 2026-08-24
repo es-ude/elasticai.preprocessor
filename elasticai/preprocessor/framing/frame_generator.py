@@ -101,25 +101,25 @@ class FrameGenerator:
 
     def _frame_align_max(self, frame_in: np.ndarray) -> int:
         x_start = np.argmax(frame_in, axis=0)
-        return x_start - self._settings.length_align_position
+        return int(x_start - self._settings.length_align_position)
 
     def _frame_align_min(self, frame_in: np.ndarray) -> int:
         x_start = np.argmin(frame_in, axis=0)
-        return x_start - self._settings.length_align_position
+        return int(x_start - self._settings.length_align_position)
 
     def _frame_align_ptp(self, frame_in: np.ndarray) -> int:
         max_pos = 1 + np.argmax(np.diff(frame_in), axis=0)
-        return max_pos - self._settings.length_align_position
+        return int(max_pos - self._settings.length_align_position)
 
     def _frame_align_ntp(self, frame_in: np.ndarray) -> int:
         max_pos = 1 + np.argmin(np.diff(frame_in), axis=0)
-        return max_pos - self._settings.length_align_position
+        return int(max_pos - self._settings.length_align_position)
 
     def _frame_align_absmax(self, frame_in: np.ndarray) -> int:
         x_max = np.argmax(frame_in, axis=0)
         x_min = np.argmin(frame_in, axis=0)
         x_start = int(np.min([x_max, x_min]))
-        return x_start - self._settings.length_align_position
+        return int(x_start - self._settings.length_align_position)
 
     def get_methods_frame_aligning(self) -> list:
         """Function for getting a list with all methods for frame aligning"""
