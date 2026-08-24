@@ -8,7 +8,6 @@ from unittest import TestCase, main, skipUnless
 import numpy as np
 from scipy.signal import find_peaks
 
-from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.transformation import do_fft
 
 from .filtering import Filtering, SettingsFilter
@@ -505,14 +504,15 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "lowpass"
         sets.n_order = 2
 
-        path2save = get_path_to_project("build_files") / "design_iir"
-        path2save.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = ["biquad_df1_0.v", "mac_array.v", "mac_core.v", "mult_dsp_signed.v"]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            files_available = ["biquad_df1_0.v", "mac_array.v", "mac_core.v", "mult_dsp_signed.v"]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_verilog_filter_fir_full(self):
         sets = deepcopy(test_settings)
@@ -520,20 +520,21 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "lowpass"
         sets.n_order = 20
 
-        path2save = get_path_to_project("build_files") / "design_fir_full"
-        path2save.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = [
-            "fir_full_0.v",
-            "mac_array.v",
-            "mac_core.v",
-            "mult_dsp_signed.v",
-            "ring_buffer.v",
-        ]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            files_available = [
+                "fir_full_0.v",
+                "mac_array.v",
+                "mac_core.v",
+                "mult_dsp_signed.v",
+                "ring_buffer.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_verilog_filter_fir_half(self):
         sets = deepcopy(test_settings)
@@ -541,20 +542,21 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "lowpass"
         sets.n_order = 21
 
-        path2save = get_path_to_project("build_files") / "design_fir_half"
-        path2save.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = [
-            "fir_half_0.v",
-            "mac_array.v",
-            "mac_core.v",
-            "mult_dsp_signed.v",
-            "ring_buffer.v",
-        ]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            files_available = [
+                "fir_half_0.v",
+                "mac_array.v",
+                "mac_core.v",
+                "mult_dsp_signed.v",
+                "ring_buffer.v",
+            ]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_verilog_filter_fir_delay(self):
         sets = deepcopy(test_settings)
@@ -562,14 +564,15 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "allpass"
         sets.n_order = 12
 
-        path2save = get_path_to_project("build_files") / "design_fir_delay"
-        path2save.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = ["fir_delay_0.v", "ring_buffer.v"]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            files_available = ["fir_delay_0.v", "ring_buffer.v"]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_verilog_filter_fir_simple_lowpass(self):
         sets = deepcopy(test_settings)
@@ -577,14 +580,15 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "simple_low"
         sets.n_order = 1
 
-        path2save = get_path_to_project("build_files") / "design_fir_low"
-        path2save.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            path2save.mkdir(parents=True, exist_ok=True)
 
-        Filtering(sets).create_design("fpga", 8, "0", path2save)
-        files_available = ["fir_low_0.v"]
-        for file in path2save.glob("*.v"):
-            assert file.exists()
-            assert file.name in files_available
+            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            files_available = ["fir_low_0.v"]
+            for file in path2save.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
     def test_create_c_filter_fir_full(self):
         sets = deepcopy(test_settings)
