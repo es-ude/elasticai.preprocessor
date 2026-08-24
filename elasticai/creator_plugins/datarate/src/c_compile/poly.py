@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-import elasticai.creator_plugins.downsampling as design_plugin
+import elasticai.creator_plugins.datarate as design_plugin
 from elasticai.preprocessor.translation.ir2c import (
     generate_c_files,
     get_embedded_datatype,
