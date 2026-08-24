@@ -145,3 +145,9 @@ default-groups = ["dev", "docs", "test", "lint"]
 [tool.uv.sources]
 elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch = "main" }
 elasticai-equi-checker = { git = "https://github.com/es-ude/elasticai.equi-checker.git", branch = "main" }
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
