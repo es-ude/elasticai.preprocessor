@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 import elasticai.creator_plugins.datarate as datarate_filters
-from elasticai.creator_plugins.downsampling.src import c_compile
+from elasticai.creator_plugins.datarate.src import c_compile
 
 
 class TargetsDownSampling(IntEnum):
