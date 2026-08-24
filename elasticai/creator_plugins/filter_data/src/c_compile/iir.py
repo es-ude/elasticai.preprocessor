@@ -34,13 +34,13 @@ def build_filter_iir(
     assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
     coeff = Filtering(settings=settings).get_coeffs()
-    module_id_used = f"{settings.b_type.lower().split('pass')[0]}{filter_id.lower()}"
+    module_id_used = f"{settings.b_type.lower().split('pass')[0]}_{filter_id.lower()}"
     data_type_filter = get_embedded_datatype(bitwidth, signed)
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "filter_iir_template.h",
-        "device_id": module_id_used.upper(),
+        "device_id": module_id_used.lower(),
         "data_type": data_type_filter,
         "fs": f"{settings.fs}",
         "filter_type": f"{settings.b_type}, {settings.f_type}",

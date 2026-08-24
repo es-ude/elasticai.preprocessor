@@ -126,8 +126,7 @@ async def filter_fir(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7)])
-@pytest.mark.parametrize("order", [11])
+@pytest.mark.parametrize("bitwidth, fracwidth, order", [(8, 7, 11)])
 @pytest.mark.parametrize("num_mult", [2, 4])
 def test_template(
     cocotb_test_fixture: CocotbTestFixture,
@@ -161,8 +160,7 @@ def test_template(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 4)])
-@pytest.mark.parametrize("order", [21])
+@pytest.mark.parametrize("bitwidth, fracwidth, order", [(10, 4, 31)])
 @pytest.mark.parametrize("num_mult", [1])
 def test_build(
     cocotb_test_fixture: CocotbTestFixture,

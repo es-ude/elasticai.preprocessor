@@ -34,11 +34,11 @@ class SettingsFilter:
     Attributes:
         gain:       Integer with applied amplification factor [V/V]
         fs:         Sampling rate [Hz]
-        n_order:    Integer with number of filter order or delay values in FIR-allpass
-        f_filt:     List with filter frequencies [Hz] (low/high-pass: only one value - rest: two values)
+        n_order:    Integer with number of filter order
+        f_filt:     List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
         type:       String with selected filter algorithm ['iir', 'fir']
         f_type:     String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
-        b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass', 'simple_low']
+        b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
     """
 
     gain: float
@@ -48,6 +48,10 @@ class SettingsFilter:
     type: str
     f_type: str
     b_type: str
+
+    @property
+    def _num_delay_taps(self) -> int:
+        return int(self.fs / self.f_filt[0])
 
 
 DefaultSettingsFilter = SettingsFilter(
@@ -64,16 +68,7 @@ DefaultSettingsFilter = SettingsFilter(
 class Filtering(CommonDigitalFunctions):
     __logger: Logger
     _type_supported: list = ["fir", "iir"]
-    _btype_supported: list = [
-        "lowpass",
-        "highpass",
-        "bandpass",
-        "bandstop",
-        "notch",
-        "allpass",
-        "simple_low",
-        "moving_average",
-    ]
+    _btype_supported: list = ["lowpass", "highpass", "bandpass", "bandstop", "notch", "allpass"]
     _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
     _coeff_b: np.ndarray
@@ -212,21 +207,23 @@ class Filtering(CommonDigitalFunctions):
                     gain=gain,
                     fs=self._settings.fs,
                 )
-            case "simple_low":
-                self._coeff_a = np.array(1.0)
-                self._coeff_b = np.array([0.5, 0.5])
             case "allpass":
-                self._coeff_b = self._coeff_a
-            case "moving_average":
-                self._coeff_b = np.ones(self._settings.n_order) / self._settings.n_order
-            case _:
-                self._coeff_a = np.array(1.0)
-                self._coeff_b = scft.firwin(
-                    numtaps=self._settings.n_order,
-                    cutoff=frange,
-                    fs=self._settings.fs,
-                    pass_zero=self._settings.b_type.lower(),
+                self._coeff_b = np.array(
+                    [
+                        1.0 if idx == self._settings._num_delay_taps - 1 else 0.0
+                        for idx in range(self._settings._num_delay_taps)
+                    ]
                 )
+            case _:
+                if self._settings.n_order == 1 and self._settings.f_filt[0] / self._settings.fs == 0.5:
+                    self._coeff_b = np.array([0.5, 0.5])
+                else:
+                    self._coeff_b = scft.firwin(
+                        numtaps=self._settings.n_order,
+                        cutoff=frange,
+                        fs=self._settings.fs,
+                        pass_zero=self._settings.b_type.lower(),
+                    )
 
     def __process_filter(self) -> None:
         assert self._settings.type.lower() in self._type_supported, (
@@ -252,11 +249,7 @@ class Filtering(CommonDigitalFunctions):
         :param xin:     Numpy array with transient input data
         :return:        Numpy array with filtered data
         """
-        if self._settings.type.lower() == "fir" and self._settings.b_type.lower() == "allpass":
-            mat = np.zeros(shape=(self._settings.n_order,), dtype=float)
-            xout = np.concatenate((mat, xin[0 : xin.size - self._settings.n_order]), axis=None)
-
-        elif not self.__use_filtfilt:
+        if not self.__use_filtfilt:
             xout = self._settings.gain * scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
         else:
             xout = self._settings.gain * scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
@@ -281,21 +274,22 @@ class Filtering(CommonDigitalFunctions):
             total_bitwidth=total_bitwidth,
             frac_bitwidth=fraction_width,
         )
-        if self._settings.type.lower() == "fir" and self._settings.b_type.lower() == "allpass":
-            xin_fxp = self._quantize_fxp(xin)
-            xout = self.filt(xin_fxp)
-        else:
-            params = self.get_coeffs_quantized(bit_size=total_bitwidth)[0]
-            self._coeff_b = np.asarray(params.b)
-            self._coeff_a = np.asarray(params.a)
 
-            xin_fxp = self._quantize_fxp(xin)
-            filt = self.filt(xin_fxp)
-            xout = (
-                self._quantize_fxp(filt)
-                - (3 if self._settings.type.lower() == "iir" else (filt < 0)) * 2**-fraction_width
-            )
-        return xout
+        params = self.get_coeffs_quantized(bit_size=total_bitwidth)[0]
+        self._coeff_b = np.asarray(params.b)
+        self._coeff_a = np.asarray(params.a)
+
+        x = self._quantize_fxp(xin)
+        x = self.filt(x)
+        x = self._quantize_fxp(x)
+        offset = (
+            3
+            if self._settings.type.lower() == "iir"
+            else (x < 0)
+            if not self._settings.b_type == "allpass"
+            else 0
+        ) * 2**-fraction_width
+        return x - offset
 
     def __get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
         if self._settings.type == "iir":
@@ -414,7 +408,7 @@ class Filtering(CommonDigitalFunctions):
             "id": id,
             "params": {
                 "BITWIDTH": bitwidth,
-                "LENGTH": self._settings.n_order,
+                "LENGTH": self._settings._num_delay_taps,
             },
             "add_ringbuffer": True,
             "add_mac": False,
@@ -481,16 +475,16 @@ class Filtering(CommonDigitalFunctions):
                 id=id, bitwidth=bitwidth, use_dsp_mult=True, num_mult=num_mult
             )
         elif self._settings.type.lower() == "fir":
-            if self._settings.b_type.lower() not in ["allpass", "simple_low"]:
-                if self._settings.n_order % 2 == 1:
+            if self._settings.b_type.lower() not in ["allpass"]:
+                if self._settings.f_filt[0] / self._settings.fs == 0.5:
+                    params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
+                elif self._settings.n_order % 2 == 1:
                     params = self._create_fir_half_verilog(id, bitwidth, True, num_mult)
                 else:
                     params = self._create_fir_full_verilog(id, bitwidth, True, num_mult)
             else:
                 if self._settings.b_type.lower() == "allpass":
                     params = self._create_fir_delay_verilog(id, bitwidth)
-                elif self._settings.b_type.lower() == "simple_low":
-                    params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
                 else:
                     raise ValueError(f"FIR filter type {self._settings.b_type} is not supported")
         else:
@@ -513,9 +507,13 @@ class Filtering(CommonDigitalFunctions):
                 path2save=path2save,
                 define_path=".",
             )
-        elif filter_type == "fir" and filter_structure == "moving_average":
-            c_compile.build_filter_mavg(
-                order=self._settings.n_order,
+        elif (
+            filter_type == "fir"
+            and filter_structure == "lowpass"
+            and self._settings.f_filt[0] / self._settings.fs == 0.5
+        ):
+            c_compile.build_filter_simple(
+                order=2,
                 bitwidth=bitwidth,
                 signed=signed,
                 filter_id=id,
@@ -523,7 +521,7 @@ class Filtering(CommonDigitalFunctions):
                 define_path=".",
             )
         elif filter_type == "fir" and filter_structure == "allpass":
-            c_compile.build_filter_fir_allpass(
+            c_compile.build_filter_delay(
                 settings=self._settings,
                 bitwidth=bitwidth,
                 signed=signed,

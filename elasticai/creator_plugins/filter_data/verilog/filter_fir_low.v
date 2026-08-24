@@ -18,7 +18,7 @@
 
 
 module FIR_SIMPLE_LOW#(
-    parameter integer BITWIDTH = 6'd16
+    parameter integer BITWIDTH = 16
 )(
     input wire CLK_SYS,
     input wire RSTN,
@@ -33,22 +33,29 @@ module FIR_SIMPLE_LOW#(
     reg [1:0] do_calc_dly;
     reg first_run_done;
     wire do_process;
-    assign DATA_OUT = sum[BITWIDTH-:BITWIDTH];
+    assign DATA_OUT = sum[1+:BITWIDTH];
 
     assign do_process = !do_calc_dly[1] && do_calc_dly[0];
     assign DVALID = first_run_done && !do_process;
 
     always@(posedge CLK_SYS) begin
-        if(!(RSTN && EN)) begin
-            do_calc_dly <= 1'b0;
-            dly_data <= 'd0;
-            sum <= 'd0;
+        if(!RSTN) begin
+            do_calc_dly <= 2'd0;
+            dly_data <= 'sd0;
+            sum <= 'sd0;
             first_run_done <= 1'd0;
         end else begin
-            do_calc_dly <= {do_calc_dly[0], DO_CALC};
-            dly_data <= (do_process) ? DATA_IN : dly_data;
-            sum <= (do_process) ? DATA_IN + dly_data : sum;
-            first_run_done <= (do_process) ? 1'd1 : first_run_done;
+            if(EN) begin
+                do_calc_dly <= {do_calc_dly[0], DO_CALC};
+                dly_data <= (do_process) ? DATA_IN : dly_data;
+                sum <= (do_process) ? DATA_IN + dly_data : sum;
+                first_run_done <= (do_process) ? 1'd1 : first_run_done;
+            end else begin
+                do_calc_dly <= do_calc_dly;
+                dly_data <= dly_data;
+                sum <= sum;
+                first_run_done <= first_run_done;
+            end
         end
     end
 endmodule

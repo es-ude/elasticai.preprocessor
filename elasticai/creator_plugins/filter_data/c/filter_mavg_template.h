@@ -40,7 +40,7 @@ input_type calc_next_datum_moving_average_ ## id (input_type data, MavgFilter *f
 #ifndef DEF_NEW_MAVG_FILTER_IMPL
 #define DEF_NEW_MAVG_FILTER_IMPL(id, input_type, order, coeff) \
     static DEF_CALC_MAVG(id, input_type) \
-    bool calc_moving_average_ ## id (input_type data, input_type *out) { \
+    bool filt_fir_simple_ ## id (input_type data, input_type *out) { \
         static input_type filter_taps [order] = {0}; \
         static MavgFilter filter_params = { \
             .coefficients = coeff, \
@@ -55,7 +55,7 @@ input_type calc_next_datum_moving_average_ ## id (input_type data, MavgFilter *f
 
 #ifndef DEF_NEW_MAVG_FILTER_PROTO
 #define DEF_NEW_MAVG_FILTER_PROTO(id, input_type) \
-    bool calc_moving_average_ ## id (input_type data, input_type *out);
+    bool filt_fir_simple_ ## id (input_type data, input_type *out);
 #endif
 
 #endif

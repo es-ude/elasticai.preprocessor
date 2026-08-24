@@ -78,9 +78,13 @@ async def fir_delay(dut, bitwidth: int, fracwidth: int, length: int, data: list[
         assert runtime == period_clk * (1 + 1)
         data_out.append(dut.DATA_OUT.value.to_signed())
         await RisingEdge(dut.CLK_SYS)
-    print(data_out)
-    print(check)
-    assert data_out == check
+
+    passed = data_out == check
+    if not passed:
+        print(f"Input ({len(data)}):", data)
+        print(f"Output ({len(data_out)}):", data_out)
+        print(f"Check ({len(check)}):", check)
+    assert passed
 
 
 @pytest.mark.simulation
@@ -92,30 +96,11 @@ def test_template(
     fracwidth: int,
     length: int,
 ):
-
-    dut = Filtering(
-        SettingsFilter(
-            gain=1.0,
-            fs=2e3,
-            n_order=length,
-            f_filt=[50],
-            type="fir",
-            f_type="butter",
-            b_type="allpass",
-        )
-    )
     data_in = build_testdata(
         bitwidth=bitwidth, frac=fracwidth, order=length, taps_signal=10, num_repeats=1
     )
-
-    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
-    data_check = dut.filt_quantized(
-        np.asarray(data_in) * 2 ** (-fracwidth),
-        total_bitwidth=bitwidth,
-        fraction_width=fracwidth,
-        is_signed=True,
-    ).tolist()
-    data_check = arith_data.cut_as_integer(data_check)
+    data_check = [0 for _ in range(length - 1)]
+    data_check.extend(data_in[: -length + 1])
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup):
@@ -131,37 +116,19 @@ def test_template(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7), (12, 4)])
-@pytest.mark.parametrize("length", [11, 20, 40])
+@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7)])
+@pytest.mark.parametrize("length", [21])
 def test_build(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
     length: int,
 ):
-    dut = Filtering(
-        SettingsFilter(
-            gain=1.0,
-            fs=2e3,
-            n_order=length,
-            f_filt=[50],
-            type="fir",
-            f_type="butter",
-            b_type="allpass",
-        )
-    )
     data_in = build_testdata(
         bitwidth=bitwidth, frac=fracwidth, order=length, taps_signal=10, num_repeats=1
     )
-
-    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
-    data_check = dut.filt_quantized(
-        np.asarray(data_in) * 2 ** (-fracwidth),
-        total_bitwidth=bitwidth,
-        fraction_width=fracwidth,
-        is_signed=True,
-    ).tolist()
-    data_check = arith_data.cut_as_integer(data_check)
+    data_check = [0 for _ in range(length - 1)]
+    data_check.extend(data_in[: -length + 1])
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
@@ -192,6 +159,45 @@ def test_build(
 
 
 @pytest.mark.simulation
-@pytest.mark.skip("No Python func available")
-def test_build_equal():
-    pass
+@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7), (12, 4)])
+@pytest.mark.parametrize("length", [11, 20, 40])
+def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
+    dut = Filtering(
+        SettingsFilter(
+            gain=1.0,
+            fs=2e3,
+            n_order=1,
+            f_filt=[2e3 / length],
+            type="fir",
+            f_type="butter",
+            b_type="allpass",
+        )
+    )
+    data_in = build_testdata(
+        bitwidth=bitwidth, frac=fracwidth, order=length, taps_signal=4, num_repeats=1
+    )
+
+    arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
+    data_checked = dut.filt_quantized(
+        xin=np.asarray(data_in) * arith_data._config.minimum_step_as_rational,
+        total_bitwidth=bitwidth,
+        fraction_width=fracwidth,
+        is_signed=True,
+    ).tolist()
+    data_checked = arith_data.cut_as_integer(data_checked)
+
+    backup = cocotb_test_fixture.get_artifact_dir()
+    with temporary_directory(backup) as tmpdir:
+        build_dir = tmpdir / "verilog"
+
+        dut.create_design(target="fpga", bitwidth=bitwidth, id="0", path2save=build_dir, signed=True)
+        assert (build_dir / "*.v").exists
+
+        cocotb_test_fixture.write({"data": data_in, "check": data_checked})
+        cocotb_test_fixture.set_top_module_name("FIR_DELAY_0")
+        cocotb_test_fixture.clear_srcs()
+        cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
+        cocotb_test_fixture.run(
+            params={},
+            defines={},
+        )

@@ -43,10 +43,10 @@ input_type calc_next_datum_filter_fir_ ## id (input_type data, FirFilter *filter
 #endif
 
 
-#ifndef DEF_NEW_FIR_FIL
+#ifndef DEF_NEW_FIR_FILTER_IMPL
 #define DEF_NEW_FIR_FILTER_IMPL(id, input_type, order, ...) \
     static DEF_CALC_FIR(id, input_type) \
-    bool calc_filter_fir_ ## id (input_type data, input_type *out) { \
+    bool filt_fir_ ## id (input_type data, input_type *out) { \
         static input_type filter_taps [order] = {0}; \
         static float filter_coefficients [] = {__VA_ARGS__}; \
         static FirFilter settings = { \
@@ -64,7 +64,7 @@ input_type calc_next_datum_filter_fir_ ## id (input_type data, FirFilter *filter
 
 #ifndef DEF_NEW_FIR_FILTER_PROTO
 #define DEF_NEW_FIR_FILTER_PROTO(id, input_type) \
-    bool calc_filter_fir_ ## id (input_type data, input_type *out);
+    bool filt_fir_ ## id (input_type data, input_type *out);
 #endif
 
 
