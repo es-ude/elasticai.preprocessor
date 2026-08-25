@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import IntEnum
 from logging import Logger, getLogger
 from pathlib import Path
 
@@ -7,27 +8,37 @@ import numpy as np
 from elasticai.creator_plugins.eventdetection.src import c_compile
 
 
+class TargetsEventDetection(IntEnum):
+    Normal = 0
+    PosHyst = 1
+    NegHyst = 2
+    DoubleHyst = 3
+
+
 @dataclass
 class SettingsEventDetection:
     """Settings class for configuring the properties of the eventdetection module
-    Attributes: 
-        # threshold:  threshold defining an event 
-        hysteresis: Hysteresis window [%]
+    Attributes:
+        hysteresis: Hysteresis window
         hysteresis_type: Applied types of hysteresis [
-            'normal': no hysteresis, 
-            'pos_hyst': xin > 0 + h, 
-            'neg_hyst': xin < 0 - h, 
-            'double_hyst': später einschalten, später ausschalten]
+            'normal':      event_on/off -> threshold,
+            'pos_hyst':    event_on -> thr + h, event_off -> thr,
+            'neg_hyst':    event_on -> thr, event_off thr - h,
+            'double_hyst': event_on -> thr + h, event_off -> thr - h]
         out_invert: Is event low [True] or event high [False]
     """
-    hysteresis:      float 
-    hysteresis_type: str
-    
+
+    hysteresis: int
+    hysteresis_type: int | TargetsEventDetection
+    out_invert: bool
+
 
 DefaultSettingsEventDetection = SettingsEventDetection(
-    hysteresis=0.25,
-    hysteresis_type="normal",
+    hysteresis=10,
+    hysteresis_type=TargetsEventDetection.Normal,
+    out_invert=False,
 )
+
 
 class EventDetection:
     _settings: SettingsEventDetection
@@ -40,42 +51,73 @@ class EventDetection:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
-        
-    def _type_hysteresis(self, mode: str, threshold: int) -> list:
+        self._cmap = {
+            TargetsEventDetection.Normal: "eventdetection_normal",
+            TargetsEventDetection.PosHyst: "eventdetection_pos_hyst",
+            TargetsEventDetection.NegHyst: "eventdetection_neg_hyst",
+            TargetsEventDetection.DoubleHyst: "eventdetection_double_hyst",
+        }
+
+    def _map_type_to_c(self) -> str:
+        if self._settings.hysteresis_type not in list(self._cmap.keys()):
+            raise ValueError(
+                f"Hysteresis-Type'{self._settings.hysteresis_type}' in C generation is not supported."
+            )
+        return self._cmap[self._settings.hysteresis_type]
+
+    def _type_hysteresis(self, method: int | TargetsEventDetection, threshold: int) -> list:
         thr_zero = threshold
-        thr_pos = thr_zero + thr_zero * self._settings.hysteresis
-        thr_neg = thr_zero - thr_zero * self._settings.hysteresis
-        match mode: 
-            case "normal":
-                # --- normal event_detection
+        thr_pos = thr_zero + self._settings.hysteresis
+        thr_neg = thr_zero - self._settings.hysteresis
+        match method:
+            case TargetsEventDetection.Normal:
                 list_out = [thr_zero, thr_zero]
-            case "pos_hyst": 
-                # --- single Side, positive hysteresis
-                list_out = [thr_pos, thr_zero]
-            case "neg_hyst":
-                # --- single Side, negative hysteresis
-                list_out = [thr_zero, thr_neg]
-            case "double_hyst":
-                # --- double Side, 
-                list_out = [thr_pos, thr_neg]
+            case TargetsEventDetection.PosHyst:
+                if self._settings.out_invert:
+                    list_out = [thr_zero, thr_neg]
+                else:
+                    list_out = [thr_pos, thr_zero]
+            case TargetsEventDetection.NegHyst:
+                if self._settings.out_invert:
+                    list_out = [thr_pos, thr_zero]
+                else:
+                    list_out = [thr_zero, thr_neg]
+            case TargetsEventDetection.DoubleHyst:
+                if self._settings.out_invert:
+                    list_out = [thr_neg, thr_pos]
+                else:
+                    list_out = [thr_pos, thr_neg]
             case _:
                 raise NotImplementedError(
                     f"Hysteresis_type '{self._settings.hysteresis_type}' does not exist."
                 )
         return list_out
 
-    def detect_event(self, xin: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
+    def get_events(self, xin: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
         xout = np.zeros(len(xin), dtype=bool)
         self._int_state = False
         # int_state == 0 -> no event, int_state == 1 -> event detected
-        for idx, val in enumerate(xin):     
+        for idx, val in enumerate(xin):
             thr = self._type_hysteresis(self._settings.hysteresis_type, thresholds[idx].astype(int))
-            if self._int_state:
-                xout[idx] = val >= thr[1]
+            if self._settings.out_invert:
+                if self._int_state:
+                    xout[idx] = val <= thr[1]
+                else:
+                    xout[idx] = val <= thr[0]
+                self._int_state = xout[idx]
             else:
-                xout[idx] = val >= thr[0]
-            self._int_state = xout[idx]
+                if self._int_state:
+                    xout[idx] = val >= thr[1]
+                else:
+                    xout[idx] = val >= thr[0]
+                self._int_state = xout[idx]
         return xout
+
+    def get_events_position(self, xout: np.ndarray) -> np.ndarray:
+        ev_pos = np.zeros(len(xout), dtype=bool)
+        ev_pos[0] = xout[0]
+        ev_pos[1:] = xout[1:0] & ~xout[:-1]
+        return ev_pos
 
     def create_design(
         self,
@@ -83,35 +125,36 @@ class EventDetection:
         bitwidth: int,
         id: str,
         path2save: Path,
-        hysteresis: float,
-        hysteresis_type: str,
         signed: bool = True,
     ) -> None:
         """
         Generate the hardware design to detect events on hardware
-        :param target:          Target platform ["mcu", "pc", "fpga", "asic"],
+        :param target:          Target platform [
+                                    "mcu",
+                                    "pc",
+                                    "fpga",
+                                    "asic"],
         :param bitwidth:        Bitwidth,
         :param id:              ID of the target structure,
-        :param path2save:       Path to save eventdetection,
+        :param path2save:       Path to save event detection design files
         :param signed:          for use in datatype,
-        :param hysteresis:      relative hysteresis factor,
-        :param hysteresis_type: applied type of hysteresis["normal", "pos_hyst", "neg_hyst", "double_hyst"],
         :return:                None,
         """
-       
-        supported_targets = ["mcu", "pc"]
+
+        supported_targets = ["mcu", "pc", "fpga", "asic"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
-        self._create_design_c(
-            id=id,
-            bitwidth=bitwidth,
-            signed=signed,
-            path2save=path2save,
-            hysteresis=hysteresis,
-            hysteresis_type=hysteresis_type,
-        )
+        if target.lower() in ["mcu", "pc"]:
+            self._create_design_c(
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
+        else:
+            self._create_design_fpga()
 
     def _create_design_c(
         self,
@@ -119,15 +162,17 @@ class EventDetection:
         bitwidth: int,
         signed: bool,
         path2save: Path,
-        hysteresis: float = 0.25,
-        hysteresis_type: str = "eventdetection_double_hyst",
     ) -> None:
+        hysteresis_c_type = self._map_type_to_c()
         c_compile.build_eventdetection(
-            hysteresis=hysteresis,
-            hysteresis_type=hysteresis_type,
+            hysteresis=self._settings.hysteresis,
+            hysteresis_type=hysteresis_c_type,
             bitwidth=bitwidth,
             signed=signed,
             path2save=path2save,
             eventdetection_id=id,
             define_path=".",
         )
+
+    def _create_design_fpga(self) -> None:
+        raise NotImplementedError("FPGAs are not yet supported")
