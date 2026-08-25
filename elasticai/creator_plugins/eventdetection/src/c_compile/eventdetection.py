@@ -10,28 +10,28 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_eventdetection(
-    hysteresis: float,
+    hysteresis: int,
     hysteresis_type: str,
+    out_invert: bool,
     bitwidth: int,
     signed: bool,
     path2save: Path,
     eventdetection_id: str = "0",
     define_path: str = "src",
 ) -> None:
-    """Generate C files for eventdetection.
-    Args:
-        hysteresis: relative hysteresis factor.
-        hysteresis_type: Applied types of hysteresis[
-            'eventdetection_normal': no hysteresis,
-            'eventdetection_pos_hyst': event on greater hysteresis,
-            'eventdetection_neg_hyst': event off less hysteresis,
-            'eventdetection_double_hyst': combined pos_hyst and neg_hyst,
-            ].
-        bitwidth: bitwidth of each sample.
-        signed: Decision of data values are signed [otherwise unsigned].
-        path2save: Path to save the .h/.c output-files.
-        eventdetection_id: ID appended to function names.
-        define_path: include path written into the generated #include line.
+    """Generate C files for event detection.
+    :param hysteresis:        hysteresis window.
+    :param hysteresis_type:   Applied types of hysteresis[
+        'normal': no hysteresis,
+        'pos_hyst': event on greater hysteresis,
+        'neg_hyst': event off less hysteresis,
+        'double_hyst': combined pos_hyst and neg_hyst].
+    :param out_invert:        event < thr [True] , event > thr [False]
+    :param bitwidth:          bitwidth of each sample.
+    :param signed:            Decision of data values are signed [otherwise unsigned].
+    :param path2save:         Path to save the .h/.c output-files.
+    :param eventdetection_id: ID appended to function names.
+    :param define_path:       include path written into the generated #include line.
     """
     assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
 
@@ -46,6 +46,7 @@ def build_eventdetection(
         "data_type": get_embedded_datatype(bitwidth, signed),
         "hysteresis": str(hysteresis),
         "hysteresis_type": hyster_type,
+        "out_invert": str(out_invert).lower(),
     }
     template_c = _generate_eventdetection_template()
     generate_c_files(
@@ -64,7 +65,7 @@ def _generate_eventdetection_template() -> dict[str, list[str]]:
         "// --- Generating eventdetection",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type},",
+        "// Params: ID = {$device_id}, type = {$data_type}, invert = {$out_invert}",
         "// hysteresis = {$hysteresis}, hysteresis_type = {$hysteresis_type}",
         '#include "{$path2include}/{$template_name}"',
         "EVENT_SETTINGS({$device_id}, {$data_type})",
@@ -74,10 +75,10 @@ def _generate_eventdetection_template() -> dict[str, list[str]]:
         "// --- Generating eventdetection",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type},",
+        "// Params: ID = {$device_id}, type = {$data_type}, invert = {$out_invert}",
         "// hysteresis = {$hysteresis}, hysteresis_type = {$hysteresis_type}",
         '#include "{$path2include}/eventdetection_{$module_id}.h"',
         "TYPE_HYSTERESIS({$device_id}, {$data_type})",
-        "DEF_NEW_EVENTDETECTION_IMPL({$device_id}, {$data_type}, {$hysteresis}, {$hysteresis_type})",
+        "DEF_NEW_EVENTDETECTION_IMPL({$device_id}, {$data_type}, {$hysteresis}, {$hysteresis_type}, {$out_invert})",
     ]
     return {"head": header_template, "func": implementation_template}

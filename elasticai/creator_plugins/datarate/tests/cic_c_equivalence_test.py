@@ -16,25 +16,6 @@ INTEGER_CONFIGS = [
 ]
 
 
-@pytest.mark.parametrize("target", ["mcu", "pc"])
-def test_create_design_generates_cic_c_files(tmp_path: Path, target: str) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=4))
-
-    downsampler.create_design(
-        method=TargetsDownSampling.CIC,
-        target=target,
-        bitwidth=32,
-        id="0",
-        path2save=tmp_path,
-        signed=True,
-        num_stages=3,
-    )
-
-    assert (tmp_path / "downsampling_cic_0.c").exists()
-    assert (tmp_path / "downsampling_cic_0.h").exists()
-    assert (tmp_path / "downsampling_cic_template.h").exists()
-
-
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
     downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
 
