@@ -28,10 +28,9 @@ class SettingsEventDetection:
         out_invert: Is event low [True] or event high [False]
     """
 
-    hysteresis: int
+    hysteresis:      int 
     hysteresis_type: int | TargetsEventDetection
-    out_invert: bool
-
+    out_invert:      bool
 
 DefaultSettingsEventDetection = SettingsEventDetection(
     hysteresis=10,
@@ -61,7 +60,7 @@ class EventDetection:
     def _map_type_to_c(self) -> str:
         if self._settings.hysteresis_type not in list(self._cmap.keys()):
             raise ValueError(
-                f"Hysteresis-Type'{self._settings.hysteresis_type}' in C generation is not supported."
+                f"Hysteresis-Type '{self._settings.hysteresis_type}' in C generation is not supported."
             )
         return self._cmap[self._settings.hysteresis_type]
 
@@ -136,7 +135,7 @@ class EventDetection:
                                     "asic"],
         :param bitwidth:        Bitwidth,
         :param id:              ID of the target structure,
-        :param path2save:       Path to save event detection design files
+        :param path2save:       Path to save eventdetection design files
         :param signed:          for use in datatype,
         :return:                None,
         """
