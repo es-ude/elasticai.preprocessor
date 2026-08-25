@@ -7,3 +7,6 @@ from elasticai.preprocessor.eventdetection.eventdetection import (
 from elasticai.preprocessor.eventdetection.eventdetection import (
     SettingsEventDetection as SettingsEventDetection,
 )
+from elasticai.preprocessor.eventdetection.eventdetection import (
+    TargetsEventDetection as TargetsEventDetection,
+)
