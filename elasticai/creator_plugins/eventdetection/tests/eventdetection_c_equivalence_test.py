@@ -2,11 +2,42 @@ from pathlib import Path
 from shutil import which
 from uuid import uuid4
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.eventdetection import EventDetection, SettingsEventDetection
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.eventdetection import (
+    EventDetection,
+    SettingsEventDetection,
+    TargetsEventDetection,
+)
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+
+
+def plot_comparator_output(
+    input_frame: np.ndarray, thresholds_frame: np.ndarray, output_c: np.ndarray, output_np: np.ndarray
+) -> None:
+    fig, ax1 = plt.subplots()
+
+    ax1.plot(input_frame, color="r", marker=".", label="input")
+    ax1.plot(thresholds_frame, color="b", marker=".", label="threshold")
+    ax1.set_ylabel("input / threshold")
+
+    ax2 = ax1.twinx()
+    ax2.plot(output_c, color="g", marker=".", label="output (C)")
+    ax2.plot(output_np, color="m", marker=".", label="output (NP)")
+    ax2.set_ylabel("output")
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="best")
+
+    plt.tight_layout()
+    plt.show()
+
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -15,18 +46,23 @@ INTEGER_CONFIGS = [
     pytest.param(32, np.int32, "signed int", id="int32"),
 ]
 
+
 HYSTERESIS_TYPE_CONFIGS = [
-    pytest.param("eventdetection_normal", "normal", id="no hysteresis"),
-    pytest.param("eventdetection_pos_hyst", "pos_hyst", id="positive hysteresis"),
-    pytest.param("eventdetection_neg_hyst", "neg_hyst", id="negative hysteresis"),
-    pytest.param("eventdetection_double_hyst", "double_hyst", id="double hysteresis"),
+    pytest.param("normal", id="no hysteresis"),
+    pytest.param("pos_hyst", id="positive hysteresis"),
+    pytest.param("neg_hyst", id="negative hysteresis"),
+    pytest.param("double_hyst", id="double hysteresis"),
 ]
 
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: str) -> None:
     eventdetector = EventDetection(
-        SettingsEventDetection(hysteresis=0.25, hysteresis_type="eventdetection_double_hyst")
+        SettingsEventDetection(
+            window_size=10,
+            type=TargetsEventDetection.DoubleHyst,
+            out_invert=False,
+        )
     )
     eventdetector.create_design(
         target=target,
@@ -34,8 +70,6 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
         id="0",
         path2save=tmp_path,
         signed=True,
-        hysteresis=0.25,
-        hysteresis_type="eventdetection_double_hyst",
     )
     assert (tmp_path / "eventdetection_0.c").exists()
     assert (tmp_path / "eventdetection_0.h").exists()
@@ -43,51 +77,70 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
 
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
-@pytest.mark.parametrize("c_hysteresis,py_hysteresis", HYSTERESIS_TYPE_CONFIGS)
+@pytest.mark.parametrize("c_hysteresis", HYSTERESIS_TYPE_CONFIGS)
+@pytest.mark.parametrize("is_signed", [True])
+@pytest.mark.parametrize("out_invert", [False, True])
 def test_generated_eventdetection_c_matches_python_frame(
     tmp_path: Path,
     bitwidth: int,
     numpy_dtype: type(np.generic),
     c_type: str,
     c_hysteresis: str,
-    py_hysteresis: str,
+    is_signed: bool,
+    out_invert: bool,
 ) -> None:
-    settings = SettingsEventDetection(hysteresis=0.25, hysteresis_type=py_hysteresis)
+    block_plot = False
+    settings = SettingsEventDetection(
+        window_size=10, type=TargetsEventDetection(c_hysteresis), out_invert=out_invert
+    )
     eventdetector = EventDetection(settings)
-    output_dir = tmp_path / "src"
-    eventdetector.create_design(
-        target="mcu",
-        bitwidth=bitwidth,
-        id="0",
-        path2save=output_dir,
-        hysteresis=0.25,
-        hysteresis_type=c_hysteresis,
-        signed=True,
-    )
 
-    adapter = tmp_path / "adapter.h"
-    adapter.write_text(f"_Bool is_event_0({c_type} data, {c_type} threshold);\n")
-    loader = CompileLoader(
-        headers=str(adapter),
-        sources=[str(output_dir / "eventdetection_0.c")],
-        build_dir=str(tmp_path / "cffi-build"),
-        module_name=f"eventdetection_equivalence_{uuid4().hex}",
-    )
-    loader.load()
+    backup = get_path_to_project("build_test") / f"build_{c_hysteresis}"
+    with temporary_directory(backup) as tmpdir:
+        output_dir = tmpdir / "src"
+        eventdetector.create_design(
+            target="mcu",
+            bitwidth=bitwidth,
+            id="0",
+            path2save=output_dir,
+            signed=is_signed,
+        )
 
-    input_frame = np.array(
-        [90, 100, 125, 100, 99, 75, 74, 100, 35, 40, 52, 60, 65, 65, 50, 100, 35, 90], dtype=numpy_dtype
-    )
-    thresholds_frame = np.array(
-        [100, 100, 100, 100, 100, 100, 100, 100, 52, 52, 52, 52, 52, 80, 80, 80, 100, 80],
-        dtype=numpy_dtype,
-    )
-    expected = eventdetector.detect_event(input_frame, thresholds_frame).astype(numpy_dtype)
+        adapter = tmpdir / "adapter.h"
+        adapter.write_text(f"_Bool is_event_0({c_type} data, {c_type} threshold);\n")
+        loader = CompileLoader(
+            headers=str(adapter),
+            sources=[str(output_dir / "eventdetection_0.c")],
+            build_dir=str(tmpdir / "cffi-build"),
+            module_name=f"eventdetection_equivalence_{uuid4().hex}",
+        )
+        loader.load()
 
-    c_results = []
-    for idx, sample in enumerate(input_frame.tolist()):
-        c_results.append(loader.get("is_event_0")(sample, thresholds_frame[idx]))
+        arith = int_arithmetic(total_bits=bitwidth, signed=is_signed)
+        input_frame = np.linspace(
+            start=arith.minimum_as_integer,
+            stop=arith.maximum_as_integer,
+            num=2**8,
+            dtype=numpy_dtype,
+        )
+        input_frame = np.concat((input_frame, input_frame[::-1]), axis=-1)
+        thresholds_frame = np.random.randint(
+            low=arith.minimum_as_integer + bitwidth, high=arith.maximum_as_integer - bitwidth
+        ) + np.zeros_like(input_frame)
+        expected = eventdetector.get_events(input_frame, thresholds_frame).astype(numpy_dtype)
 
-    for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
-        passed, reason = compare_values(expected_value, c_value)
-        assert passed, f"index={index}: {reason}"
+        c_results = []
+        for sample, thr in zip(input_frame.tolist(), thresholds_frame.tolist()):
+            c_results.append(loader.get("is_event_0")(sample, thr))
+
+        if block_plot:
+            plot_comparator_output(
+                input_frame=input_frame,
+                thresholds_frame=thresholds_frame,
+                output_c=np.array(c_results),
+                output_np=expected,
+            )
+
+        for index, (expected_value, c_value) in enumerate(zip(expected.tolist(), c_results, strict=True)):
+            passed, reason = compare_values(expected_value, c_value)
+            assert passed, f"index={index}: {reason}"
