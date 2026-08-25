@@ -16,14 +16,18 @@ INTEGER_CONFIGS = [
 ]
 
 HYSTERESIS_TYPE_CONFIGS = [
-        pytest.param("eventdetection_normal", "normal", id="no hysteresis"),
-        pytest.param("eventdetection_pos_hyst", "pos_hyst", id="positive hysteresis"),
-        pytest.param("eventdetection_neg_hyst", "neg_hyst", id="negative hysteresis"),
-        pytest.param("eventdetection_double_hyst", "double_hyst", id="double hysteresis"),
-        ]
+    pytest.param("eventdetection_normal", "normal", id="no hysteresis"),
+    pytest.param("eventdetection_pos_hyst", "pos_hyst", id="positive hysteresis"),
+    pytest.param("eventdetection_neg_hyst", "neg_hyst", id="negative hysteresis"),
+    pytest.param("eventdetection_double_hyst", "double_hyst", id="double hysteresis"),
+]
+
+
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: str) -> None:
-    eventdetector = EventDetection(SettingsEventDetection(hysteresis=0.25, hysteresis_type="eventdetection_double_hyst"))
+    eventdetector = EventDetection(
+        SettingsEventDetection(hysteresis=0.25, hysteresis_type="eventdetection_double_hyst")
+    )
     eventdetector.create_design(
         target=target,
         bitwidth=8,
@@ -31,11 +35,12 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
         path2save=tmp_path,
         signed=True,
         hysteresis=0.25,
-        hysteresis_type="eventdetection_double_hyst"
+        hysteresis_type="eventdetection_double_hyst",
     )
     assert (tmp_path / "eventdetection_0.c").exists()
     assert (tmp_path / "eventdetection_0.h").exists()
     assert (tmp_path / "eventdetection_template.h").exists()
+
 
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("c_hysteresis,py_hysteresis", HYSTERESIS_TYPE_CONFIGS)
@@ -65,14 +70,19 @@ def test_generated_eventdetection_c_matches_python_frame(
     loader = CompileLoader(
         headers=str(adapter),
         sources=[str(output_dir / "eventdetection_0.c")],
-        build_dir = str(tmp_path / "cffi-build"),
+        build_dir=str(tmp_path / "cffi-build"),
         module_name=f"eventdetection_equivalence_{uuid4().hex}",
     )
     loader.load()
 
-    input_frame = np.array([90, 100, 125, 100, 99, 75, 74, 100, 35, 40, 52, 60, 65, 65, 50, 100, 35, 90], dtype=numpy_dtype)
-    thresholds_frame = np.array([100, 100, 100, 100, 100, 100, 100, 100, 52, 52, 52, 52, 52, 80, 80, 80, 100, 80], dtype=numpy_dtype)
-    expected = eventdetector.detect_event(input_frame,thresholds_frame).astype(numpy_dtype)
+    input_frame = np.array(
+        [90, 100, 125, 100, 99, 75, 74, 100, 35, 40, 52, 60, 65, 65, 50, 100, 35, 90], dtype=numpy_dtype
+    )
+    thresholds_frame = np.array(
+        [100, 100, 100, 100, 100, 100, 100, 100, 52, 52, 52, 52, 52, 80, 80, 80, 100, 80],
+        dtype=numpy_dtype,
+    )
+    expected = eventdetector.detect_event(input_frame, thresholds_frame).astype(numpy_dtype)
 
     c_results = []
     for idx, sample in enumerate(input_frame.tolist()):

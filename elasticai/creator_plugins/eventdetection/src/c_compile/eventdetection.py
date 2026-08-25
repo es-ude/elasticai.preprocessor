@@ -10,7 +10,7 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_eventdetection(
-    hysteresis:      float,
+    hysteresis: float,
     hysteresis_type: str,
     bitwidth: int,
     signed: bool,
@@ -19,21 +19,21 @@ def build_eventdetection(
     define_path: str = "src",
 ) -> None:
     """Generate C files for eventdetection.
-    Args: 
-        hysteresis: relative hysteresis factor. 
-        hysteresis_type: Applied types of hysteresis[ 
+    Args:
+        hysteresis: relative hysteresis factor.
+        hysteresis_type: Applied types of hysteresis[
             'eventdetection_normal': no hysteresis,
             'eventdetection_pos_hyst': event on greater hysteresis,
             'eventdetection_neg_hyst': event off less hysteresis,
-            'eventdetection_double_hyst': combined pos_hyst and neg_hyst, 
+            'eventdetection_double_hyst': combined pos_hyst and neg_hyst,
             ].
         bitwidth: bitwidth of each sample.
-        signed: Decision of data values are signed [otherwise unsigned]. 
-        path2save: Path to save the .h/.c output-files. 
-        eventdetection_id: ID appended to function names. 
+        signed: Decision of data values are signed [otherwise unsigned].
+        path2save: Path to save the .h/.c output-files.
+        eventdetection_id: ID appended to function names.
         define_path: include path written into the generated #include line.
     """
-    assert bitwidth in range(2,33), "bitwidth must be between 2 and 32"
+    assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
 
     module_id = eventdetection_id.lower()
     hyster_type = hysteresis_type.upper()
@@ -55,8 +55,9 @@ def build_eventdetection(
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=Path(design_plugin.__file__).parent / "c", 
+        path2template=Path(design_plugin.__file__).parent / "c",
     )
+
 
 def _generate_eventdetection_template() -> dict[str, list[str]]:
     header_template = [
