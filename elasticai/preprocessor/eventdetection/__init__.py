@@ -1,12 +1,18 @@
-from elasticai.preprocessor.eventdetection.eventdetection import (
+from .eventdetection import (
     DefaultSettingsEventDetection as DefaultSettingsEventDetection,
 )
-from elasticai.preprocessor.eventdetection.eventdetection import (
+from .eventdetection import (
     EventDetection as EventDetection,
 )
-from elasticai.preprocessor.eventdetection.eventdetection import (
+from .eventdetection import (
     SettingsEventDetection as SettingsEventDetection,
 )
-from elasticai.preprocessor.eventdetection.eventdetection import (
+from .eventdetection import (
     TargetsEventDetection as TargetsEventDetection,
+)
+from .preprocessors import (
+    TargetsEventPreprocessors as TargetsEventPreprocessors,
+    SettingsEventPreprocessor as SettingsEventPreprocessor,
+    DefaultSettingsEventPreprocessor as DefaultSettingsEventPreprocessor,
+    EventPreprocessor as EventPreprocessor,
 )
