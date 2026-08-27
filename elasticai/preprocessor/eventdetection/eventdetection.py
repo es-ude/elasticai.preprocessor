@@ -52,6 +52,8 @@ class EventDetection:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
+        if isinstance(settings.type, str):
+            self._settings.type = TargetsEventDetection(settings.type)
 
     def _type_hysteresis(self, threshold: int) -> list:
         thr_zero = threshold
@@ -147,15 +149,9 @@ class EventDetection:
         signed: bool,
         path2save: Path,
     ) -> None:
-        method: TargetsEventDetection = (
-            self._settings.type
-            if type(self._settings.type) == str
-            else TargetsEventDetection(self._settings.type)
-        )
-
         c_compile.build_eventdetection(
             hysteresis=self._settings.window_size,
-            hysteresis_type=method.value,
+            hysteresis_type=self._settings.type.value,
             out_invert=self._settings.out_invert,
             bitwidth=bitwidth,
             signed=signed,

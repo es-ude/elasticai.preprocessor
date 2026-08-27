@@ -280,10 +280,9 @@ class TestDoubleHystMode:
 
 
 class TestUnknownHysteresisType:
-    def test_raises_not_implemented_error(self):
-        det = make_detector(hysteresis_type="unknown")
-        with pytest.raises(NotImplementedError):
-            det.get_events(np.array([100]), np.array([100]))
+    def test_raises_not_known_error(self):
+        with pytest.raises(ValueError):
+            make_detector(hysteresis_type="unknown")
 
 
 class TestGetEventsPosition:
