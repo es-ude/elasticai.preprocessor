@@ -41,7 +41,7 @@ class SettingsFrameAlignment:
 
 
 DefaultSettingsFrameAlignment = SettingsFrameAlignment(
-    type="max",
+    type=TargetsFrameAlignment.Max,
     sampling_rate=20e3,
     align_sec=0.4e-3,
     offset_sec=0.4e-3,

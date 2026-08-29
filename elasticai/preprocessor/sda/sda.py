@@ -2,16 +2,50 @@ from dataclasses import dataclass
 from logging import Logger, getLogger
 
 import numpy as np
-from scipy.signal import iirfilter, lfilter
 
-from elasticai.preprocessor.framing import FrameGenerator, FrameWaveform, SettingsFrame
+from elasticai.preprocessor.eventdetection import (
+    EventDetection,
+    EventPreprocessor,
+    FrameAligner,
+    SettingsEventDetection,
+    SettingsEventPreprocessor,
+    SettingsFrameAlignment,
+    TargetsEventDetection,
+    TargetsEventPreprocessors,
+    TargetsFrameAlignment,
+)
+from elasticai.preprocessor.thresholding import (
+    SettingsThreshold,
+    TargetsThreshold,
+    Thresholding,
+)
+
+
+@dataclass
+class FrameWaveform:
+    waveform: np.ndarray
+    xpos: np.ndarray
+    label: np.ndarray
+    sampling_rate: float
+
+    @property
+    def length(self) -> int:
+        return self.waveform.shape[1]
+
+    @property
+    def num_samples(self) -> int:
+        return self.xpos.size
+
+    @property
+    def is_data_labeled(self) -> bool:
+        return np.unique(self.label).size > 0 and 255 not in self.label.tolist()
 
 
 @dataclass
 class SettingsSDA:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [normal, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
+        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
                         Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
                         enhanced energy-derivation operator (eED),
                         amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
@@ -28,28 +62,23 @@ class SettingsSDA:
         t_frame_length: Floating value with total window length [s]
         t_frame_start:  Floating value with time point for aligned position [s]
         dt_offset:      Time offset for the first larger spike window [neg, pos]
-        thr_gain:       Floating value with amplification factor on SDA output
+        f_filt:         List with floating of the filter frequencies [Hz]
     """
 
-    mode_sda: str
-    mode_thr: str
-    mode_align: str
+    mode_sda: TargetsEventPreprocessors
+    mode_thr: TargetsThreshold
+    mode_align: TargetsFrameAlignment
     dx_sda: list
     sampling_rate: float
     t_frame_length: float
     t_frame_start: float
     dt_offset: float
-    thr_gain: float
+    f_filt: list[float]
 
     @property
     def get_integer_offset(self) -> int:
         """Getting the integer offset for negative offset in building the spike window"""
         return round(self.dt_offset * self.sampling_rate)
-
-    @property
-    def get_integer_offset_total(self) -> int:
-        """Getting the total integer offset in building the spike window"""
-        return 2 * self.get_integer_offset
 
     @property
     def get_integer_spike_frame(self) -> int:
@@ -61,145 +90,121 @@ class SettingsSDA:
         """Getting the integer for starting the aligned method on each spike window"""
         return round(self.t_frame_start * self.sampling_rate)
 
+    @property
+    def get_integer_spike_total(self) -> int:
+        """Getting the integer for total length of a spike window"""
+        return self.get_integer_spike_frame + 2 * self.get_integer_offset
+
 
 DefaultSettingsSDA = SettingsSDA(
     sampling_rate=20e3,
     dx_sda=[1],
-    mode_sda="eed",
-    mode_thr="const",
-    mode_align="min",
+    mode_sda=TargetsEventPreprocessors("eed"),
+    mode_thr=TargetsThreshold("const"),
+    mode_align=TargetsFrameAlignment("min"),
     t_frame_length=1.6e-3,
     t_frame_start=0.4e-3,
     dt_offset=0.1e-3,
-    thr_gain=1.0,
+    f_filt=[100.0],
 )
 
 
 class SpikeDetection:
+    _settings: SettingsSDA
+    _threshold: Thresholding
+    _events: EventDetection
+    _event_pre: EventPreprocessor
+    _aligner: FrameAligner
+    _logger: Logger
+
     def __init__(self, settings: SettingsSDA) -> None:
         """Class SpikeDetection for extracting Spike Waveforms from neural transient input
         :param settings:    Class SettingsSDA for configuring the accelerator
         :return:            None
         """
         self._logger: Logger = getLogger(__name__)
-        self._settings_sda = settings
-        self._settings_thr = SettingsFrame(
-            mode_thr=self._settings_sda.mode_thr,
-            mode_align=self._settings_sda.mode_align,
-            sampling_rate=self._settings_sda.sampling_rate,
-            window_sec=self._settings_sda.t_frame_length,
-            offset_sec=self._settings_sda.dt_offset,
-            align_sec=self._settings_sda.t_frame_start,
-            thr_gain=self._settings_sda.thr_gain,
-        )
-        self._frame_generator = FrameGenerator(
-            settings=self._settings_thr,
-        )
+        self._settings = settings
 
-    @staticmethod
-    def _sda_normal(xin: np.ndarray) -> np.ndarray:
-        return xin
-
-    def _sda_neo(self, xin: np.ndarray) -> np.ndarray:
-        ksda0 = self._settings_sda.dx_sda[0]
-        x_neo0 = xin[ksda0:-ksda0] ** 2 - xin[: -2 * ksda0] * xin[2 * ksda0 :]
-        return np.concatenate([x_neo0[:ksda0,], x_neo0, x_neo0[-ksda0:,]], axis=None)
-
-    def _sda_mteo(self, xin: np.ndarray) -> np.ndarray:
-        x_mteo = np.zeros(shape=(len(self._settings_sda.dx_sda), xin.size))
-        for idx, ksda0 in enumerate(self._settings_sda.dx_sda):
-            x0 = np.power(xin[ksda0:-ksda0,], 2) - xin[: -2 * ksda0,] * xin[2 * ksda0 :,]
-            x_mteo[idx, :] = np.concatenate([x0[:ksda0,], x0, x0[-ksda0:,]], axis=None)
-        return np.max(x_mteo, axis=0)
-
-    def _sda_ado(self, xin: np.ndarray) -> np.ndarray:
-        ksda0 = self._settings_sda.dx_sda[0]
-        x_sda = np.absolute(xin[ksda0:,] - xin[:-ksda0,])
-        return np.concatenate([x_sda[:ksda0], x_sda], axis=None)
-
-    def _sda_aso(self, xin: np.ndarray) -> np.ndarray:
-        ksda0 = self._settings_sda.dx_sda[0]
-        x_sda = xin[ksda0:,] * (xin[ksda0:,] - xin[:-ksda0,])
-        return np.concatenate([x_sda[:ksda0], x_sda], axis=None)
-
-    def _sda_eed(self, xin: np.ndarray, f_hp: float) -> np.ndarray:
-        filter = iirfilter(
-            N=2,
-            Wn=2 * f_hp / self._settings_sda.sampling_rate,
-            ftype="butter",
-            btype="highpass",
-            analog=True,
-            output="ba",
-        )
-        return np.square(np.array(lfilter(filter[0], filter[1], xin)))
-
-    def _sda_spb(self, xin: np.ndarray, f_bp: list) -> np.ndarray:
-        filter = iirfilter(
-            N=2,
-            Wn=2 * np.array(f_bp) / self._settings_sda.sampling_rate,
-            ftype="butter",
-            btype="bandpass",
-            analog=False,
-            output="ba",
-        )
-        filt0 = lfilter(filter[0], filter[1], xin)
-        return np.abs(filt0)
-
-    def get_methods_sda(self) -> list:
-        """Function for getting a list with all methods for spike detection"""
-        split_key = "_sda_"
-        return [method.split(split_key)[-1] for method in dir(self) if split_key in method]
-
-    def apply_spike_detection(self, xraw: np.ndarray, **kwargs) -> np.ndarray:
-        """Applying spike detection algorithm (SDA) on transient raw signal
-        :param xraw:    Numpy array with transient raw data
-        :return:        Numpy array with transient threshold value for extracting spike waveforms
-        """
-        if len(self._settings_sda.dx_sda) < 1:
-            raise ValueError("Length of dx_sda must be greater than 1")
-        if self._settings_sda.dx_sda[0] < 1:
-            raise ValueError("Value of dx_sda[0] must be greater than 1")
-        if self._settings_sda.mode_sda == "eed" and "f_hp" not in kwargs.keys():
-            raise TypeError(
-                "EED method needs the definition of 'f_hp' (high-pass corner "
-                "frequency as float, like f_hp=150.) as kwargs"
+        self._threshold = Thresholding(
+            settings=SettingsThreshold(
+                method=self._settings.mode_thr.value
+                if isinstance(self._settings.mode_thr, TargetsThreshold)
+                else self._settings.mode_thr,
+                sampling_rate=self._settings.sampling_rate,
+                window_sec=self._settings.t_frame_length,
+                do_quant=False,
             )
-        if self._settings_sda.mode_sda == "spb" and "f_bp" not in kwargs.keys():
-            raise TypeError(
-                "SPB method needs the definition of 'f_bp' (band-pass corner "
-                "frequencies as tuple/list[float, float], like f_bp=[100., 1000.]) as kwargs"
+        )
+        self._event_pre = EventPreprocessor(
+            settings=SettingsEventPreprocessor(
+                type=self._settings.mode_sda,
+                sampling_rate=self._settings.sampling_rate,
+                window_size=self._settings.dx_sda,
+                f_filt=self._settings.f_filt,
             )
-
-        method = f"_sda_{self._settings_sda.mode_sda.lower()}"
-        if method in self.get_methods_sda():
-            raise ValueError(
-                f"Spike Detection Method '{self._settings_sda.mode_align.lower()}' is not in {self.get_methods_sda()}. Please change!"
+        )
+        self._events = EventDetection(
+            settings=SettingsEventDetection(
+                type=TargetsEventDetection("normal"), out_invert=False, window_size=1
             )
-        return getattr(self, method)(xraw, **kwargs)
+        )
+        self._aligner = FrameAligner(
+            settings=SettingsFrameAlignment(
+                type=self._settings.mode_align,
+                sampling_rate=self._settings.sampling_rate,
+                align_sec=self._settings.t_frame_start,
+                offset_sec=self._settings.dt_offset,
+            )
+        )
 
-    def get_spike_waveforms(self, xraw: np.ndarray, do_abs: bool, **kwargs) -> FrameWaveform:
+    def __frame_extraction(
+        self, xraw: np.ndarray, xpos: np.ndarray | list, xoffset: int = 0
+    ) -> FrameWaveform:
+        def _in_bounds(start: int, end: int, size: int) -> bool:
+            return start >= 0 and end <= size
+
+        offset = self._settings.get_integer_offset
+        spike_total = self._settings.get_integer_spike_total
+        spike_frame = self._settings.get_integer_spike_frame
+
+        alig_frames = list()
+        alig_xpos = list()
+        for pos in xpos:
+            # Cutting larger frame from transient stream
+            x_neg0: int = pos - offset + xoffset
+            x_pos0: int = x_neg0 + spike_total
+            if not _in_bounds(x_neg0, x_pos0, xraw.size):
+                continue
+            frame0 = xraw[x_neg0:x_pos0]
+
+            # Cutting aligned frame from transient stream
+            aligned_pos = self._aligner.get_aligned_position(frame0)[0]
+            x_neg1: int = x_neg0 + aligned_pos
+            x_pos1: int = x_neg1 + spike_frame
+            if not _in_bounds(x_pos1, x_pos1, xraw.size):
+                continue
+            frame1 = xraw[x_neg1:x_pos1]
+
+            alig_frames.append(frame1)
+            alig_xpos.append(x_neg1)
+        return FrameWaveform(
+            waveform=np.array(alig_frames),
+            xpos=np.array(alig_xpos),
+            label=np.full(len(alig_xpos), 255, dtype=np.uint8),
+            sampling_rate=self._settings.sampling_rate,
+        )
+
+    def get_frames(self, xraw: np.ndarray, **kwargs) -> FrameWaveform:
         """Function for extracting the spike waveforms from transient input
         :param xraw:    Numpy array with transient input
-        :param do_abs:  Boolean for absolute threshold estimation
         :return:        Class FrameWaveform with waveforms, labels and position
         """
-        key_kwargs = [key for key in kwargs.keys()]
-        if "f_hp" in key_kwargs and self._settings_sda.mode_sda == "eed":
-            kwargs_sda = {"f_hp": kwargs["f_hp"]}
-        elif "f_bp" in key_kwargs and self._settings_sda.mode_sda == "spb":
-            kwargs_sda = {"f_bp": kwargs["f_bp"]}
-        else:
-            kwargs_sda = dict()
+        sda = self._event_pre.get_preprocessed(xraw=xraw)
+        thr = self._threshold.get_threshold(xin=sda, gain=1.0, **kwargs)
+        xpos = self._events.get_events_position(xin=sda, threshold=thr)
+        return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=0)
 
-        if "thr_val" in key_kwargs and self._settings_sda.mode_thr == "const":
-            kwargs_thr = {"thr_val": kwargs["thr_val"]}
-        else:
-            kwargs_thr = dict()
-
-        xsda = self.apply_spike_detection(xraw=xraw, **kwargs_sda)
-        return self._frame_generator.frame_generation(xraw=xraw, xsda=xsda, do_abs=do_abs, **kwargs_thr)
-
-    def get_spike_waveforms_from_positions(
+    def get_frames_from_positions(
         self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int
     ) -> FrameWaveform:
         """Function for extracting the spike waveforms from transient input and given position
@@ -208,4 +213,4 @@ class SpikeDetection:
         :param xoffset: Integer for shifting the xpos values
         :return:        Class FrameWaveform with waveforms, labels and position
         """
-        return self._frame_generator.frame_generation_with_position(xraw=xraw, xpos=xpos, xoffset=xoffset)
+        return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=xoffset)
