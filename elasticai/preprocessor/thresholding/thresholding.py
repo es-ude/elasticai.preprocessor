@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from logging import Logger, getLogger
 from pathlib import Path
 
@@ -7,13 +8,24 @@ import numpy as np
 import elasticai.creator_plugins.thresholding.utils as hw_utils
 
 
+class TargetsThreshold(Enum):
+    Const = "const"
+    AbsoluteMean = "abs_mean"
+    MedianAbsoluteDeviation = "mad"
+    MovingAverage = "mavg"
+    RmsNorm = "rms_norm"
+    RmsMove = "rms_move"
+    RmsBlackrock = "rms_black"
+    Welford = "welford"
+
+
 @dataclass
 class SettingsThreshold:
     """Dataclass for defining the funcs for determining properties to calculate thresholding
     Attributes:
         method:         Applied method for thresholding ['const': constant given value,
                         'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
-                        'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
+                        'mavg_abs': moving absolute average, 'rms_norm': Root-Mean-Squared,
                         'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
                         'welford': Welford Online Algorithm for STD Calculation]
         sampling_rate:  Sampling rate of the transient signal [Hz]

@@ -5,5 +5,8 @@ from .thresholding import (
     SettingsThreshold as SettingsThreshold,
 )
 from .thresholding import (
+    TargetsThreshold as TargetsThreshold,
+)
+from .thresholding import (
     Thresholding as Thresholding,
 )
