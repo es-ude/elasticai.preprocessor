@@ -11,7 +11,6 @@ from elasticai.preprocessor.translation.ir2c import (
 
 def build_thresholding_const(
     threshold: int,
-    gain: float,
     bitwidth: int,
     signed: bool,
     path2save: Path,
@@ -21,7 +20,6 @@ def build_thresholding_const(
     """Generate C files for constant thresholding.
     Args:
         threshold:       constant threshold
-        gain:            gain for tuning threshold
         bitwidth:        bitwidth of each sample
         path2save:       Path to save the .h/.c output-files.
         thresholding_id: ID appended to function name
@@ -33,7 +31,6 @@ def build_thresholding_const(
     module_id = thresholding_id.lower()
     params = {
         "threshold": str(threshold),
-        "gain_val": str(gain),
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "thresholding_constant_template.h",
@@ -67,6 +64,6 @@ def _generate_thresholding_constant_template() -> dict[str, list[str]]:
         "// Code generated on: {$datetime_created}",
         "// Params: ID = {$device_id}, type = {$data_type}, threshold = {$threshold}",
         '#include "{$path2include}/{$template_name}"',
-        "DEF_CONSTANT_THR_IMPL({$device_id}, {$data_type}, {$threshold}, {$gain_val})",
+        "DEF_CONSTANT_THR_IMPL({$device_id}, {$data_type}, {$threshold})",
     ]
     return {"head": header_template, "func": implementation_template}

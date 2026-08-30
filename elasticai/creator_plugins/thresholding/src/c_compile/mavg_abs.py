@@ -10,7 +10,6 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_thresholding_mavg_abs(
-    gain: float,
     window_size: int,
     bitwidth: int,
     signed: bool,
@@ -20,7 +19,6 @@ def build_thresholding_mavg_abs(
 ) -> None:
     """Generate C files for moving absolute average thresholding.
     Args:
-        gain:            gain for tuning threshold
         window_size:     number of samples in the window
         bitwidth:        bitwidth of each sample
         signed:          Decision if data values are signed [otherwise unsigned]
@@ -33,7 +31,6 @@ def build_thresholding_mavg_abs(
 
     module_id = thresholding_id.lower()
     params = {
-        "gain_val": str(gain),
         "size": str(window_size),
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
@@ -67,9 +64,9 @@ def _generate_thresholding_mavg_abs_template() -> dict[str, list[str]]:
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
         "// Params: ID = {$device_id}, type = {$data_type},",
-        "// window_size = {$size}, gain = {$gain_val}",
+        "// window_size = {$size}",
         '#include "{$path2include}/{$template_name}"',
         "DEF_CALC_MAVG_ABS_THR({$device_id}, {$data_type})",
-        "DEF_NEW_MAVG_ABS_WINDOW_IMPL({$device_id}, {$data_type}, {$size}, {$gain_val})",
+        "DEF_NEW_MAVG_ABS_WINDOW_IMPL({$device_id}, {$data_type}, {$size})",
     ]
     return {"head": header_template, "func": implementation_template}
