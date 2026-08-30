@@ -29,7 +29,6 @@ class SettingsThreshold:
                             'abs_mean': absolute mean value, 
                             'mad': median absolute derivation, 
                             'mavg', moving average,
-                            'mavg_abs': absolute mean absolute value, 
                             'rms_norm': Root-Mean-Squared,
                             'rms_move': Moving RMS, 
                             'rms_black': RMS method used in Blackrock Neurotechnology Systems,
@@ -39,7 +38,7 @@ class SettingsThreshold:
         do_quant:       Boolean for performing quantized operations
     """
 
-    method: TargetsThresholding
+    method: TargetsThreshold
     sampling_rate: float
     window_sec: float
     do_quant: bool
@@ -51,7 +50,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method=TargetsThresholding.Constant, 
+    method=TargetsThreshold.Const, 
     sampling_rate=1000.0, 
     window_sec=10e-3, 
     do_quant=False
@@ -67,33 +66,33 @@ class Thresholding:
         self._logger: Logger = getLogger(__name__)
         self._settings: SettingsThreshold = settings
         self._methods = {
-            TargetsThresholding.Constant: "_constant",
-            TargetsThresholding.AbsMean: "_absolute_median",
-            TargetsThresholding.MAD: "_median_absolute_derivation",
-            TargetsThresholding.Mavg: "_moving_average",
-            TargetsThresholding.MavgAbs: "_moving_absolute_average",
-            TargetsThresholding.RmsNorm: "_root_mean_squared_normal",
-            TargetsThresholding.RmsBlack: "_root_mean_squared_blackrock",
-            TargetsThresholding.Welford: "_welford_online",
+            TargetsThreshold.Const: "_constant",
+            TargetsThreshold.AbsoluteMean: "_absolute_median",
+            TargetsThreshold.MedianAbsoluteDeviation: "_median_absolute_derivation",
+            TargetsThreshold.MovingAverage: "_moving_average",
+            TargetsThreshold.RmsNorm: "_root_mean_squared_normal",
+            TargetsThreshold.RmsMove: "_moving_absolute_average",
+            TargetsThreshold.RmsBlackrock: "_root_mean_squared_blackrock",
+            TargetsThreshold.Welford: "_welford_online",
         }
         self._hwmap = {
-            TargetsThresholding.Constant: "const",
-            TargetsThresholding.AbsMean: "const",
-            TargetsThresholding.MAD: "const",
-            TargetsThresholding.Mavg: "mov_avg_norm",
-            TargetsThresholding.MavgAbs: "mov_avg_abs_norm",
-            TargetsThresholding.RmsNorm: "const",
-            TargetsThresholding.RmsBlack: "const",
+            TargetsThreshold.Const: "const",
+            TargetsThreshold.AbsoluteMean: "const",
+            TargetsThreshold.MedianAbsoluteDeviation: "const",
+            TargetsThreshold.MovingAverage: "mov_avg_norm",
+            TargetsThreshold.RmsNorm: "const",
+            TargetsThreshold.RmsMove: "mov_avg_abs_norm",
+            TargetsThreshold.RmsBlackrock: "const",
         }
         self._cmap = {
-            TargetsThresholding.Constant: "const",
-            TargetsThresholding.AbsMean: "const",
-            TargetsThresholding.MAD: "const",
-            TargetsThresholding.Mavg: "mavg",
-            TargetsThresholding.MavgAbs: "mavg_abs",
-            TargetsThresholding.RmsNorm: "const",
-            TargetsThresholding.RmsBlack: "const",
-            TargetsThresholding.Welford: "welford",
+            TargetsThreshold.Const: "const",
+            TargetsThreshold.AbsoluteMean: "const",
+            TargetsThreshold.MedianAbsoluteDeviation: "const",
+            TargetsThreshold.MovingAverage: "mavg",
+            TargetsThreshold.RmsNorm: "const",
+            TargetsThreshold.RmsMove: "mavg_abs",
+            TargetsThreshold.RmsBlackrock: "const",
+            TargetsThreshold.Welford: "welford",
         }
 
     def _map_method_to_hardware(self) -> str:
@@ -115,8 +114,8 @@ class Thresholding:
         id: str,
         target: str,
         bitwidth: int,
-        signed: bool,
         path2save: Path,
+        signed: bool | None = None,
         data: np.ndarray | None = None,
         const_threshold: int | None = None,
         **kwargs
@@ -245,15 +244,15 @@ class Thresholding:
             },
         }
         match self._settings.method:
-            case TargetsThresholding.Constant:
+            case TargetsThreshold.Const:
                 params["params"].update({"CONST_THR": thr_val})
-            case TargetsThresholding.Mavg:
+            case TargetsThreshold.MovingAverage:
                 if self._is_power_of_two(self._settings.window_steps):
                     params["type"] = "mov_avg_pow2"
                 else:
                     params["type"] = "mov_avg_norm"
                 params["params"].update({"LENGTH": self._settings.window_steps})
-            case "mavg_abs":
+            case TargetsThreshold.RmsMove:
                 if self._is_power_of_two(self._settings.window_steps):
                     params["type"] = "mov_avg_abs_pow2"
                 else:
@@ -280,7 +279,7 @@ class Thresholding:
         :return:        Numpy array with thresholding value from applied method
         """
         used_method = self._settings.method
-        if used_method == TargetsThresholding.Constant and "thr_val" not in list(kwargs.keys()):
+        if used_method == TargetsThreshold.Const and "thr_val" not in list(kwargs.keys()):
             raise TypeError(
                 "Constant threshold method needs the definition of 'thr_val' (threshold value) "
                 "as float, like thr_val=0.5 in kwargs"

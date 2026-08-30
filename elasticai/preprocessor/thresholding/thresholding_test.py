@@ -12,7 +12,7 @@ from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 from .thresholding import (
     DefaultSettingsThreshold,
     SettingsThreshold,
-    TargetsThresholding,
+    TargetsThreshold,
     Thresholding,
 )
 
@@ -22,12 +22,12 @@ INTEGER_CONFIGS = [
 ]
 
 THRESHOLDING_CONFIGS = [
-    pytest.param(1000.0, 10e-3, TargetsThresholding.Constant, "thresholding_constant", id="method_constant"),
-    pytest.param(1000.0, 10e-3, TargetsThresholding.Welford, "thresholding_welford", id="method_welford"),
-    pytest.param(1000.0, 10e-3, TargetsThresholding.Mavg, "thresholding_mavg", id="method_mavg"),
-    pytest.param(512.0, 0.015625, TargetsThresholding.Mavg, "thresholding_mavg_pow2", id="method_mavg_pow2"),  # window_steps = int(0.015625 * 512) = 8 = 2^3
-    pytest.param(1000.0, 10e-3, TargetsThresholding.MavgAbs, "thresholding_mavg_abs", id="method_mavg_abs"),
-    pytest.param(512.0, 0.015625, TargetsThresholding.MavgAbs, "thresholding_mavg_pow2_abs", id="method_mavg_pow2_abs"),  # window_steps = 8 = 2^3
+    pytest.param(1000.0, 10e-3, TargetsThreshold.Const, "thresholding_constant", id="method_constant"),
+    pytest.param(1000.0, 10e-3, TargetsThreshold.Welford, "thresholding_welford", id="method_welford"),
+    pytest.param(1000.0, 10e-3, TargetsThreshold.MovingAverage, "thresholding_mavg", id="method_mavg"),
+    pytest.param(512.0, 0.015625, TargetsThreshold.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"),  # window_steps = int(0.015625 * 512) = 8 = 2^3
+    pytest.param(1000.0, 10e-3, TargetsThreshold.RmsMove, "thresholding_mavg_abs", id="method_mavg_abs"),
+    pytest.param(512.0, 0.015625, TargetsThreshold.RmsMove, "thresholding_mavg_pow2_abs", id="method_mavg_pow2_abs"),  # window_steps = 8 = 2^3
 ]
 
 class SettingsThresholdingTest(TestCase):
@@ -56,22 +56,22 @@ class ThresholdingTest(TestCase):
         dut = Thresholding(settings=self.set0)
         rslt = dut._get_overview()
         assert len(rslt) == 8
-        self.assertTrue(TargetsThresholding.Constant in rslt)
+        self.assertTrue(TargetsThreshold.Const in rslt)
 
     def test_getting_position_constant_positive_normal(self):
-        self.set0.method = TargetsThresholding.Constant
+        self.set0.method = TargetsThreshold.Const
         rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=0.5)
         chck = np.array([9, 109, 209, 309, 408, 508, 608, 708, 808, 908])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_negative_normal(self):
-        self.set0.method = TargetsThresholding.Constant
+        self.set0.method = TargetsThreshold.Const
         rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=-0.5)
         chck = np.array([59, 159, 259, 358, 458, 558, 658, 758, 858, 958])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_positive_pretime(self):
-        self.set0.method = TargetsThresholding.Constant
+        self.set0.method = TargetsThreshold.Const
         rslt = Thresholding(settings=self.set0).get_threshold_position(
             xin=self.signal_in, pre_time=0.05, thr_val=-0.5
         )
@@ -79,7 +79,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_constant(self):
-        self.set0.method = TargetsThresholding.Constant
+        self.set0.method = TargetsThreshold.Const
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in, thr_val=0.5)
 
@@ -87,7 +87,7 @@ class ThresholdingTest(TestCase):
         self.assertEqual(np.mean(rslt), 0.5)
 
     def test_abs_mean(self):
-        self.set0.method = TargetsThresholding.AbsMean
+        self.set0.method = TargetsThreshold.AbsoluteMean
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -96,7 +96,7 @@ class ThresholdingTest(TestCase):
         self.assertLess(np.abs(np.mean(rslt) - chck), 6e-4)
 
     def test_median_absolute_derivation(self):
-        self.set0.method = TargetsThresholding.MAD
+        self.set0.method = TargetsThreshold.MedianAbsoluteDeviation
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -105,7 +105,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_moving_average(self):
-        self.set0.method = TargetsThresholding.Mavg
+        self.set0.method = TargetsThreshold.MovingAverage
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -115,7 +115,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=2)
 
     def test_moving_absolute_average(self):
-        self.set0.method = TargetsThresholding.MavgAbs
+        self.set0.method = TargetsThreshold.RmsMove
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -125,7 +125,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=3)
 
     def test_root_mean_squared_normal(self):
-        self.set0.method = TargetsThresholding.RmsNorm
+        self.set0.method = TargetsThreshold.RmsNorm
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -134,7 +134,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_root_mean_squared_blackrock(self):
-        self.set0.method = TargetsThresholding.RmsBlack
+        self.set0.method = TargetsThreshold.RmsBlackrock
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -143,13 +143,100 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=2)
 
     def test_welford(self):
-        self.set0.method = TargetsThresholding.Welford
+        self.set0.method = TargetsThreshold.Welford
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.707
         np.testing.assert_almost_equal(rslt[500:], chck[500:], decimal=1)
+
+    def test_create_design_fpga_const(self):
+        self.set0.method = TargetsThreshold.Const
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, thr_val=2
+            )
+            files_available = [
+                "const_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_norm(self):
+        self.set0.method = TargetsThreshold.MovingAverage
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_norm_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_shift(self):
+        self.set0.method = TargetsThreshold.MovingAverage
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1.28e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_pow2_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_abs_norm(self):
+        self.set0.method = TargetsThreshold.RmsMove
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_abs_norm_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
+
+    def test_create_design_fpga_mavg_abs_shit(self):
+        self.set0.method = TargetsThreshold.RmsMove
+        self.set0.window_sec = 0.1
+        self.set0.sampling_rate = 1.28e3
+
+        with TemporaryDirectory() as tmpdir:
+            path2temp = Path(tmpdir)
+
+            Thresholding(settings=self.set0).create_design(
+                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
+            )
+            files_available = [
+                "mov_avg_abs_pow2_0.v",
+            ]
+            for file in path2temp.glob("*.v"):
+                assert file.exists()
+                assert file.name in files_available
 
 class TestCreateDesing:
     @pytest.mark.parametrize("target", ["mcu", "pc"])
@@ -160,7 +247,7 @@ class TestCreateDesing:
         target: str,
         sampling_rate: float,
         window_sec: float,
-        method: TargetsThresholding,
+        method: TargetsThreshold,
         c_name: str,
         bitwidth: int,
         numpy_dtype,
@@ -187,93 +274,6 @@ class TestCreateDesing:
             assert (tmpdir / f"{c_name}_0.c").exists()
             assert (tmpdir / f"{c_name}_0.h").exists()
             assert (tmpdir / f"{c_name}_template.h").exists()
-
-    def test_create_design_fpga_const(self):
-        self.set0.method = "const"
-        with TemporaryDirectory() as tmpdir:
-            path2temp = Path(tmpdir)
-
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, thr_val=2
-            )
-            files_available = [
-                "const_0.v",
-            ]
-            for file in path2temp.glob("*.v"):
-                assert file.exists()
-                assert file.name in files_available
-
-    def test_create_design_fpga_mavg_norm(self):
-        self.set0.method = "mavg"
-        self.set0.window_sec = 0.1
-        self.set0.sampling_rate = 1e3
-
-        with TemporaryDirectory() as tmpdir:
-            path2temp = Path(tmpdir)
-
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
-            )
-            files_available = [
-                "mov_avg_norm_0.v",
-            ]
-            for file in path2temp.glob("*.v"):
-                assert file.exists()
-                assert file.name in files_available
-
-    def test_create_design_fpga_mavg_shift(self):
-        self.set0.method = "mavg"
-        self.set0.window_sec = 0.1
-        self.set0.sampling_rate = 1.28e3
-
-        with TemporaryDirectory() as tmpdir:
-            path2temp = Path(tmpdir)
-
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
-            )
-            files_available = [
-                "mov_avg_pow2_0.v",
-            ]
-            for file in path2temp.glob("*.v"):
-                assert file.exists()
-                assert file.name in files_available
-
-    def test_create_design_fpga_mavg_abs_norm(self):
-        self.set0.method = "mavg_abs"
-        self.set0.window_sec = 0.1
-        self.set0.sampling_rate = 1e3
-
-        with TemporaryDirectory() as tmpdir:
-            path2temp = Path(tmpdir)
-
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
-            )
-            files_available = [
-                "mov_avg_abs_norm_0.v",
-            ]
-            for file in path2temp.glob("*.v"):
-                assert file.exists()
-                assert file.name in files_available
-
-    def test_create_design_fpga_mavg_abs_shit(self):
-        self.set0.method = "mavg_abs"
-        self.set0.window_sec = 0.1
-        self.set0.sampling_rate = 1.28e3
-
-        with TemporaryDirectory() as tmpdir:
-            path2temp = Path(tmpdir)
-
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp
-            )
-            files_available = [
-                "mov_avg_abs_pow2_0.v",
-            ]
-            for file in path2temp.glob("*.v"):
-                assert file.exists()
-                assert file.name in files_available
 
 
 if __name__ == "__main__":
