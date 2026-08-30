@@ -25,19 +25,18 @@ void calc_next_datum_thresholding_welford_ ## id(input_type data, WelfordTaps *t
 
 
 #ifndef DEF_WELFORD_THR_IMPL
-#define DEF_WELFORD_THR_IMPL(id, input_type, gain_val) \
+#define DEF_WELFORD_THR_IMPL(id, input_type) \
 static DEF_CALC_WELFORD_THR(id, input_type) \
 bool calc_thresholding_welford_ ## id(input_type data, input_type *out) { \
     static WelfordTaps taps = { \
         .n = 0,  \
         .mean = 0.0f,  \
         .sigma = 0.0f}; \
-    static const float thr_gain = (float)(gain_val); \
     static input_type stable_out = 0; \
     if (taps.n < UINT32_MAX) { \
         calc_next_datum_thresholding_welford_ ## id(data, &taps); \
         if (taps.n < 2) return false; \
-        stable_out = (input_type)(thr_gain * sqrtf((float)taps.sigma)); \
+        stable_out = (input_type)sqrtf((float)taps.sigma); \
     } \
     *out = stable_out; \
     return true; \

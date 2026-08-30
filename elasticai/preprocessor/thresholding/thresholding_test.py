@@ -4,9 +4,31 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
 import numpy as np
+import pytest
 
-from .thresholding import DefaultSettingsThreshold, SettingsThreshold, Thresholding
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
+from .thresholding import (
+    DefaultSettingsThreshold,
+    SettingsThreshold,
+    TargetsThresholding,
+    Thresholding,
+)
+
+INTEGER_CONFIGS = [
+    pytest.param(8, np.int8, "signed char", id="int8"),
+    pytest.param(32, np.int32, "signed int", id="int32"),
+]
+
+THRESHOLDING_CONFIGS = [
+    pytest.param(1000.0, 10e-3, TargetsThresholding.Constant, "thresholding_constant", id="method_constant"),
+    pytest.param(1000.0, 10e-3, TargetsThresholding.Welford, "thresholding_welford", id="method_welford"),
+    pytest.param(1000.0, 10e-3, TargetsThresholding.Mavg, "thresholding_mavg", id="method_mavg"),
+    pytest.param(512.0, 0.015625, TargetsThresholding.Mavg, "thresholding_mavg_pow2", id="method_mavg_pow2"),  # window_steps = int(0.015625 * 512) = 8 = 2^3
+    pytest.param(1000.0, 10e-3, TargetsThresholding.MavgAbs, "thresholding_mavg_abs", id="method_mavg_abs"),
+    pytest.param(512.0, 0.015625, TargetsThresholding.MavgAbs, "thresholding_mavg_pow2_abs", id="method_mavg_pow2_abs"),  # window_steps = 8 = 2^3
+]
 
 class SettingsThresholdingTest(TestCase):
     set0: SettingsThreshold = deepcopy(DefaultSettingsThreshold)
@@ -34,22 +56,22 @@ class ThresholdingTest(TestCase):
         dut = Thresholding(settings=self.set0)
         rslt = dut._get_overview()
         assert len(rslt) == 8
-        self.assertTrue("const" in rslt)
+        self.assertTrue(TargetsThresholding.Constant in rslt)
 
     def test_getting_position_constant_positive_normal(self):
-        self.set0.method = "const"
+        self.set0.method = TargetsThresholding.Constant
         rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=0.5)
         chck = np.array([9, 109, 209, 309, 408, 508, 608, 708, 808, 908])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_negative_normal(self):
-        self.set0.method = "const"
+        self.set0.method = TargetsThresholding.Constant
         rslt = Thresholding(settings=self.set0).get_threshold_position(xin=self.signal_in, thr_val=-0.5)
         chck = np.array([59, 159, 259, 358, 458, 558, 658, 758, 858, 958])
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_getting_position_constant_positive_pretime(self):
-        self.set0.method = "const"
+        self.set0.method = TargetsThresholding.Constant
         rslt = Thresholding(settings=self.set0).get_threshold_position(
             xin=self.signal_in, pre_time=0.05, thr_val=-0.5
         )
@@ -57,7 +79,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_array_almost_equal(rslt, chck)
 
     def test_constant(self):
-        self.set0.method = "const"
+        self.set0.method = TargetsThresholding.Constant
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in, thr_val=0.5)
 
@@ -65,7 +87,7 @@ class ThresholdingTest(TestCase):
         self.assertEqual(np.mean(rslt), 0.5)
 
     def test_abs_mean(self):
-        self.set0.method = "abs_mean"
+        self.set0.method = TargetsThresholding.AbsMean
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -74,7 +96,7 @@ class ThresholdingTest(TestCase):
         self.assertLess(np.abs(np.mean(rslt) - chck), 6e-4)
 
     def test_median_absolute_derivation(self):
-        self.set0.method = "mad"
+        self.set0.method = TargetsThresholding.MAD
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -83,7 +105,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_moving_average(self):
-        self.set0.method = "mavg"
+        self.set0.method = TargetsThresholding.Mavg
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -93,7 +115,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=2)
 
     def test_moving_absolute_average(self):
-        self.set0.method = "mavg_abs"
+        self.set0.method = TargetsThresholding.MavgAbs
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -103,7 +125,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=3)
 
     def test_root_mean_squared_normal(self):
-        self.set0.method = "rms_norm"
+        self.set0.method = TargetsThresholding.RmsNorm
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -112,7 +134,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_root_mean_squared_blackrock(self):
-        self.set0.method = "rms_black"
+        self.set0.method = TargetsThresholding.RmsBlack
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -121,13 +143,50 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=2)
 
     def test_welford(self):
-        self.set0.method = "welford"
+        self.set0.method = TargetsThresholding.Welford
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.707
-        np.testing.assert_almost_equal(rslt[5000:], chck[5000:], decimal=1)
+        np.testing.assert_almost_equal(rslt[500:], chck[500:], decimal=1)
+
+class TestCreateDesing:
+    @pytest.mark.parametrize("target", ["mcu", "pc"])
+    @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+    @pytest.mark.parametrize("sampling_rate,window_sec,method,c_name", THRESHOLDING_CONFIGS)
+    def test_create_desing_generates_thresholding_c_files(
+        self,
+        target: str,
+        sampling_rate: float,
+        window_sec: float,
+        method: TargetsThresholding,
+        c_name: str,
+        bitwidth: int,
+        numpy_dtype,
+        c_type: str,
+    ) -> None:
+        thresholder = Thresholding(
+            SettingsThreshold(
+                method=method,
+                sampling_rate=sampling_rate,
+                window_sec=window_sec,
+                do_quant=True,
+            )
+        )
+        backup = get_path_to_project("build_test") / f"{method}"
+        with temporary_directory(backup) as tmpdir:
+            thresholder.create_design(
+                const_threshold=10,
+                id="0",
+                target=target,
+                bitwidth=bitwidth,
+                signed=True,
+                path2save=tmpdir,
+            )
+            assert (tmpdir / f"{c_name}_0.c").exists()
+            assert (tmpdir / f"{c_name}_0.h").exists()
+            assert (tmpdir / f"{c_name}_template.h").exists()
 
     def test_create_design_fpga_const(self):
         self.set0.method = "const"

@@ -10,7 +10,7 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_thresholding_mavg_pow2(
-    gain: float,
+    log_size: int,
     window_size: int,
     bitwidth: int,
     signed: bool,
@@ -20,7 +20,7 @@ def build_thresholding_mavg_pow2(
 ) -> None:
     """Generate C files for power-of-2 moving average thresholding.
     Args:
-        gain:            gain for tuning threshold
+        log_size:        number of bits for bitshift
         window_size:     number of samples (must be a power of 2)
         bitwidth:        bitwidth of each sample
         signed:          Decision if data values are signed [otherwise unsigned]
@@ -34,7 +34,7 @@ def build_thresholding_mavg_pow2(
 
     module_id = thresholding_id.lower()
     params = {
-        "gain_val":  str(gain),
+        "logsize":   str(log_size),
         "size":      str(window_size),
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
@@ -69,9 +69,9 @@ def _generate_thresholding_mavg_pow2_template() -> dict[str, list[str]]:
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
         "// Params: ID = {$device_id}, type = {$data_type},",
-        "// window_size = {$size}, gain = {$gain_val}",
+        "// window_size = {$size}, log_size = {$logsize}",
         '#include "{$path2include}/{$template_name}"',
         "DEF_CALC_MAVG_POW2_THR({$device_id}, {$data_type})",
-        "DEF_NEW_MAVG_POW2_WINDOW_IMPL({$device_id}, {$data_type}, {$size}, {$gain_val})",
+        "DEF_NEW_MAVG_POW2_WINDOW_IMPL({$device_id}, {$data_type}, {$size}, {$logsize})",
     ]
     return {"head": header_template, "func": implementation_template}

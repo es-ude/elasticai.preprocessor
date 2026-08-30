@@ -4,11 +4,10 @@
 #include <stdint.h>
 
 #ifndef DEF_CONSTANT_THR_IMPL
-#define DEF_CONSTANT_THR_IMPL(id, input_type, thr_const, gain_val) \
+#define DEF_CONSTANT_THR_IMPL(id, input_type, thr_const) \
 bool calc_thresholding_constant_ ## id(input_type data, input_type *out) { \
     static const input_type threshold = (input_type)(thr_const); \
-    static const float thr_gain = (float)(gain_val); \
-    *out = (input_type) (thr_gain * threshold); \
+    *out = (input_type) (threshold); \
     return true; \
 }
 #endif//DEF_CONSTANT_THR_IMPL

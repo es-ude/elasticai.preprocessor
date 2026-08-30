@@ -9,16 +9,16 @@ import elasticai.creator_plugins.thresholding.utils as hw_utils
 from elasticai.creator_plugins.thresholding.src import c_compile
 
 
-class TargetsThreshold(Enum):
-    Const = "const"
-    AbsoluteMean = "abs_mean"
-    MedianAbsoluteDeviation = "mad"
-    MovingAverage = "mavg"
+class TargetsThresholding(Enum):
+    Constant = "const"
+    AbsMean = "abs_mean"
+    MAD = "mad"
+    Mavg = "mavg"
+    MavgAbs = "mavg_abs"
     RmsNorm = "rms_norm"
     RmsMove = "rms_move"
-    RmsBlackrock = "rms_black"
+    RmsBlack = "rms_black"
     Welford = "welford"
-
 
 @dataclass
 class SettingsThreshold:
@@ -26,25 +26,20 @@ class SettingsThreshold:
     Attributes:
         method:         Applied method for thresholding [
                             'const': constant given value,
-                            'abs_mean': absolute mean value,
-                            'mad': median absolute derivation,
+                            'abs_mean': absolute mean value, 
+                            'mad': median absolute derivation, 
                             'mavg', moving average,
-                            'mavg_abs': absolute mean absolute value,
+                            'mavg_abs': absolute mean absolute value, 
                             'rms_norm': Root-Mean-Squared,
-                            'rms_move': Moving RMS,
+                            'rms_move': Moving RMS, 
                             'rms_black': RMS method used in Blackrock Neurotechnology Systems,
                             'welford': Welford Online Algorithm for STD Calculation]
-        method:         Applied method for thresholding ['const': constant given value,
-                        'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
-                        'mavg_abs': moving absolute average, 'rms_norm': Root-Mean-Squared,
-                        'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
-                        'welford': Welford Online Algorithm for STD Calculation]
         sampling_rate:  Sampling rate of the transient signal [Hz]
         window_sec:     Window length in sec [Only applied in moving methods]
         do_quant:       Boolean for performing quantized operations
     """
 
-    method: str
+    method: TargetsThresholding
     sampling_rate: float
     window_sec: float
     do_quant: bool
@@ -56,9 +51,9 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method="const",
-    sampling_rate=1000.0,
-    window_sec=10e-3,
+    method=TargetsThresholding.Constant, 
+    sampling_rate=1000.0, 
+    window_sec=10e-3, 
     do_quant=False
 )
 
@@ -72,42 +67,42 @@ class Thresholding:
         self._logger: Logger = getLogger(__name__)
         self._settings: SettingsThreshold = settings
         self._methods = {
-            "const": "_constant",
-            "abs_mean": "_absolute_median",
-            "mad": "_median_absolute_derivation",
-            "mavg": "_moving_average",
-            "mavg_abs": "_moving_absolute_average",
-            "rms_norm": "_root_mean_squared_normal",
-            "rms_black": "_root_mean_squared_blackrock",
-            "welford": "_welford_online",
+            TargetsThresholding.Constant: "_constant",
+            TargetsThresholding.AbsMean: "_absolute_median",
+            TargetsThresholding.MAD: "_median_absolute_derivation",
+            TargetsThresholding.Mavg: "_moving_average",
+            TargetsThresholding.MavgAbs: "_moving_absolute_average",
+            TargetsThresholding.RmsNorm: "_root_mean_squared_normal",
+            TargetsThresholding.RmsBlack: "_root_mean_squared_blackrock",
+            TargetsThresholding.Welford: "_welford_online",
         }
         self._hwmap = {
-            "const": "const",
-            "abs_mean": "const",
-            "mad": "const",
-            "mavg": "mov_avg_norm",
-            "mavg_abs": "mov_avg_abs_norm",
-            "rms_norm": "const",
-            "rms_black": "const",
+            TargetsThresholding.Constant: "const",
+            TargetsThresholding.AbsMean: "const",
+            TargetsThresholding.MAD: "const",
+            TargetsThresholding.Mavg: "mov_avg_norm",
+            TargetsThresholding.MavgAbs: "mov_avg_abs_norm",
+            TargetsThresholding.RmsNorm: "const",
+            TargetsThresholding.RmsBlack: "const",
         }
         self._cmap = {
-            "const": TargetsThresholding.Constant,
-            "abs_mean": TargetsThresholding.Constant,
-            "mad": TargetsThresholding.Constant,
-            "mavg": TargetsThresholding.Mavg,
-            "mavg_abs": TargetsThresholding.MavgAbs,
-            "rms_norm": TargetsThresholding.Constant,
-            "rms_black": TargetsThresholding.Constant,
-            "welford": TargetsThresholding.Welford,
+            TargetsThresholding.Constant: "const",
+            TargetsThresholding.AbsMean: "const",
+            TargetsThresholding.MAD: "const",
+            TargetsThresholding.Mavg: "mavg",
+            TargetsThresholding.MavgAbs: "mavg_abs",
+            TargetsThresholding.RmsNorm: "const",
+            TargetsThresholding.RmsBlack: "const",
+            TargetsThresholding.Welford: "welford",
         }
 
     def _map_method_to_hardware(self) -> str:
-        if self._settings.method.lower() not in list(self._hwmap.keys()):
+        if self._settings.method not in list(self._hwmap.keys()):
             raise ValueError(f"Method '{self._settings.method}' in hardware generation is not supported.")
         return self._hwmap[self._settings.method]
 
-    def _map_method_to_c(self) -> TargetsThresholding:
-        if self._settings.method.lower() not in list(self._cmap.keys()):
+    def _map_method_to_c(self) -> str:
+        if self._settings.method not in list(self._cmap.keys()):
             raise ValueError(f"Method '{self._settings.method}' in C generation is not supported.")
         return self._cmap[self._settings.method]
 
@@ -116,22 +111,34 @@ class Thresholding:
         return M > 0 and (M & (M - 1)) == 0
 
     def create_design(
-        self, data: np.ndarray, id: str, target: str, bitwidth: int, path2save: Path, **kwargs
+        self,
+        id: str,
+        target: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+        data: np.ndarray | None = None,
+        const_threshold: int | None = None,
+        **kwargs
     ) -> int:
         """Create hardware design for thresholding.
-        :param data:        Numpy array with transient signal
-        :param id:          String with additional ID
-        :param target:      String with target hardware type ["mcu", "pc", "fpga"]
-        :param bitwidth:    Integer with bitwidth for target hardware type
-        :param signed:      bool if inttype signed ["signed", "not signed"]
-        :param path2save:   Path to save the design
-        :return:            Integer value of the threshold value (for testing purposes)
+        :param data:            Numpy array with transient signal
+        :param const_threshold: constant for constant methods
+        :param id:              String with additional ID
+        :param target:          String with target hardware type ["mcu", "pc", "fpga"]
+        :param bitwidth:        Integer with bitwidth for target hardware type
+        :param signed:          bool if inttype signed ["signed", "not signed"]
+        :param path2save:       Path to save the design
+        :return:                Integer value of the threshold value (for testing purposes)
         """
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
-        thr_val0 = int(self.get_threshold(xin=data, **kwargs)[0])
+        if const_threshold is not None:
+            thr_val0 = const_threshold
+        elif data is not None:
+            thr_val0 = int(self.get_threshold(xin=data, **kwargs)[0])
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
@@ -158,31 +165,29 @@ class Thresholding:
         signed: bool,
         path2save: Path,
     ) -> None:
-        module_type = self._map_method_to_c()
-        match module_type:
-            case TargetsThresholding.Constant:
+        method_type = self._map_method_to_c()
+        match method_type:
+            case "const":
                 c_compile.build_thresholding_const(
                     threshold=thr_val,
-                    gain=gain,
                     bitwidth=bitwidth,
                     signed=signed,
                     path2save=path2save,
                     thresholding_id=id,
                     define_path=".",
                 )
-            case TargetsThresholding.Welford:
+            case "welford":
                 c_compile.build_thresholding_welford(
-                    gain=gain,
                     bitwidth=bitwidth,
                     signed=signed,
                     path2save=path2save,
                     thresholding_id=id,
                     define_path=".",
                 )
-            case TargetsThresholding.Mavg:
+            case "mavg":
                 if self._is_power_of_two(self._settings.window_steps):
                     c_compile.build_thresholding_mavg_pow2(
-                        gain=gain,
+                        log_size = int(np.log2(self._settings.window_steps)),
                         window_size=self._settings.window_steps,
                         bitwidth=bitwidth,
                         signed=signed,
@@ -192,7 +197,6 @@ class Thresholding:
                     )
                 else:
                     c_compile.build_thresholding_mavg(
-                        gain=gain,
                         window_size=self._settings.window_steps,
                         bitwidth=bitwidth,
                         signed=signed,
@@ -200,10 +204,10 @@ class Thresholding:
                         thresholding_id=id,
                         define_path=".",
                     )
-            case TargetsThresholding.MavgAbs:
+            case "mavg_abs":
                 if self._is_power_of_two(self._settings.window_steps):
                     c_compile.build_thresholding_mavg_pow2_abs(
-                        gain=gain,
+                        log_size = int(np.log2(self._settings.window_steps)),
                         window_size=self._settings.window_steps,
                         bitwidth=bitwidth,
                         signed=signed,
@@ -211,9 +215,8 @@ class Thresholding:
                         thresholding_id=id,
                         define_path=".",
                     )
-                else:
+                else: 
                     c_compile.build_thresholding_mavg_abs(
-                        gain=gain,
                         window_size=self._settings.window_steps,
                         bitwidth=bitwidth,
                         signed=signed,
@@ -222,8 +225,8 @@ class Thresholding:
                         define_path=".",
                     )
             case _:
-                raise NotImplementedError(f"Method {method} is not implemented yet.")
-
+                raise NotImplementedError(f"Method {method_type} is not implemented yet.")
+        
 
     def _create_design_verilog(
         self,
@@ -241,10 +244,10 @@ class Thresholding:
                 "BITWIDTH": bitwidth,
             },
         }
-        match self._settings.method.lower():
-            case "const":
+        match self._settings.method:
+            case TargetsThresholding.Constant:
                 params["params"].update({"CONST_THR": thr_val})
-            case "mavg":
+            case TargetsThresholding.Mavg:
                 if self._is_power_of_two(self._settings.window_steps):
                     params["type"] = "mov_avg_pow2"
                 else:
@@ -268,7 +271,7 @@ class Thresholding:
         )
 
     def _get_overview(self) -> list:
-        return [key.lower() for key in self._methods.keys()]
+        return [key for key in self._methods.keys()]
 
     def get_threshold(self, xin: np.ndarray, gain: float = 1.0, **kwargs) -> np.ndarray:
         """Function for getting the thresholding value from input
@@ -276,8 +279,8 @@ class Thresholding:
         :param gain:    Float with gain applied on threshold output
         :return:        Numpy array with thresholding value from applied method
         """
-        used_method = self._settings.method.lower()
-        if used_method == "const" and "thr_val" not in list(kwargs.keys()):
+        used_method = self._settings.method
+        if used_method == TargetsThresholding.Constant and "thr_val" not in list(kwargs.keys()):
             raise TypeError(
                 "Constant threshold method needs the definition of 'thr_val' (threshold value) "
                 "as float, like thr_val=0.5 in kwargs"
@@ -333,8 +336,11 @@ class Thresholding:
     def _moving_average(self, xin: np.ndarray) -> np.ndarray:
         M = self._settings.window_steps
         xin_padded = np.pad(xin, (M - 1, 0), mode="constant")
-        conv = np.convolve(xin_padded, np.ones(M) / M, mode="valid")
-        return conv
+        if np.issubdtype(xin.dtype, np.integer):
+            window_sums = np.convolve(xin_padded.astype(np.int64), np.ones(M, dtype=np.int64), mode="valid")
+            return window_sums / M
+        else:
+            return np.convolve(xin_padded, np.ones(M) / M, mode="valid")
 
     def _moving_absolute_average(self, xin: np.ndarray) -> np.ndarray:
         return self._moving_average(np.abs(xin))
@@ -349,7 +355,7 @@ class Thresholding:
         n = 0
         mean = 0.0
         sigma = 0.0
-        std_out = np.zeros_like(xin)
+        std_out = np.zeros(len(xin), dtype=float)
 
         for idx, x in enumerate(xin):
             n += 1

@@ -10,7 +10,6 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_thresholding_welford(
-    gain: float,
     bitwidth: int,
     signed: bool,
     path2save: Path,
@@ -19,7 +18,6 @@ def build_thresholding_welford(
 ) -> None:
     """Genereate C files for welford thresholding.
     Args: 
-        gain:            gain for tuning threshold
         bitwidth:        bitwidth of each sample
         signed:          Decision if data values are signed[otherwise unsigned]
         path2save:       Path to save the .h/.c output-files
@@ -31,7 +29,6 @@ def build_thresholding_welford(
 
     module_id = thresholding_id.lower()
     params = {
-        "gain_val": str(gain),
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "thresholding_welford_template.h",
@@ -63,8 +60,8 @@ def _generate_thresholding_welford_template() -> dict[str, list[str]]:
         "// --- Generating thresholding_welford",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, gain = {$gain_val}",
+        "// Params: ID = {$device_id}, type = {$data_type}",
         '#include "{$path2include}/{$template_name}"',
-        "DEF_WELFORD_THR_IMPL({$device_id}, {$data_type}, {$gain_val})",
+        "DEF_WELFORD_THR_IMPL({$device_id}, {$data_type})",
     ]
     return {"head": header_template, "func": implementation_template}

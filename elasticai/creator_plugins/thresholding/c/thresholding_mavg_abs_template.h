@@ -31,23 +31,22 @@ float calc_next_datum_moving_window_average_abs_ ##id(input_type data, MavgAbsWi
 #endif//DEF_CALC_MAVG_ABS_THR
 
 #ifndef DEF_NEW_MAVG_ABS_WINDOW_IMPL
-#define DEF_NEW_MAVG_ABS_WINDOW_IMPL(id, input_type, size, gain) \
-bool calc_moving_average_abs_ ## id(input_type data, input_type *out) { \
+#define DEF_NEW_MAVG_ABS_WINDOW_IMPL(id, input_type, size) \
+bool calc_thresholding_mavg_abs_ ## id(input_type data, input_type *out) { \
     static input_type window_taps[size] = {0}; \
-    static float thr_gain = (float)(gain); \
     static MavgAbsWindow win_params = { \
         .tap_start = 0, \
         .tap_length = size, \
         .taps = window_taps \
     }; \
-    *out = (input_type)floorf(calc_next_datum_moving_window_average_abs_ ##id(data, &(win_params)) * thr_gain); \
+    *out = (input_type)floorf(calc_next_datum_moving_window_average_abs_ ##id(data, &(win_params))); \
     return true; \
 }
 #endif//DEF_NEW_MAVG_ABS_WINDOW_IMPL
 
 #ifndef DEF_NEW_MAVG_ABS_WINDOW_PROTO
 #define DEF_NEW_MAVG_ABS_WINDOW_PROTO(id, input_type) \
-bool calc_moving_average_abs_ ## id(input_type data, input_type *out);
+bool calc_thresholding_mavg_abs_ ## id(input_type data, input_type *out);
 #endif//DEF_NEW_MAVG_ABS_WINDOW_PROTO
 
 #endif//THRESHOLDING_MAVG_ABS_TEMPLATE_H
