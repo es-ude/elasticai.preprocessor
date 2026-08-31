@@ -50,6 +50,7 @@ def build_thresholding_mavg_abs(
         path2template=Path(design_plugin.__file__).parent / "c",
     )
 
+
 def _generate_thresholding_mavg_abs_template() -> dict[str, list[str]]:
     header_template = [
         "// --- Generating thresholding_mavg_abs",

@@ -100,7 +100,7 @@ DefaultSettingsSDA = SettingsSDA(
     sampling_rate=20e3,
     dx_sda=[1],
     mode_sda=TargetsEventPreprocessors("eed"),
-    mode_thr=TargetsThreshold("const"),
+    mode_thr=TargetsThreshold("constant"),
     mode_align=TargetsFrameAlignment("min"),
     t_frame_length=1.6e-3,
     t_frame_start=0.4e-3,
@@ -127,11 +127,10 @@ class SpikeDetection:
 
         self._threshold = Thresholding(
             settings=SettingsThreshold(
-                method=self._settings.mode_thr.value
-                if isinstance(self._settings.mode_thr, TargetsThreshold)
-                else self._settings.mode_thr,
+                method=self._settings.mode_thr,
                 sampling_rate=self._settings.sampling_rate,
                 window_sec=self._settings.t_frame_length,
+                thr_val=0,
                 do_quant=False,
             )
         )
@@ -194,13 +193,15 @@ class SpikeDetection:
             sampling_rate=self._settings.sampling_rate,
         )
 
-    def get_frames(self, xraw: np.ndarray, **kwargs) -> FrameWaveform:
+    def get_frames(self, xraw: np.ndarray, thr_val: float = 0.0) -> FrameWaveform:
         """Function for extracting the spike waveforms from transient input
         :param xraw:    Numpy array with transient input
+        :param thr_val: Float / Integer for constant thresholding (only for method_thr == TargetsThreshold.Constant)
         :return:        Class FrameWaveform with waveforms, labels and position
         """
         sda = self._event_pre.get_preprocessed(xraw=xraw)
-        thr = self._threshold.get_threshold(xin=sda, gain=1.0, **kwargs)
+        self._threshold._settings.thr_val = thr_val
+        thr = self._threshold.get_threshold(xin=sda)
         xpos = self._events.get_events_position(xin=sda, threshold=thr)
         return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=0)
 

@@ -185,6 +185,7 @@ def test_build_equal(
         method="mavg_abs",
         sampling_rate=1.0,
         window_sec=float(length),
+        thr_val=0.0,
         do_quant=True,
     )
     threshold = Thresholding(settings)
@@ -199,6 +200,7 @@ def test_build_equal(
             target="fpga",
             bitwidth=bitwidth,
             id=f"{id}",
+            signed=True,
             path2save=build_dir,
         )
 

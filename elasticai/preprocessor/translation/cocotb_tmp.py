@@ -12,6 +12,7 @@ def temporary_directory(backup: Path, do_parent: bool = False) -> Iterator[Path]
         yield tmpdir
     except:
         copytree(src=tmpdir, dst=backup, dirs_exist_ok=True)
+        rmtree(tmpdir, ignore_errors=True)
         raise
     else:
         rmtree(tmpdir, ignore_errors=True)

@@ -29,13 +29,12 @@ def build_thresholding_mavg_pow2_abs(
         define_path:     Include path written into the generated #include line.
     """
     assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32."
-    assert window_size > 0 and (window_size & (window_size - 1)) == 0, \
-        "window_size must be a power of 2."
+    assert window_size > 0 and (window_size & (window_size - 1)) == 0, "window_size must be a power of 2."
 
     module_id = thresholding_id.lower()
     params = {
-        "logsize":   str(log_size),
-        "size":      str(window_size),
+        "logsize": str(log_size),
+        "size": str(window_size),
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
         "template_name": "thresholding_mavg_pow2_abs_template.h",

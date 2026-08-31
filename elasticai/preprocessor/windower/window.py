@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 import numpy as np
@@ -7,7 +8,7 @@ from scipy.signal.windows import gaussian
 
 import elasticai.creator_plugins.windower as hw_windower
 from elasticai.preprocessor._check_funcs import check_key_elements
-from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+from elasticai.preprocessor.thresholding import SettingsThreshold, TargetsThreshold, Thresholding
 
 
 def transformation_window_method(window_size: int, method: str = "hamming") -> np.ndarray:
@@ -25,19 +26,29 @@ def transformation_window_method(window_size: int, method: str = "hamming") -> n
         "blackman": np.blackman(window_size),
     }
     methods_check = [method.lower() for method in methods_avai.keys()]
-    assert check_key_elements(method.lower(), methods_check), f"Wrong method ({methods_check})"
+    if not check_key_elements(method.lower(), methods_check):
+        raise ValueError(f"Wrong method ({methods_check})")
     return methods_avai[[key for key in methods_check if key == method.lower()][0]]
+
+
+class TargetsWindower(Enum):
+    Sequence = "sequence"
+    Sliding = "sliding"
+    Event = "event"
 
 
 @dataclass
 class SettingsWindow:
-    """Class for defining the properties for applying a window sequenzer on transient signals
+    """Class for defining the properties for applying a window on transient signals
     Attributes:
         sampling_rate:  Floating value with sampling rate of the transient signal [Hz]
         window_sec:     Floating value with the size of the window [s]
         overlap_sec:    Floating value with overlapping the sequences [s]
     """
 
+    # method_window: TargetsWindower
+    # method_thr: TargetsThreshold
+    # method_input: TargetsEventPreprocessor
     sampling_rate: float
     window_sec: float
     overlap_sec: float
@@ -63,15 +74,16 @@ class WindowSequencer:
     _window_normalization: np.ndarray
 
     def __init__(self, settings: SettingsWindow) -> None:
-        """Class for applying a window sequenzer on transient signals
-        :param settings:    Class SettingsWindow with definitions for the window sequenzer
+        """Class for applying a window on transient signals
+        :param settings:    Class SettingsWindow with definitions for the window
         :return:            None
         """
         self._settings = settings
         self._settings_thr = SettingsThreshold(
-            method="const",
+            method=TargetsThreshold.Constant,
             sampling_rate=self._settings.sampling_rate,
             window_sec=self._settings.window_length / 2,
+            thr_val=10,
             do_quant=False,
         )
         self._window_normalization = transformation_window_method(
@@ -114,11 +126,9 @@ class WindowSequencer:
         :param pre_time:    Floating value with pre-time in the window before event is detected
         :return:            Numpy array of sequence signals with shape=(M, window length)
         """
-        if thr < 0.0:
-            raise ValueError("Threshold must be positive")
-
+        self._settings_thr.thr_val = thr
         xpos_event = Thresholding(settings=self._settings_thr).get_threshold_position(
-            xin=signal, pre_time=pre_time, thr_val=thr
+            xin=signal, pre_time=pre_time
         )
 
         if not xpos_event.tolist():

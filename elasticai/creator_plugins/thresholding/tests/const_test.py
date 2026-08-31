@@ -90,14 +90,16 @@ def test_build_equal(
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
-        sets = SettingsThreshold(method="const", sampling_rate=100.0, window_sec=1.0, do_quant=False)
+        sets = SettingsThreshold(
+            method="constant", sampling_rate=100.0, window_sec=1.0, do_quant=False, thr_val=const
+        )
         Thresholding(settings=sets).create_design(
             data=np.array([0, 0, 0, 0, 0]),
             id="0",
             target="fpga",
             bitwidth=bitwidth,
+            signed=True,
             path2save=build_dir,
-            thr_val=const,
         )
 
         cocotb_test_fixture.set_top_module_name("CONST_THRESHOLD")
