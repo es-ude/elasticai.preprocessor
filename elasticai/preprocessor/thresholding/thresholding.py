@@ -131,7 +131,7 @@ class Thresholding:
     ) -> None:
         method_type = self._map_method_to_hardware()
         match method_type:
-            case TargetsThreshold.Welford:
+            case "welford":
                 c_compile.build_thresholding_welford(
                     bitwidth=bitwidth,
                     signed=signed,
@@ -139,7 +139,7 @@ class Thresholding:
                     thresholding_id=id,
                     define_path=".",
                 )
-            case TargetsThreshold.MovingAverage:
+            case "mov_avg_norm":
                 if self._is_power_of_two(self._settings.window_steps):
                     c_compile.build_thresholding_mavg_pow2(
                         log_size=int(np.log2(self._settings.window_steps)),
@@ -159,7 +159,7 @@ class Thresholding:
                         thresholding_id=id,
                         define_path=".",
                     )
-            case TargetsThreshold.MovingAverageAbsolute:
+            case "mov_avg_abs_norm":
                 if self._is_power_of_two(self._settings.window_steps):
                     c_compile.build_thresholding_mavg_pow2_abs(
                         log_size=int(np.log2(self._settings.window_steps)),
