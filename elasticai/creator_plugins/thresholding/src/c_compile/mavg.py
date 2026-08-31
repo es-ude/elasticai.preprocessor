@@ -18,7 +18,7 @@ def build_thresholding_mavg(
     define_path: str = "src",
 ) -> None:
     """Genereate C files for moving average thresholding.
-    Args: 
+    Args:
         window_size:     number of samples
         bitwidth:        bitwidth of each sample
         signed:          Decision if data values are signed[otherwise unsigned]
@@ -49,6 +49,7 @@ def build_thresholding_mavg(
         impl_file=replace_variables_with_parameters(template_c["func"], params),
         path2template=Path(design_plugin.__file__).parent / "c",
     )
+
 
 def _generate_thresholding_mavg_template() -> dict[str, list[str]]:
     header_template = [

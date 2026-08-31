@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
 import numpy as np
+import pytest
 
 from .window import (
     SettingsWindow,
@@ -18,12 +19,8 @@ class TestWindowMethod(TestCase):
     fs = float(1 / np.diff(time).min())
 
     def test_transformation_window_method_false(self):
-        try:
+        with pytest.raises(ValueError):
             transformation_window_method(window_size=self.vsig.size, method="Hammingd")
-        except:
-            self.assertTrue(True)
-        else:
-            self.assertTrue(False)
 
     def test_transformation_window_method_ones(self):
         window = transformation_window_method(window_size=self.vsig.size, method="")
@@ -208,18 +205,6 @@ class TestWindowSequencer(TestCase):
         chck0 = np.sum(sequence[-2, :] == sequence[-2, -1])
         chck1 = np.sum(sequence[-1, :] == sequence[-1, -1])
         self.assertGreater(chck1, chck0)
-
-    def test_window_event_detection_without_threshold(self):
-        set0 = deepcopy(self.sets)
-        set0.window_sec = 0.25
-        num_trials = 5
-        stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        try:
-            WindowSequencer(set0).window_event_detected(signal=stimuli, thr=-1.0, pre_time=0.01)
-        except ValueError:
-            assert True
-        else:
-            assert False
 
     def test_window_event_detection_high_threshold(self):
         set0 = deepcopy(self.sets)

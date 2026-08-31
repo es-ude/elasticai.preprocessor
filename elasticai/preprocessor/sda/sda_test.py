@@ -14,7 +14,7 @@ from .sda import SettingsSDA, SpikeDetection
 TestSettings = SettingsSDA(
     mode_align="min",
     mode_sda="normal",
-    mode_thr="const",
+    mode_thr="constant",
     dx_sda=[1],
     sampling_rate=20e3,
     t_frame_length=1.6e-3,
@@ -121,7 +121,7 @@ class TestSpikeDetection(TestCase):
 
     def test_frame_normal_const(self):
         self.set0.mode_sda = "normal"
-        self.set0.mode_thr = "const"
+        self.set0.mode_thr = "constant"
         self.set0.mode_align = "none"
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
         rslt_pos = compare_timestamps(
@@ -134,7 +134,7 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_min_const(self):
         self.set0.mode_sda = "normal"
-        self.set0.mode_thr = "const"
+        self.set0.mode_thr = "constant"
         self.set0.mode_align = "min"
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
         rslt_pos = compare_timestamps(
@@ -243,7 +243,7 @@ class TestSpikeDetection(TestCase):
     def test_spike_transient_spb(self):
         self.set0.dx_sda = [2]
         self.set0.mode_sda = "spb"
-        self.set0.mode_thr = "const"
+        self.set0.mode_thr = "constant"
         self.set0.mode_align = "min"
         self.set0.f_filt = [200.0, 2000.0]
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=60e-6)

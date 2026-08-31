@@ -25,9 +25,9 @@ def build_thresholding_const(
         thresholding_id: ID appended to function name
         define_path:     include path written into the generated #include line
     """
-    
+
     assert bitwidth in range(2, 33), "bitwidth must be beteween 2 and 32."
-    
+
     module_id = thresholding_id.lower()
     params = {
         "threshold": str(threshold),
@@ -49,6 +49,7 @@ def build_thresholding_const(
         path2template=Path(design_plugin.__file__).parent / "c",
     )
 
+
 def _generate_thresholding_constant_template() -> dict[str, list[str]]:
     header_template = [
         "// --- Generationg thresholding_constant",
@@ -57,7 +58,7 @@ def _generate_thresholding_constant_template() -> dict[str, list[str]]:
         "// Params: ID = {$device_id}, type = {$data_type}, threshold = {$threshold}",
         '#include "{$path2include}/{$template_name}"',
         "DEF_CONSTANT_THR_PROTO({$device_id}, {$data_type})",
-        ]
+    ]
     implementation_template = [
         "// --- Generating thresholding_constant",
         "// Copyright @ UDE-IES",
