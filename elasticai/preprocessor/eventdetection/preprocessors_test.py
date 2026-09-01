@@ -119,8 +119,8 @@ def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
     assert rslt.max() < 0.92
 
 
-def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+def test_sda_sbp_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
+    settings.type = "sbp"
     try:
         EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     except:
@@ -129,8 +129,8 @@ def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
         assert False
 
 
-def test_sda_spb(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+def test_sda_sbp(settings: SettingsEventPreprocessor, signal: np.ndarray):
+    settings.type = "sbp"
     settings.f_filt = [100.0, 1000.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)

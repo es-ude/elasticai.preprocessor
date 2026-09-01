@@ -14,7 +14,7 @@ class TargetsEventPreprocessors(Enum):
     ADO = "ado"
     ASO = "aso"
     EED = "eed"
-    SPB = "spb"
+    SBP = "sbp"
 
 
 @dataclass
@@ -99,7 +99,7 @@ class EventPreprocessor:
         )
         return np.square(np.array(lfilter(filter[0], filter[1], xin)))
 
-    def _sda_spb(self, xin: np.ndarray) -> np.ndarray:
+    def _sda_sbp(self, xin: np.ndarray) -> np.ndarray:
         filter = iirfilter(
             N=2,
             Wn=2 * np.array(self._settings.f_filt) / self._settings.sampling_rate,
