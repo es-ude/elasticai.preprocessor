@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.signal import iirfilter, lfilter
+
 from elasticai.creator_plugins.eventdetection.src import c_compile
 
 

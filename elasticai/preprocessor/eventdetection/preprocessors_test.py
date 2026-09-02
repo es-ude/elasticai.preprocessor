@@ -5,9 +5,10 @@ import pytest
 
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+
 from .preprocessors import (
-    DefaultSettingsEventPreprocessor, 
-    EventPreprocessor, 
+    DefaultSettingsEventPreprocessor,
+    EventPreprocessor,
     SettingsEventPreprocessor,
     TargetsEventPreprocessors,
 )
