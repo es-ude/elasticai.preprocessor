@@ -14,7 +14,7 @@ def build_preprocessor_normal(
     signed: bool,
     path2save: Path,
     preprocessor_id: str,
-    define_path: Path,
+    define_path: str,
 ) -> None:
     """Generate C files for SDA with normal preprocessor.
     :param bitwidth:        Bitwidth of each sample.
@@ -69,7 +69,7 @@ def build_preprocessor_abs(
     signed: bool,
     path2save: Path,
     preprocessor_id: str,
-    define_path: Path,
+    define_path: str,
 ) -> None:
     """Generate C files for SDA with absolute preprocessor.
     :param bitwidth:        Bitwidth of each sample.
@@ -124,7 +124,7 @@ def build_preprocessor_neo(
     signed: bool,
     path2save: Path,
     preprocessor_id: str,
-    define_path: Path,
+    define_path: str,
 ) -> None:
     """Generate C files for SDA with NEO preprocessor.
     :param bitwidth:        Bitwidth of each sample.
