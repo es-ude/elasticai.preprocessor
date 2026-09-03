@@ -7,6 +7,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from scipy.signal.windows import gaussian
 
 import elasticai.creator_plugins.windower as hw_windower
+from elasticai.creator_plugins.windower.src import c_compile
 from elasticai.preprocessor._check_funcs import check_key_elements
 from elasticai.preprocessor.thresholding import SettingsThreshold, TargetsThreshold, Thresholding
 

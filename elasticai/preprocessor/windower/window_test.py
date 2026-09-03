@@ -7,12 +7,15 @@ import numpy as np
 import pytest
 
 from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.thresholding import (
+    TargetsThreshold,
+)
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 from .window import (
     SettingsWindow,
-    WindowSequencer,
     TargetsWindower,
+    WindowSequencer,
     transformation_window_method,
 )
 
@@ -251,6 +254,7 @@ class TestCreateDesign:
         self, 
         target: str,
         window_method: TargetsWindower,
+        c_name: str,
     ) -> None:
         windower = WindowSequencer(
             SettingsWindow(
@@ -262,7 +266,7 @@ class TestCreateDesign:
             )
         )
         
-        backup = get_path_to_project("build_test") / f"windower"
+        backup = get_path_to_project("build_test") / "windower"
         with temporary_directory(backup) as tmpdir:
             windower.create_design(
                 target=target,
