@@ -1,5 +1,5 @@
-#ifndef WINDOWER_TEMPLATE_H
-#define WINDOWER_TEMPLATE_H
+#ifndef WINDOWER_SLIDING_TEMPLATE_H
+#define WINDOWER_SLIDING_TEMPLATE_H
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -10,12 +10,12 @@ typedef struct {
     uint16_t count;
     uint16_t shift_cnt;
     void    *buf;
-} WindowerTaps;
+} WindowerSlidingTaps;
 
 
-#ifndef DEF_WINDOWER
-#define DEF_WINDOWER(id, input_type) \
-bool calc_next_datum_windower_ ## id(input_type data, WindowerTaps *taps) { \
+#ifndef DEF_WINDOWER_SLIDING
+#define DEF_WINDOWER_SLIDING(id, input_type) \
+bool calc_next_datum_windower_sliding_ ## id(input_type data, WindowerTaps *taps) { \
     input_type *buf = (input_type *) taps->buf; \
     uint16_t wl = taps->window_length; \
     for (uint16_t i = 1; i < wl; i++) buf[i - 1] = buf[i]; \
@@ -38,19 +38,19 @@ bool calc_next_datum_windower_ ## id(input_type data, WindowerTaps *taps) { \
 #endif
 
 
-#ifndef DEF_WINDOWER_IMPL
-#define DEF_WINDOWER_IMPL(id, input_type, wl, nshift) \
-static DEF_WINDOWER(id, input_type) \
-bool calc_windower_ ## id(input_type data, input_type *out) { \
+#ifndef DEF_WINDOWER_SLIDING_IMPL
+#define DEF_WINDOWER_SLIDING_IMPL(id, input_type, wl, nshift) \
+static DEF_WINDOWER_SLIDING(id, input_type) \
+bool calc_windower_sliding_ ## id(input_type data, input_type *out) { \
     static input_type windower_buf[wl]; \
-    static WindowerTaps taps = { \
+    static WindowerSlidingTaps taps = { \
         .window_length = (wl), \
         .num_shift     = (nshift), \
         .count         = 0, \
         .shift_cnt     = 0, \
         .buf           = windower_buf, \
     }; \
-    if (calc_next_datum_windower_ ## id(data, &taps)) { \
+    if (calc_next_datum_windower_sliding_ ## id(data, &taps)) { \
         input_type *buf = (input_type *) taps.buf; \
         for (uint16_t i = 0; i < (uint16_t)(wl); i++) { \
             out[i] = buf[i]; \
@@ -62,10 +62,10 @@ bool calc_windower_ ## id(input_type data, input_type *out) { \
 #endif
 
 
-#ifndef DEF_WINDOWER_PROTO
-#define DEF_WINDOWER_PROTO(id, input_type) \
+#ifndef DEF_WINDOWER_SLIDING_PROTO
+#define DEF_WINDOWER_SLIDING_PROTO(id, input_type) \
 bool calc_windower_ ## id(input_type data, input_type *out);
 #endif
 
 
-#endif /* WINDOWER_TEMPLATE_H */
+#endif /* WINDOWER_SLIDING_TEMPLATE_H */
