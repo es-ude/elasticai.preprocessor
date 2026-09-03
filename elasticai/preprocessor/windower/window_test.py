@@ -6,12 +6,21 @@ from unittest import TestCase, main
 import numpy as np
 import pytest
 
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+
 from .window import (
     SettingsWindow,
     WindowSequencer,
+    TargetsWindower,
     transformation_window_method,
 )
 
+WIN_METHOD_CONFIGS = {
+    pytest.param(TargetsWindower.Sequence, "sequence", id="Sequence"),
+    pytest.param(TargetsWindower.Sliding, "sliding", id="Sliding"),
+    pytest.param(TargetsWindower.Event, "event", id="Event"),
+}
 
 class TestWindowMethod(TestCase):
     time = np.linspace(start=0, stop=100e-3, num=2000, endpoint=False, dtype=float)
@@ -234,6 +243,39 @@ class TestWindowSequencer(TestCase):
                 file = path2save / filename
                 assert file.exists()
 
+
+class TestCreateDesign:
+    @pytest.mark.parametrize("target", ["mcu", "pc"])
+    @pytest.mark.parametrize("window_method,c_name", WIN_METHOD_CONFIGS)
+    def test_create_design_generates_windower_c_files(
+        self, 
+        target: str,
+        window_method: TargetsWindower,
+    ) -> None:
+        windower = WindowSequencer(
+            SettingsWindow(
+                method_window=TargetsWindower.Sequence,
+                method_thr=TargetsThreshold.Constant,
+                sampling_rate=2e3, 
+                window_sec=0.1, 
+                overlap_sec=0.0
+            )
+        )
+        
+        backup = get_path_to_project("build_test") / f"windower"
+        with temporary_directory(backup) as tmpdir:
+            windower.create_design(
+                target=target,
+                bitwidth=8,
+                id="0",
+                path2save=tmpdir,
+                signed=True,
+                threshold=10,
+                pre_samples=5,
+            )
+            assert (tmpdir / f"windower_{c_name}_0.c").exists()
+            assert (tmpdir / f"windower_{c_name}_0.h").exists()
+            assert (tmpdir / f"windower_{c_name}_template.h").exists()
 
 if __name__ == "__main__":
     main()
