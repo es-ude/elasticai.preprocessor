@@ -3,9 +3,21 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from .preprocessors import DefaultSettingsEventPreprocessor, EventPreprocessor, SettingsEventPreprocessor
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
+from .preprocessors import (
+    DefaultSettingsEventPreprocessor,
+    EventPreprocessor,
+    SettingsEventPreprocessor,
+    TargetsEventPreprocessors,
+)
 
+PREPROCESSOR_TYPE_CONFIGS = {
+    pytest.param(TargetsEventPreprocessors.Normal, "preprocessing_normal", id="type_normal"),
+    pytest.param(TargetsEventPreprocessors.Absolute, "preprocessing_abs", id="type_absolute"),
+    pytest.param(TargetsEventPreprocessors.NEO, "preprocessing_neo", id="type_neo"),
+}
 @pytest.fixture()
 def settings() -> SettingsEventPreprocessor:
     sets = deepcopy(DefaultSettingsEventPreprocessor)
@@ -119,8 +131,8 @@ def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
     assert rslt.max() < 0.92
 
 
-def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+def test_sda_sbp_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
+    settings.type = "sbp"
     try:
         EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     except:
@@ -129,8 +141,8 @@ def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
         assert False
 
 
-def test_sda_spb(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+def test_sda_sbp(settings: SettingsEventPreprocessor, signal: np.ndarray):
+    settings.type = "sbp"
     settings.f_filt = [100.0, 1000.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)
@@ -139,3 +151,34 @@ def test_sda_spb(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_equal(rslt, check)
     assert rslt.min() >= 0.0
     assert rslt.max() < 1.11
+
+class TestCreateDesign:
+    @pytest.mark.parametrize("target", ["mcu", "pc"])
+    @pytest.mark.parametrize("method,c_name", PREPROCESSOR_TYPE_CONFIGS)
+    def test_create_design_generates_sda_preprocessor_c_files(
+        self,
+        target: str,
+        method: TargetsEventPreprocessors,
+        c_name: str
+    ) -> None:
+        event_preproc = EventPreprocessor(
+            SettingsEventPreprocessor(
+                type=method,
+                sampling_rate=10e3,
+                window_size=[1],
+                f_filt=[150.0],
+            )
+        )
+        
+        backup = get_path_to_project("build_test") / f"{c_name}"
+        with temporary_directory(backup) as tmpdir:
+            event_preproc.create_design(
+                target=target,
+                bitwidth=8,
+                id="0",
+                path2save=tmpdir,
+                signed=True,
+            )
+            assert(tmpdir / f"{c_name}_0.c").exists()
+            assert(tmpdir / f"{c_name}_0.h").exists()
+            assert(tmpdir / f"{c_name}_template.h").exists()

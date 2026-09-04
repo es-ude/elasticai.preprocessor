@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
+from pathlib import Path
 
 import numpy as np
 
+from elasticai.creator_plugins.sda.src import c_compile
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
     EventPreprocessor,
@@ -45,18 +47,31 @@ class FrameWaveform:
 class SettingsSDA:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
-                        Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
-                        enhanced energy-derivation operator (eED),
-                        amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
-                        spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)
-        mode_thr:       String with used method for thresholding ['const': constant given value,
-                        'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
-                        'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
-                        'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
-                        'welford': Welford Online Algorithm for STD Calculation]
-        mode_align:     Aligning mode of the detected spike frames [none, max, min,
-                        ptp (Positive turning point), ntp (Negative turning point), abs-max (Absolute maximum)]
+        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [
+                            'normal': normal, 
+                            'absolute': absolute, 
+                            'neo': Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
+                            'mteo': Multiresolution Teager Energy Operator (MTEO), 
+                            'ado': absolute difference operator (ADO),
+                            'eed': enhanced energy-derivation operator (eED),
+                            'aso': amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
+                            'sbp': spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)]
+        mode_thr:       String with used method for thresholding [
+                            'const': constant given value,
+                            'abs_mean': absolute mean value, 
+                            'mad': median absolute derivation, 
+                            'mavg', moving average,
+                            'mavg_abs': absolute mean absolute value, 
+                            'rms_norm': Root-Mean-Squared,
+                            'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
+                            'welford': Welford Online Algorithm for STD Calculation]
+        mode_align:     Aligning mode of the detected spike frames [
+                            none, 
+                            max, 
+                            min,
+                            ptp (Positive turning point), 
+                            ntp (Negative turning point), 
+                            abs-max (Absolute maximum)]
         sampling_rate:  Sampling rate [Hz]
         dx_sda:         Position difference for extracting SDA method. Configuration with length(x) == 1: with dX = 1 --> NEO, dX > 1 --> k-NEO
         t_frame_length: Floating value with total window length [s]
@@ -124,6 +139,12 @@ class SpikeDetection:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
+        if isinstance(settings.mode_sda, str):
+            self._settings.mode_sda = TargetsEventPreprocessors(settings.mode_sda)
+        if isinstance(settings.mode_thr, str):
+            self._settings.mode_thr = TargetsThreshold(settings.mode_thr)
+        if isinstance(settings.mode_align, str):
+            self._settings.mode_align = TargetsFrameAlignment(settings.mode_align)
 
         self._threshold = Thresholding(
             settings=SettingsThreshold(
@@ -215,3 +236,70 @@ class SpikeDetection:
         :return:        Class FrameWaveform with waveforms, labels and position
         """
         return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=xoffset)
+
+    def create_design(
+        self,
+        id: str,
+        target: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+        thr_val: int,
+    ) -> None:
+        """Generate hardware design files for SDA.
+        :param id:        ID appended to generated function names.
+        :param target:    Target platform ["mcu", "pc"].
+        :param bitwidth:  Bitwidth of each sample.
+        :param signed:    True if the data type is signed.
+        :param path2save: Path to save the generated files.
+        :param thr_val:   Constant threshold value (integer, already quantized).
+        """
+        supported_targets = ["mcu", "pc"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target '{target}' is not supported: only {supported_targets}")
+
+        self._create_design_c(
+            id=id,
+            bitwidth=bitwidth,
+            signed=signed,
+            path2save=path2save,
+            thr_val=thr_val,
+        )
+
+    def _create_design_c(
+        self,
+        id: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+        thr_val: int,
+    ) -> None:
+        if (
+            self._settings.mode_sda == TargetsEventPreprocessors.Normal
+            and self._settings.mode_thr == TargetsThreshold.Constant
+        ):
+            c_compile.build_sda_normal_const(
+                threshold=thr_val,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+                sda_id=id,
+                define_path=".",
+            )
+        elif (
+            self._settings.mode_sda == TargetsEventPreprocessors.Absolute
+            and self._settings.mode_thr == TargetsThreshold.Constant
+        ):
+            c_compile.build_sda_absolute_const(
+                threshold=thr_val,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+                sda_id=id,
+                define_path=".",
+            )
+        else:
+            raise NotImplementedError(
+                f"C design for mode_sda={self._settings.mode_sda}, "
+                f"mode_thr={self._settings.mode_thr} is not implemented yet."
+            )
