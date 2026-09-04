@@ -176,6 +176,7 @@ class DataNormalization:
 
     ################################ IMPLEMENTED METHODS ################################
     def _normalize_zeroone(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
+        self._settings.peak_mode = 2
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(2 * self.__params["scale_used"], dataset.shape[-1])
@@ -186,6 +187,7 @@ class DataNormalization:
         return dataset_norm
 
     def _normalize_minmax(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
+        self._settings.peak_mode = 2
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])
