@@ -46,8 +46,8 @@ class SettingsWindow:
         overlap_sec:    Floating value with overlapping the sequences [s]
     """
 
-    # method_window: TargetsWindower
-    # method_thr: TargetsThreshold
+    method_window: TargetsWindower
+    method_thr: TargetsThreshold
     # method_input: TargetsEventPreprocessor
     sampling_rate: float
     window_sec: float
@@ -66,7 +66,12 @@ class SettingsWindow:
         return int(abs(self.overlap_sec * self.sampling_rate))
 
 
-DefaultSettingsWindow = SettingsWindow(sampling_rate=2e3, window_sec=0.1, overlap_sec=0.0)
+DefaultSettingsWindow = SettingsWindow(
+    method_window=TargetsWindower.Sequence,
+    method_thr=TargetsThreshold.Constant,
+    sampling_rate=2e3, 
+    window_sec=0.1, 
+    overlap_sec=0.0)
 
 
 class WindowSequencer:
@@ -224,5 +229,46 @@ class WindowSequencer:
             **params,
         )
 
-    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
-        raise NotImplementedError
+    def _create_design_c(
+        self, 
+        id: str, 
+        bitwidth: int, 
+        signed: bool, 
+        path2save: Path,
+        threshold: int = 0,
+        pre_samples: int = 0,
+    ) -> None:
+        match self._settings.method_window:
+            case TargetsWindower.Sequence:
+                c_compile.build_windower_sequence(
+                    settings=self._settings,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    windower_id=id,
+                    define_path=".",
+                )
+            case TargetsWindower.Sliding:
+                c_compile.build_windower_sliding(
+                    settings=self._settings,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    windower_id=id,
+                    define_path=".",
+                )
+            case TargetsWindower.Event:
+                c_compile.build_windower_event(
+                    settings=self._settings,
+                    threshold=threshold,
+                    pre_padding=pre_samples,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    windower_id=id,
+                    define_path=".",
+                )
+            case _:
+                raise NotImplementedError(
+                    f"window_method'{self._settings.window_method}' does not have a C implementation yet."
+                )

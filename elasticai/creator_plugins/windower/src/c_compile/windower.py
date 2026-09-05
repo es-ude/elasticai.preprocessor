@@ -10,7 +10,68 @@ from elasticai.preprocessor.translation.ir2c import (
 from elasticai.preprocessor.windower.window import SettingsWindow
 
 
-def build_windower(
+def build_windower_sequence(
+    settings: SettingsWindow,
+    bitwidth: int,
+    signed: bool,
+    path2save: Path,
+    windower_id: str = "0",
+    define_path: str = "src",
+) -> None:
+    """Generate C files for a sequence windower (streaming interface).
+    Args:
+        settings:       Window settings (sampling_rate, window_sec, overlap_sec)
+        bitwidth:       Bit width of each sample
+        signed:         Whether the data type is signed
+        path2save:      Path to save the .h / .c output files
+        windower_id:    ID appended to the generated function name
+        define_path:    Include path written into the generated #include line
+    """
+    assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
+
+    window_length = settings.window_length
+
+    module_id = windower_id.lower()
+    params = {
+        "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "path2include": define_path,
+        "template_name": "windower_sequence_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
+        "window_length": str(window_length),
+        "num_shift": str(num_shift),
+    }
+    template_c = _generate_windower_sequence_template()
+    generate_c_files(
+        path2save=path2save,
+        template_name=params["template_name"],
+        file_name="windower_sequence",
+        module_id=module_id,
+        proto_file=replace_variables_with_parameters(template_c["head"], params),
+        impl_file=replace_variables_with_parameters(template_c["func"], params),
+        path2template=Path(design_plugin.__file__).parent / "c",
+    )
+
+def _generate_windower_sequence_template() -> dict[str, list[str]]:
+    header_template = [
+        "// --- Generating windower_sequence",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length}",
+        '#include "{$path2include}/{$template_name}"',
+        "DEF_WINDOWER_SEQUENCE_PROTO({$device_id}, {$data_type})",
+    ]
+    implementation_template = [
+        "// --- Generating windower_sequence",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length}",
+        '#include "{$path2include}/{$template_name}"',
+        "DEF_WINDOWER_SEQUENCE_IMPL({$device_id}, {$data_type}, {$window_length})",
+    ]
+    return {"head": header_template, "func": implementation_template}
+
+def build_windower_sliding(
     settings: SettingsWindow,
     bitwidth: int,
     signed: bool,
@@ -36,39 +97,108 @@ def build_windower(
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
         "path2include": define_path,
-        "template_name": "windower_template.h",
+        "template_name": "windower_sliding_template.h",
         "device_id": module_id.upper(),
         "data_type": get_embedded_datatype(bitwidth, signed),
         "window_length": str(window_length),
         "num_shift": str(num_shift),
     }
-    template_c = _generate_windower_template()
+    template_c = _generate_windower_sliding_template()
     generate_c_files(
         path2save=path2save,
         template_name=params["template_name"],
-        file_name="windower",
+        file_name="windower_sliding",
         module_id=module_id,
         proto_file=replace_variables_with_parameters(template_c["head"], params),
         impl_file=replace_variables_with_parameters(template_c["func"], params),
         path2template=Path(design_plugin.__file__).parent / "c",
     )
 
-
-def _generate_windower_template() -> dict[str, list[str]]:
+def _generate_windower_sliding_template() -> dict[str, list[str]]:
     header_template = [
-        "// --- Generating windower",
+        "// --- Generating windower_sliding",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
         "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length}, shift = {$num_shift}",
         '#include "{$path2include}/{$template_name}"',
-        "DEF_WINDOWER_PROTO({$device_id}, {$data_type})",
+        "DEF_WINDOWER_SLIDING_PROTO({$device_id}, {$data_type})",
     ]
     implementation_template = [
-        "// --- Generating windower",
+        "// --- Generating windower_sliding",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
         "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length}, shift = {$num_shift}",
         '#include "{$path2include}/{$template_name}"',
-        "DEF_WINDOWER_IMPL({$device_id}, {$data_type}, {$window_length}, {$num_shift})",
+        "DEF_WINDOWER_SLIDING_IMPL({$device_id}, {$data_type}, {$window_length}, {$num_shift})",
+    ]
+    return {"head": header_template, "func": implementation_template}
+
+
+def build_windower_event(
+    settings: SettingsWindow,
+    threshold: int,
+    pre_padding: int,
+    bitwidth: int,
+    signed: bool,
+    path2save: Path,
+    windower_id: str = "0",
+    define_path: str = "src",
+) -> None:
+    """Generate C files for a event-triggered windower (streaming interface).
+    Args:
+        settings:       Window settings (sampling_rate, window_sec, overlap_sec)
+        threshold:      theshold for detecting event
+        pre_padding:    number of samples before detected event
+        bitwidth:       Bit width of each sample
+        signed:         Whether the data type is signed
+        path2save:      Path to save the .h / .c output files
+        windower_id:    ID appended to the generated function name
+        define_path:    Include path written into the generated #include line
+    """
+    assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
+
+    window_length = settings.window_length
+    pre_samples = pre_padding
+
+    module_id = windower_id.lower()
+    params = {
+        "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "path2include": define_path,
+        "template_name": "windower_event_template.h",
+        "device_id": module_id.upper(),
+        "data_type": get_embedded_datatype(bitwidth, signed),
+        "window_length": str(window_length),
+        "pre_samples": str(num_shift),
+        "threshold": str(threshold),
+    }
+    template_c = _generate_windower_event_template()
+    generate_c_files(
+        path2save=path2save,
+        template_name=params["template_name"],
+        file_name="windower_event",
+        module_id=module_id,
+        proto_file=replace_variables_with_parameters(template_c["head"], params),
+        impl_file=replace_variables_with_parameters(template_c["func"], params),
+        path2template=Path(design_plugin.__file__).parent / "c",
+    )
+
+def _generate_windower_event_template() -> dict[str, list[str]]:
+    header_template = [
+        "// --- Generating windower_event",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},
+        "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}"
+        '#include "{$path2include}/{$template_name}"',
+        "DEF_WINDOWER_EVENT_PROTO({$device_id}, {$data_type})",
+    ]
+    implementation_template = [
+        "// --- Generating windower_event",
+        "// Copyright @ UDE-IES",
+        "// Code generated on: {$datetime_created}",
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},",
+        "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}"
+        '#include "{$path2include}/{$template_name}"',
+        "DEF_WINDOWER_EVENT_IMPL({$device_id}, {$data_type}, {$window_length}, {$num_shift})",
     ]
     return {"head": header_template, "func": implementation_template}
