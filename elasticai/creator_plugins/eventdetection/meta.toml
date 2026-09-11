@@ -1,0 +1,11 @@
+[[plugins]]
+name = "eventdetection"
+version = "0.1"
+api_version = "0.1"
+target_runtime = "verilog"
+target_platform = "FPGA"
+generated = [
+  "threshold_signed",
+  "threshold_sub_signed"
+]
+static_files = []
