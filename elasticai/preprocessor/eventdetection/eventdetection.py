@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 
-from elasticai.creator_plugins.eventdetection.src import c_compile
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
@@ -140,7 +139,12 @@ class EventDetection:
                 path2save=path2save,
             )
         else:
-            self._create_design_fpga()
+            self._create_design_fpga(
+                id=id,
+                bitwidth=bitwidth,
+                signed=signed,
+                path2save=path2save,
+            )
 
     def _create_design_c(
         self,
@@ -149,6 +153,8 @@ class EventDetection:
         signed: bool,
         path2save: Path,
     ) -> None:
+        from elasticai.creator_plugins.eventdetection.src import c_compile
+
         c_compile.build_eventdetection(
             hysteresis=self._settings.window_size,
             hysteresis_type=self._settings.type.value,
@@ -160,5 +166,20 @@ class EventDetection:
             define_path=".",
         )
 
-    def _create_design_fpga(self) -> None:
-        raise NotImplementedError("FPGAs are not yet supported")
+    def _create_design_fpga(
+        self,
+        id: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+    ) -> None:
+        from elasticai.creator_plugins.eventdetection.utils import load_and_plugin
+
+        module_appendix = "un" if not signed else ""
+        load_and_plugin(
+            type=f"eventdetector_sub_{module_appendix}signed",
+            id=id,
+            params={"BITWIDTH": bitwidth, "OUT_INVERT": int(self._settings.out_invert)},
+            packages=["eventdetection"],
+            path2save=path2save,
+        )

@@ -4,7 +4,7 @@
 // 
 // Create Date: 	28.08.2026 12:38:44
 // Copied on: 	    §{date_copy_created}
-// Module Name:     Event Detection with threshold
+// Module Name:     Event Detection for signed data input (substraction)
 // Target Devices:  ASIC / FPGA
 // Tool Versions:   1v1
 // Description:     
@@ -17,45 +17,38 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module SIGNED_THRESHOLD#(
-    parameter integer BITWIDTH = 8
+module EVENTDETECTOR_SUB_SIGNED#(
+    parameter integer BITWIDTH = 8,
+    parameter integer OUT_INVERT = 0
 )(
     input wire CLK_SYS,
     input wire RSTN,
     input wire EN,
     input wire DO_CALC,
     input wire signed [BITWIDTH-'d1:0] DATA_IN,
-    input wire signed [BITWIDTH-'d1:0] THR,  //Threshold
-    output reg IS_EVNT, //True, when event is detected
-    output wire DVALID
+    input wire signed [BITWIDTH-'d1:0] THR,
+    output reg IS_EVNT,
+    output reg DVALID
 );
+
     wire signed [BITWIDTH:0] DIFF;
-
-    // DATA_IN - THR
-    assign DIFF = {DATA_IN[BITWIDTH-1], DATA_IN}
-                - {THR[BITWIDTH-1], THR};
-
-
-    assign DVALID = DO_CALC;
+    assign DIFF = {DATA_IN[BITWIDTH-1], DATA_IN} - {THR[BITWIDTH-1], THR};
+    reg calc_dly;
 
     always @(posedge CLK_SYS) begin
         if (!RSTN) begin
-            IS_EVNT <= 1'b0;            
-        end
-        else if (EN) begin
-            if (DO_CALC) begin
-
-                // MSB = 0 -> Ergebnis >= 0
-                IS_EVNT <= ~DIFF[BITWIDTH];
-            end
-            else begin
-                // Ergebnis halten
+            calc_dly <= 1'b0;
+            IS_EVNT <= OUT_INVERT;
+            DVALID <= 1'b0;
+        end else begin
+            calc_dly <= DO_CALC;
+            if (!calc_dly && DO_CALC && EN) begin
+                IS_EVNT <= ~DIFF[BITWIDTH] ^ OUT_INVERT;
+                DVALID <= 1'd1;
+            end else begin
                 IS_EVNT <= IS_EVNT;
-                
+                DVALID <= 1'd0;
             end
         end
     end
-
-
-
 endmodule
