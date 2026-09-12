@@ -8,21 +8,22 @@ module UNSIGNED_THRESHOLD#(
     input wire [BITWIDTH-1:0] DATA_IN,
     input wire [BITWIDTH-1:0] THR,
     output reg IS_EVNT,
-    output reg DVALID
+    output wire DVALID
 );
+
+    assign DVALID = DO_CALC;
 
     always @(posedge CLK_SYS) begin
         if (!RSTN) begin
             IS_EVNT <= 1'b0;
-            DVALID  <= 1'b0;
         end
         else if (EN) begin
             if (DO_CALC) begin
                 IS_EVNT <= DATA_IN >= THR;
-                DVALID  <= 1'b1;
             end
             else begin
-                DVALID <= 1'b0;
+                // Kein neuer Berechnungsvorgang
+                IS_EVNT <= IS_EVNT;
             end
         end
     end
