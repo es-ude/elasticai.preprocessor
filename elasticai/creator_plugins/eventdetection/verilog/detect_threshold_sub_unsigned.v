@@ -31,6 +31,7 @@ module SIGNED_THRESHOLD#(
 );
     wire [BITWIDTH:0] DIFF;
 
+    //Subtraktion mit Carry Bit    
     assign DIFF = {1'b0, DATA_IN} - {1'b0, THR};
 
     assign DVALID = DO_CALC;
