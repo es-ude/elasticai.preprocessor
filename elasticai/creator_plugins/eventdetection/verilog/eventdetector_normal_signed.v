@@ -4,7 +4,7 @@
 // 
 // Create Date: 	28.08.2026 12:38:44
 // Copied on: 	    §{date_copy_created}
-// Module Name:     Event Detection with threshold
+// Module Name:     Event Detection for signed data input (normal)
 // Target Devices:  ASIC / FPGA
 // Tool Versions:   1v1
 // Description:     
@@ -13,41 +13,41 @@
 //
 // State:		    Not tested!
 // Improvements:    None
-// Parameters:      BITWIDTH --> Bitwidth of input data
+// Parameters:      BITWIDTH    --> Bitwidth of input data
+//                  OUT_INVERT  --> Inverting the boolean output
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module SIGNED_THRESHOLD#(
-    parameter integer BITWIDTH = 8
+module EVENTDETECTION_NORMAL_SIGNED#(
+    parameter integer BITWIDTH = 8,
+    parameter integer OUT_INVERT = 0
 )(
     input wire CLK_SYS,
     input wire RSTN,
     input wire EN,
     input wire DO_CALC,
     input wire signed [BITWIDTH-'d1:0] DATA_IN,
-    input wire signed [BITWIDTH-'d1:0] THR,  //Threshold
-    output reg IS_EVNT, //True, when event is detected
-    output wire DVALID
+    input wire signed [BITWIDTH-'d1:0] THR,
+    output reg IS_EVNT,
+    output reg DVALID
 );
-    wire [BITWIDTH:0] DIFF;
 
-    assign DIFF = {1'b0, DATA_IN} - {1'b0, THR};
-
-    assign DVALID = DO_CALC;
+    reg calc_dly;
 
     always @(posedge CLK_SYS) begin
         if (!RSTN) begin
-            IS_EVNT <= 1'b0;
-        end
-        else if (EN) begin
-            if (DO_CALC) begin
-                IS_EVNT <= ~DIFF[BITWIDTH];
-            end
-            else begin
-                // Kein neuer Berechnungsvorgang
+            calc_dly <= 1'b0;
+            IS_EVNT <= OUT_INVERT;
+            DVALID <= 1'b0;
+        end else begin
+            calc_dly <= DO_CALC;
+            if (!calc_dly && DO_CALC && EN) begin
+                IS_EVNT <= (DATA_IN >= THR) ^ OUT_INVERT;
+                DVALID <= 1'd1;
+            end else begin
                 IS_EVNT <= IS_EVNT;
+                DVALID <= 1'd0;
             end
         end
     end
-
 endmodule

@@ -5,9 +5,9 @@ api_version = "0.1"
 target_runtime = "verilog"
 target_platform = "FPGA"
 generated = [
-  "threshold_signed",
-  "threshold_sub_signed",
-  "threshold_unsigned",
-  "threshold_sub_unsigned"
+  "eventdetector_normal_signed",
+  "eventdetector_sub_signed",
+  "eventdetector_normal_unsigned",
+  "eventdetector_sub_unsigned"
 ]
 static_files = []

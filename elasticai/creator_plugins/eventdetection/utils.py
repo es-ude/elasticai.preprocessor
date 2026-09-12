@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any
 
 import elasticai.creator.ir2verilog as ir
-import numpy as np
 from elasticai.creator.file_generation import find_project_root as get_path_to_build
 from elasticai.creator.ir import Registry, attribute
 from elasticai.creator.ir2verilog import Ir2Verilog, factory
@@ -40,4 +39,3 @@ def _prepare_translator(plugin_types: list[str]) -> Ir2Verilog:
     for plugin in plugin_types:
         loader.load_from_package(plugin)
     return _translate
-

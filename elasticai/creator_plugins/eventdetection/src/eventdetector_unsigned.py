@@ -12,13 +12,14 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def threshold_signed(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def eventdetector_normal_unsigned(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.eventdetection"
-    path2file = "verilog/detect_threshold_signed.v"
+    path2file = "verilog/eventdetector_normal_unsigned.v"
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
+        .parameter("OUT_INVERT")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()
@@ -36,14 +37,16 @@ def threshold_signed(impl: DataGraph, _: Registry) -> Iterable[Code]:
     )
     return code
 
+
 @type_handler_iterable()
-def threshold_sub_signed(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def eventdetector_sub_unsigned(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.eventdetection"
-    path2file = "verilog/detect_threshold_sub_signed.v"
+    path2file = "verilog/eventdetector_sub_unsigned.v"
 
     _template = (
         TemplateDirector()
         .parameter("BITWIDTH")
+        .parameter("OUT_INVERT")
         .add_module_name()
         .set_prototype("\n".join(read_text(package_path, path2file)))
         .build()
