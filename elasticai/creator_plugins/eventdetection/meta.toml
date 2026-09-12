@@ -6,6 +6,8 @@ target_runtime = "verilog"
 target_platform = "FPGA"
 generated = [
   "threshold_signed",
-  "threshold_sub_signed"
+  "threshold_sub_signed",
+  "threshold_unsigned",
+  "threshold_sub_unsigned"
 ]
 static_files = []
