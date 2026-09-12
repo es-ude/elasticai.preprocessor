@@ -26,25 +26,26 @@ module SIGNED_THRESHOLD#(
     input wire DO_CALC,
     input wire signed [BITWIDTH-'d1:0] DATA_IN,
     input wire signed [BITWIDTH-'d1:0] THR,  //Threshold
-    output wire IS_EVNT, //True, when event is detected
+    output reg IS_EVNT, //True, when event is detected
     output wire DVALID
 );
     wire [BITWIDTH:0] DIFF;
 
     assign DIFF = {1'b0, DATA_IN} - {1'b0, THR};
 
+    assign DVALID = DO_CALC;
+
     always @(posedge CLK_SYS) begin
         if (!RSTN) begin
             IS_EVNT <= 1'b0;
-            DVALID  <= 1'b0;
         end
         else if (EN) begin
             if (DO_CALC) begin
-                IS_EVNT <= ~DIFF[BITWIDTH]
-                DVALID  <= 1'b1;
+                IS_EVNT <= ~DIFF[BITWIDTH];
             end
             else begin
-                DVALID <= 1'b0;
+                // Kein neuer Berechnungsvorgang
+                IS_EVNT <= IS_EVNT;
             end
         end
     end
