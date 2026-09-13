@@ -365,7 +365,15 @@ class TestCreateDesign:
 
     @pytest.mark.parametrize("target", ["fpga"])
     @pytest.mark.parametrize("out_invert", [False])
-    @pytest.mark.parametrize("hysteresis_type", [TargetsEventDetection.Normal])
+    @pytest.mark.parametrize(
+        "hysteresis_type",
+        [
+            TargetsEventDetection.Normal,
+            TargetsEventDetection.DoubleHyst,
+            TargetsEventDetection.NegHyst,
+            TargetsEventDetection.PosHyst,
+        ],
+    )
     @pytest.mark.parametrize("is_signed", [True, False])
     def test_create_design_fpga(
         self,
@@ -381,6 +389,12 @@ class TestCreateDesign:
                 out_invert=out_invert,
             )
         )
+        if is_signed and hysteresis_type in [
+            TargetsEventDetection.DoubleHyst,
+            TargetsEventDetection.PosHyst,
+            TargetsEventDetection.NegHyst,
+        ]:
+            pytest.skip("Not implemented")
 
         backup = get_path_to_project("build_test") / f"{hysteresis_type}"
         with temporary_directory(backup) as tmpdir:
@@ -391,7 +405,14 @@ class TestCreateDesign:
                 path2save=tmpdir,
                 signed=is_signed,
             )
-            if is_signed:
-                assert (tmpdir / "eventdetector_sub_signed_0.v").exists()
-            else:
-                assert (tmpdir / "eventdetector_sub_unsigned_0.v").exists()
+            match hysteresis_type:
+                case TargetsEventDetection.Normal:
+                    if is_signed:
+                        assert (tmpdir / "eventdetector_sub_signed_0.v").exists()
+                    else:
+                        assert (tmpdir / "eventdetector_sub_unsigned_0.v").exists()
+                case _:
+                    if is_signed:
+                        assert (tmpdir / "eventdetector_hyst_signed_0.v").exists()
+                    else:
+                        assert (tmpdir / "eventdetector_hyst_unsigned_0.v").exists()

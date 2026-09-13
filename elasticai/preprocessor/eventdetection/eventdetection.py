@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 
-import elasticai.creator_plugins.eventdetection as hw_eventdetection
 from elasticai.creator_plugins.eventdetection.src import c_compile
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
@@ -155,7 +154,6 @@ class EventDetection:
         signed: bool,
         path2save: Path,
     ) -> None:
-        from elasticai.creator_plugins.eventdetection.src import c_compile
 
         c_compile.build_eventdetection(
             hysteresis=self._settings.window_size,
@@ -178,10 +176,26 @@ class EventDetection:
         from elasticai.creator_plugins.eventdetection.utils import load_and_plugin
 
         module_appendix = "un" if not signed else ""
-        load_and_plugin(
-            type=f"eventdetector_sub_{module_appendix}signed",
-            id=id,
-            params={"BITWIDTH": bitwidth, "OUT_INVERT": int(self._settings.out_invert)},
-            packages=["eventdetection"],
-            path2save=path2save,
-        )
+        thr_on, thr_off = self._type_hysteresis(0)
+        match self._settings.type:
+            case TargetsEventDetection.Normal:
+                load_and_plugin(
+                    type=f"eventdetector_sub_{module_appendix}signed",
+                    id=id,
+                    params={"BITWIDTH": bitwidth, "OUT_INVERT": int(self._settings.out_invert)},
+                    packages=["eventdetection"],
+                    path2save=path2save,
+                )
+            case _:
+                load_and_plugin(
+                    type=f"eventdetector_hyst_{module_appendix}signed",
+                    id=id,
+                    params={
+                        "BITWIDTH": bitwidth,
+                        "THR_ON": abs(thr_on),
+                        "THR_OFF": abs(thr_off),
+                        "OUT_INVERT": int(self._settings.out_invert),
+                    },
+                    packages=["eventdetection"],
+                    path2save=path2save,
+                )
