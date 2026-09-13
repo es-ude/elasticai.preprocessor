@@ -1,2 +1,2 @@
-from .src.eventdetection_double_hyst import eventdetection_double_hyst as eventdetection_double_hyst
+from .src.eventdetection_hyst_unsigned import eventdetection_hyst_unsigned as eventdetection_hyst_unsigned
 from .utils import load_and_plugin as load_and_plugin 

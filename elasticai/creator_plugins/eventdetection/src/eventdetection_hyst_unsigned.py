@@ -12,9 +12,9 @@ from elasticai.creator.ir2verilog import (
 
 
 @type_handler_iterable()
-def eventdetection_double_hyst(impl: DataGraph, _: Registry) -> Iterable[Code]:
+def eventdetection_hyst_unsigned(impl: DataGraph, _: Registry) -> Iterable[Code]:
     package_path = "elasticai.creator_plugins.eventdetection"
-    path2file = "verilog/eventdetection_double_hyst.v"
+    path2file = "verilog/eventdetection_hyst_unsigned.v"
 
     _template = (
         TemplateDirector()

@@ -169,7 +169,7 @@ class EventDetection:
     def _create_design_fpga(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
 
         params = {
-            "type": "eventdetection_double_hyst",
+            "type": "eventdetection_hyst_unsigned",
             "id": id,
             "params": {
                 "BITWIDTH": bitwidth,
