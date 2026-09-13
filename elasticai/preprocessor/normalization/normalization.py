@@ -112,6 +112,33 @@ class DataNormalization:
                 path2save=path2save,
             )
 
+    def create_design_float32(self, target: str, id: str, path2save: Path) -> None:
+        """Generate the Float32 C normalization used by the inference pipeline."""
+        supported_targets = ["mcu", "pc"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        method = self._settings.method.lower()
+        if method not in ("minmax", "zscore"):
+            raise NotImplementedError(
+                "Float32 C generation currently supports only minmax and zscore normalization"
+            )
+        if method == "minmax" and self._settings.peak_mode != 2:
+            raise NotImplementedError("Float32 minmax generation supports only peak_mode=2")
+
+        from elasticai.creator_plugins.normalization.src import c_compile
+
+        builders = {
+            "minmax": c_compile.build_normalization_minmax_float32,
+            "zscore": c_compile.build_normalization_zscore_float32,
+        }
+        builders[method](
+            path2save=path2save,
+            normalization_id=id,
+            define_path=".",
+        )
+
     def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         from elasticai.creator_plugins.normalization.src import c_compile
 
@@ -191,10 +218,12 @@ class DataNormalization:
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])
-            dataset_norm = dataset / scale_norm
+            safe_scale = np.where(scale_norm == 0, np.ones_like(scale_norm), scale_norm)
+            dataset_norm = dataset / safe_scale
         else:
             scale_norm = self._generate_tensor_full(self.__params["scale_used"], dataset.shape[-1])
-            dataset_norm = torch.divide(dataset, scale_norm)
+            safe_scale = torch.where(scale_norm == 0, torch.ones_like(scale_norm), scale_norm)
+            dataset_norm = torch.divide(dataset, safe_scale)
         return dataset_norm
 
     def _get_scaling_value_norm(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
@@ -215,16 +244,16 @@ class DataNormalization:
         return dataset_norm
 
     def _get_scaling_value_zscore(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
-        scale_std = (
-            np.std(raw_dataset, axis=-1)
-            if isinstance(raw_dataset, np.ndarray)
-            else torch.std(raw_dataset, dim=-1, unbiased=False)
-        )
-        scale_mean = (
-            np.mean(raw_dataset, axis=-1)
-            if isinstance(raw_dataset, np.ndarray)
-            else torch.mean(raw_dataset, dim=-1)
-        )
+        if isinstance(raw_dataset, np.ndarray):
+            scale_std = np.std(raw_dataset, axis=-1)
+            scale_mean = np.mean(raw_dataset, axis=-1)
+            is_constant = np.all(raw_dataset == raw_dataset[..., :1], axis=-1)
+            scale_std = np.where(is_constant, np.zeros_like(scale_std), scale_std)
+        else:
+            scale_std = torch.std(raw_dataset, dim=-1, unbiased=False)
+            scale_mean = torch.mean(raw_dataset, dim=-1)
+            is_constant = torch.all(raw_dataset == raw_dataset[..., :1], dim=-1)
+            scale_std = torch.where(is_constant, torch.zeros_like(scale_std), scale_std)
         self.__params = {"scale_std": scale_std, "scale_mean": scale_mean}
 
     def _normalize_zscore(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
@@ -232,13 +261,45 @@ class DataNormalization:
         if isinstance(dataset, np.ndarray):
             scale_mean = self._generate_numpy_full(self.__params["scale_mean"], dataset.shape[-1])
             scale_std = self._generate_numpy_full(self.__params["scale_std"], dataset.shape[-1])
-            dataset_norm = (dataset - scale_mean) / scale_std
+            centered = dataset - scale_mean
+            safe_std = np.where(scale_std == 0, np.ones_like(scale_std), scale_std)
+            dataset_norm = np.where(
+                scale_std == 0,
+                np.zeros_like(centered),
+                centered / safe_std,
+            )
         else:
             scale_mean = self._generate_tensor_full(self.__params["scale_mean"], dataset.shape[-1])
             scale_std = self._generate_tensor_full(self.__params["scale_std"], dataset.shape[-1])
-            dataset_norm = torch.divide(torch.sub(dataset, scale_mean), scale_std)
+            safe_std = torch.where(scale_std == 0, torch.ones_like(scale_std), scale_std)
+            dataset_norm = torch.where(
+                scale_std == 0,
+                torch.zeros_like(dataset),
+                torch.divide(torch.sub(dataset, scale_mean), safe_std),
+            )
 
-        self.__params["scale_used"] = scale_mean / scale_std
+        if isinstance(dataset, np.ndarray):
+            safe_std = np.where(
+                self.__params["scale_std"] == 0,
+                np.ones_like(self.__params["scale_std"]),
+                self.__params["scale_std"],
+            )
+            self.__params["scale_used"] = np.where(
+                self.__params["scale_std"] == 0,
+                np.zeros_like(self.__params["scale_mean"]),
+                self.__params["scale_mean"] / safe_std,
+            )
+        else:
+            safe_std = torch.where(
+                self.__params["scale_std"] == 0,
+                torch.ones_like(self.__params["scale_std"]),
+                self.__params["scale_std"],
+            )
+            self.__params["scale_used"] = torch.where(
+                self.__params["scale_std"] == 0,
+                torch.zeros_like(self.__params["scale_mean"]),
+                self.__params["scale_mean"] / safe_std,
+            )
         return dataset_norm
 
     def _get_scaling_value_medianmad(self, raw_dataset: np.ndarray | torch.Tensor) -> None:
