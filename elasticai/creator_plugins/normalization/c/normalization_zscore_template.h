@@ -1,6 +1,7 @@
 #ifndef NORMALIZATION_ZSCORE_TEMPLATE_H
 #define NORMALIZATION_ZSCORE_TEMPLATE_H
 
+#include <stdbool.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -14,10 +15,22 @@ void normalize_zscore_ ## id( \
         return; \
     } \
     float mean = 0.0f; \
+    const float first = (float)input[0]; \
+    bool is_constant = true; \
     for (uint32_t index = 0; index < length; ++index) { \
-        mean += (float)input[index]; \
+        const float value = (float)input[index]; \
+        mean += value; \
+        if (value != first) { \
+            is_constant = false; \
+        } \
     } \
     mean /= (float)length; \
+    if (is_constant) { \
+        for (uint32_t index = 0; index < length; ++index) { \
+            output[index] = 0.0f; \
+        } \
+        return; \
+    } \
     float variance = 0.0f; \
     for (uint32_t index = 0; index < length; ++index) { \
         const float value = (float)input[index] - mean; \
@@ -25,7 +38,7 @@ void normalize_zscore_ ## id( \
     } \
     const float std = sqrtf(variance / (float)length); \
     for (uint32_t index = 0; index < length; ++index) { \
-        output[index] = std == 0.0f ? NAN : ((float)input[index] - mean) / std; \
+        output[index] = std == 0.0f ? 0.0f : ((float)input[index] - mean) / std; \
     } \
 }
 #endif
