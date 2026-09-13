@@ -9,6 +9,6 @@ generated = [
   "eventdetector_sub_signed",
   "eventdetector_normal_unsigned",
   "eventdetector_sub_unsigned",
-    "threshold_double_hyst"
+  "eventdetector_hyst_unsigned"
 ]
 static_files = []
