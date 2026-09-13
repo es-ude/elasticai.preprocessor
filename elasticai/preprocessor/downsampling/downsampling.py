@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
+from numbers import Integral
 from pathlib import Path
 
 import numpy as np
@@ -106,6 +107,26 @@ class DownSampling:
                 path2save=path2save,
                 n_dec=num_stages,
             )
+
+    def create_design_float32(self, target: str, id: str, path2save: Path) -> None:
+        """Generate stateless Float32 subsampling starting at index zero."""
+        supported_targets = ["mcu", "pc"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+
+        factor = self._settings.dsr
+        if isinstance(factor, bool) or not isinstance(factor, Integral) or factor < 1:
+            raise ValueError("dsr must be a positive integer")
+        if factor == 1:
+            return
+
+        c_compile.build_downsampling_float32(
+            downsampling_ratio=int(factor),
+            path2save=path2save,
+            downsampling_id=id,
+            define_path=".",
+        )
 
     def _create_design_c(
         self,
