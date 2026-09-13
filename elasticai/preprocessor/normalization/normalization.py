@@ -61,6 +61,8 @@ class DataNormalization:
             normalized_frames = handler.normalize(data_in)
         """
         self._settings = settings
+        if isinstance(settings.method, str):
+            self._settings.method = NormalizationTargets(settings.method)
         self.__list_norm_methods = {
             NormalizationTargets("zeroone"): self._normalize_zeroone,
             NormalizationTargets("minmax"): self._normalize_minmax,
@@ -131,7 +133,7 @@ class DataNormalization:
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
-        method = self._settings.method.lower()
+        method = self._settings.method.value.lower()
         if method not in ("minmax", "zscore"):
             raise NotImplementedError(
                 "Float32 C generation currently supports only minmax and zscore normalization"

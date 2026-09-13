@@ -5,7 +5,7 @@ import numpy as np
 
 import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings
 from elasticai.preprocessor.translation.ir2c import generate_c_files, replace_variables_with_parameters
 
 
@@ -14,13 +14,13 @@ def _format_float32(value: float) -> str:
 
 
 def build_filter_iir_float32(
-    settings: SettingsFilter,
+    settings: FilterSettings,
     filter_id: str = "",
     path2save: Path = get_path_to_project("build"),
     define_path: str = "src",
 ) -> None:
     """Generate a stateful Float32 IIR filter for MCU or workstation C builds."""
-    if settings.type.lower() != "iir":
+    if settings.method.value.lower() != "iir":
         raise ValueError(f"Key 'type' must be 'iir' and not '{settings.type.lower()}'")
 
     coefficients = Filtering(settings=settings).get_coeffs()
@@ -35,7 +35,7 @@ def build_filter_iir_float32(
     if not np.all(np.isfinite(coefficient_a)) or not np.all(np.isfinite(coefficient_b)):
         raise ValueError("IIR coefficients must be finite")
 
-    coefficient_b = settings.gain * coefficient_b / coefficient_a[0]
+    coefficient_b = coefficient_b / coefficient_a[0]
     coefficient_a = coefficient_a / coefficient_a[0]
     coefficient_values = np.concatenate(
         (coefficient_a.astype(np.float32), coefficient_b.astype(np.float32))
@@ -50,7 +50,7 @@ def build_filter_iir_float32(
         "template_name": "filter_iir_float32_template.h",
         "generated_header": generated_header,
         "device_id": module_id,
-        "fs": f"{settings.fs}",
+        "fs": f"{settings.sampling_rate}",
         "filter_type": f"{settings.b_type}, {settings.f_type}",
         "filter_corner": ", ".join(map(str, settings.f_filt)),
         "filter_order": str(settings.n_order),

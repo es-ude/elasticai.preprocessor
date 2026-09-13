@@ -120,13 +120,8 @@ def test_error_wrong_input():
         method="bimax",
         peak_mode=0,
     )
-    test_func = DataNormalization(settings=sets)
-    try:
-        test_func.normalize(generate_test_data(do_tensor=False))
-    except:
-        assert True
-    else:
-        assert False
+    with pytest.raises(ValueError):
+        DataNormalization(settings=sets)
 
 
 @pytest.mark.parametrize(
@@ -234,7 +229,7 @@ def test_normalization_method(
     ],
 )
 def test_constant_windows_stay_finite(method: str, expected_nonzero: float) -> None:
-    normalizer = DataNormalization(SettingsNormalization(method=method, peak_mode=2))
+    normalizer = DataNormalization(NormalizationSettings(method=method, peak_mode=2))
     input_numpy = np.asarray([[0.0, 0.0, 0.0], [7.0, 7.0, 7.0]], dtype=np.float32)
     expected = np.asarray(
         [[0.0, 0.0, 0.0], [expected_nonzero, expected_nonzero, expected_nonzero]],
@@ -263,7 +258,7 @@ def test_safe_normalization_preserves_numpy_division_dtype(
     dtype: type[np.generic],
     expected_dtype: type[np.generic],
 ) -> None:
-    normalizer = DataNormalization(SettingsNormalization(method=method, peak_mode=2))
+    normalizer = DataNormalization(NormalizationSettings(method=method, peak_mode=2))
     input_data = np.asarray([[1, 2, 3], [0, 0, 0]], dtype=dtype)
 
     output = normalizer.normalize(input_data)

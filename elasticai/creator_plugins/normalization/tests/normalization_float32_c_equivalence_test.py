@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader
 
-from elasticai.preprocessor.normalization import DataNormalization, SettingsNormalization
+from elasticai.preprocessor.normalization import DataNormalization, NormalizationSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
 
-def _settings(method: str, peak_mode: int = 2) -> SettingsNormalization:
-    return SettingsNormalization(method=method, peak_mode=peak_mode)
+def _settings(method: str, peak_mode: int = 2) -> NormalizationSettings:
+    return NormalizationSettings(method=method, peak_mode=peak_mode)
 
 
 def _load_normalization(tmp_path: Path, method: str):

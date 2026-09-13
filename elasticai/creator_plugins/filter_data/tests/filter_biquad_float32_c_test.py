@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader
 
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
 
-def _bandpass_settings() -> SettingsFilter:
-    return SettingsFilter(1.0, 1000.0, 2, [225.0, 375.0], "iir", "butter", "bandpass")
+def _bandpass_settings() -> FilterSettings:
+    return FilterSettings(sampling_rate=1000.0, n_order=2, f_filt=[225.0, 375.0], method="iir", f_type="butter", b_type="bandpass")
 
 
 def _input_data() -> np.ndarray:

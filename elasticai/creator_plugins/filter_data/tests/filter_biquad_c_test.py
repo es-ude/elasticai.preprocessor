@@ -109,14 +109,13 @@ def test_bandpass_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(
-        1.0,
-        1000.0,
-        2,
-        [225.0, 375.0],
-        "iir",
-        "butter",
-        "bandpass",
+    settings = FilterSettings(
+        sampling_rate=1000.0,
+        n_order=2,
+        f_filt=[225.0, 375.0],
+        method="iir",
+        f_type="butter",
+        b_type="bandpass"
     )
 
     check_filter_c_equivalence(

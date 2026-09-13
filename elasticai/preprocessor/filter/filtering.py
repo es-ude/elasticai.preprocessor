@@ -397,7 +397,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         target = target.lower()
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if self._settings.type.lower() != "iir":
+        if self._settings.method.value.lower() != "iir":
             raise NotImplementedError("Float32 C generation currently supports only IIR filters")
 
         from elasticai.creator_plugins.filter_data.src import c_compile
