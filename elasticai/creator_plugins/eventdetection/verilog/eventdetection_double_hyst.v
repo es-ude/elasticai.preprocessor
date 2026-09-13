@@ -1,4 +1,4 @@
-module THRESHOLD_DOUBLE_HYST #(
+module EVENTDETECTION_DOUBLE_HYST #(
     parameter integer BITWIDTH = 8
 )(
     input wire CLK_SYS,

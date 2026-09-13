@@ -3,8 +3,6 @@ import pytest
 
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, FallingEdge, ReadOnly, RisingEdge
-from elasticai.creator.arithmetic import FxpParams
-from random import randint
 import numpy as np
 
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
@@ -138,11 +136,11 @@ def test_template(
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup):
             cocotb_test_fixture.write({"data_in": data_in, "check": check})
-            cocotb_test_fixture.set_top_module_name("THRESHOLD_DOUBLE_HYST")    # Hier muss Name mit Verilog Modul übereinstimmen
+            cocotb_test_fixture.set_top_module_name("EVENTDETECTION_DOUBLE_HYST")    # Hier muss Name mit Verilog Modul übereinstimmen
             cocotb_test_fixture.clear_srcs()
             cocotb_test_fixture.add_srcs_from_package(
                 "eventdetection",
-                "verilog/detect_threshold_double_hyst.v",
+                "verilog/eventdetection_double_hyst.v",
             )
     
             cocotb_test_fixture.run(
@@ -181,7 +179,7 @@ def test_build(
         )
 
         cocotb_test_fixture.write({"data_in": data_in, "check": check})
-        cocotb_test_fixture.set_top_module_name("THRESHOLD_DOUBLE_HYST")
+        cocotb_test_fixture.set_top_module_name("EVENTDETECTION_DOUBLE_HYST")
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.run(
@@ -224,7 +222,7 @@ def test_double_hyst_build_equal(
         )
 
         cocotb_test_fixture.write({"data_in": data_in, "check": data_checked,})
-        cocotb_test_fixture.set_top_module_name("THRESHOLD_DOUBLE_HYST")
+        cocotb_test_fixture.set_top_module_name("EVENTDETECTION_DOUBLE_HYST")
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir,glob_pattern="verilog/*.v")
         cocotb_test_fixture.run(
