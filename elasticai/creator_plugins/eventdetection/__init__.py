@@ -2,3 +2,6 @@ from .src.eventdetector_signed import eventdetector_normal_signed as eventdetect
 from .src.eventdetector_signed import eventdetector_sub_signed as eventdetector_sub_signed
 from .src.eventdetector_unsigned import eventdetector_normal_unsigned as eventdetector_normal_unsigned
 from .src.eventdetector_unsigned import eventdetector_sub_unsigned as eventdetector_sub_unsigned
+
+from .src.threshold_double_hyst import threshold_double_hyst as threshold_double_hyst
+from .utils import load_and_plugin as load_and_plugin
