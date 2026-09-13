@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from elasticai.creator_plugins.eventdetection.src import c_compile
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
