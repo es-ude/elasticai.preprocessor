@@ -18,7 +18,7 @@ void normalize_minmax_ ## id( \
         } \
     } \
     for (uint32_t index = 0; index < length; ++index) { \
-        output[index] = scale == 0.0f ? NAN : (float)input[index] / scale; \
+        output[index] = scale == 0.0f ? 0.0f : (float)input[index] / scale; \
     } \
 }
 #endif
