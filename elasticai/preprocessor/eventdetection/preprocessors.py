@@ -21,11 +21,15 @@ class TargetsEventPreprocessors(Enum):
 class SettingsEventPreprocessor:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        type:           Applied comparator preprocessing method for transient signals [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (window_size = 1 or kNEO with window_size > 1),
-                        Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
-                        enhanced energy-derivation operator (eED),
-                        amplitude slope operator (ASO, window_size and f_hp as additional float arg),
-                        spike band-power estimation (SBP, using f_bp with two values as additional arg)
+        type:           Applied comparator preprocessing method for transient signals [
+                            normal, 
+                            absolute, 
+                            Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (window_size = 1 or kNEO with window_size > 1),
+                            Multiresolution Teager Energy Operator (MTEO), 
+                            absolute difference operator (ADO),
+                            enhanced energy-derivation operator (eED),
+                            amplitude slope operator (ASO, window_size and f_hp as additional float arg),
+                            spike band-power estimation (SBP, using f_bp with two values as additional arg)
         sampling_rate:  Sampling rate [Hz]
         window_size:    Position difference for extracting SDA method. Configuration with length(x) == 1: with dX = 1 --> NEO, dX > 1 --> k-NEO
         f_filt:         List with filter frequencies for the methods (ASO, SBP)

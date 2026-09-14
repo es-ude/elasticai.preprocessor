@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.thresholding import (
-    TargetsThreshold,
-)
+from elasticai.preprocessor.thresholding import TargetsThreshold
+from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
+
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 from .window import (
@@ -40,7 +40,16 @@ class TestWindowMethod(TestCase):
 
 
 class TestSettingsWindowSequencer(TestCase):
-    sets = SettingsWindow(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = SettingsWindow(
+        method_window=TargetsWindower.Event,
+        method_thr=TargetsThreshold.Constant,
+        method_input=TargetsEventPreprocessors.Normal,
+        sampling_rate=10e3, 
+        window_sec=10e-3, 
+        overlap_sec=0.1e-3,
+        pre_time=1e-3,
+        threshold=10.0,
+    )
 
     def test_settings_length(self):
         self.assertEqual(self.sets.window_length, 100)
@@ -50,7 +59,16 @@ class TestSettingsWindowSequencer(TestCase):
 
 
 class TestWindowSequencer(TestCase):
-    sets = SettingsWindow(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = SettingsWindow(
+        method_window=TargetsWindower.Event,
+        method_thr=TargetsThreshold.Constant,
+        method_input=TargetsEventPreprocessors.Normal,
+        sampling_rate=10e3, 
+        window_sec=10e-3, 
+        overlap_sec=0.1e-3,
+        pre_time=1e-3,
+        threshold=10.0,
+    )
 
     def test_window_sequence_match_full(self):
         set0 = deepcopy(self.sets)
@@ -258,11 +276,14 @@ class TestCreateDesign:
     ) -> None:
         windower = WindowSequencer(
             SettingsWindow(
-                method_window=TargetsWindower.Sequence,
+                method_window=window_method,
                 method_thr=TargetsThreshold.Constant,
-                sampling_rate=2e3, 
-                window_sec=0.1, 
-                overlap_sec=0.0
+                method_input=TargetsEventPreprocessors.Normal,
+                sampling_rate=10e3, 
+                window_sec=10e-3, 
+                overlap_sec=0.1e-3,
+                pre_time=1e-3,
+                threshold=10.0,
             )
         )
         

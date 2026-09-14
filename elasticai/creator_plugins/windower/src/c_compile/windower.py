@@ -12,6 +12,7 @@ from elasticai.preprocessor.windower.window import SettingsWindow
 
 def build_windower_sequence(
     settings: SettingsWindow,
+    num_shift: int,
     bitwidth: int,
     signed: bool,
     path2save: Path,
@@ -168,7 +169,7 @@ def build_windower_event(
         "device_id": module_id.upper(),
         "data_type": get_embedded_datatype(bitwidth, signed),
         "window_length": str(window_length),
-        "pre_samples": str(num_shift),
+        "pre_samples": str(pre_samples),
         "threshold": str(threshold),
     }
     template_c = _generate_windower_event_template()
@@ -187,7 +188,7 @@ def _generate_windower_event_template() -> dict[str, list[str]]:
         "// --- Generating windower_event",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},"
         "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}"
         '#include "{$path2include}/{$template_name}"',
         "DEF_WINDOWER_EVENT_PROTO({$device_id}, {$data_type})",
@@ -196,8 +197,8 @@ def _generate_windower_event_template() -> dict[str, list[str]]:
         "// --- Generating windower_event",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},",
-        "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}"
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},"
+        "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}",
         '#include "{$path2include}/{$template_name}"',
         "DEF_WINDOWER_EVENT_IMPL({$device_id}, {$data_type}, {$window_length}, {$num_shift})",
     ]
