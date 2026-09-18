@@ -22,7 +22,8 @@ input_type calc_next_datum_filter_iir_ ## id (input_type data, IirFilter *filter
     uint8_t filter_tap_length = filter->tap_length; \
     double *filter_tap = filter->taps; \
     double val_inp = 0;\
-    int16_t pos_tap = filter_tap_length - 1 - filter_tap_start; \
+    int16_t pos_tap = (int16_t)filter_tap_start - 1; \
+    if(pos_tap < 0) pos_tap = filter_tap_length - 1; \
     for(int16_t pos_coeff=0; pos_coeff < filter_coeff_length; pos_coeff++){ \
         if(pos_coeff == 0){ \
             val_inp = data; \
@@ -32,7 +33,8 @@ input_type calc_next_datum_filter_iir_ ## id (input_type data, IirFilter *filter
             if(pos_tap < 0) pos_tap = filter_tap_length-1; \
         }; \
     } \
-    pos_tap = filter_tap_length - 1 - filter_tap_start; \
+    pos_tap = (int16_t)filter_tap_start - 1; \
+    if(pos_tap < 0) pos_tap = filter_tap_length - 1; \
     double val_out = 0; \
     for (int8_t pos_coeff=filter_coeff_length; pos_coeff < 2 * filter_coeff_length; pos_coeff++){ \
        if (pos_coeff == filter_coeff_length){ \

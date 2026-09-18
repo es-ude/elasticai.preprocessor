@@ -383,6 +383,24 @@ class Filtering(CommonDigitalFunctions):
         else:
             self._create_design_verilog(id=id, bitwidth=bitwidth, path2save=path2save, num_mult=1)
 
+    def create_design_float32(self, target: str, id: str, path2save: Path) -> None:
+        """Generate a stateful Float32 C implementation for an IIR filter."""
+        supported_targets = ["mcu", "pc"]
+        target = target.lower()
+        if target not in supported_targets:
+            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
+        if self._settings.type.lower() != "iir":
+            raise NotImplementedError("Float32 C generation currently supports only IIR filters")
+
+        from elasticai.creator_plugins.filter_data.src import c_compile
+
+        c_compile.build_filter_iir_float32(
+            settings=self._settings,
+            filter_id=id,
+            path2save=path2save,
+            define_path=".",
+        )
+
     def _create_iir_biquad_verilog(
         self, id: str, bitwidth: int, use_dsp_mult: bool, num_mult: int = 1
     ) -> dict:
