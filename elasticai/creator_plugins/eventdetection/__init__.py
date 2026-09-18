@@ -1,3 +1,4 @@
+from .src.eventdetector_signed import eventdetector_hyst_signed as eventdetector_hyst_signed
 from .src.eventdetector_signed import eventdetector_normal_signed as eventdetector_normal_signed
 from .src.eventdetector_signed import eventdetector_sub_signed as eventdetector_sub_signed
 from .src.eventdetector_unsigned import eventdetector_hyst_unsigned as eventdetector_hyst_unsigned

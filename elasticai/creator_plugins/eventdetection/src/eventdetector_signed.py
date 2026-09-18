@@ -63,3 +63,33 @@ def eventdetector_sub_signed(impl: DataGraph, _: Registry) -> Iterable[Code]:
         )
     )
     return code
+
+
+@type_handler_iterable()
+def eventdetector_hyst_signed(impl: DataGraph, _: Registry) -> Iterable[Code]:
+    package_path = "elasticai.creator_plugins.eventdetection"
+    path2file = "verilog/eventdetector_hyst_signed.v"
+
+    _template = (
+        TemplateDirector()
+        .parameter("BITWIDTH")
+        .parameter("THR_ON")
+        .parameter("THR_OFF")
+        .parameter("OUT_INVERT")
+        .add_module_name()
+        .set_prototype("\n".join(read_text(package_path, path2file)))
+        .build()
+    )
+
+    code = list()
+    code.append(
+        (
+            impl.name,
+            _template.substitute(
+                module_name=impl.name.upper(),
+                date_copy_created=datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+                **impl.attributes,
+            ),
+        )
+    )
+    return code
