@@ -250,10 +250,9 @@ class Filtering(CommonDigitalFunctions):
         :return:        Numpy array with filtered data
         """
         if not self.__use_filtfilt:
-            xout = self._settings.gain * scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
+            return self._settings.gain * scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
         else:
-            xout = self._settings.gain * scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
-        return xout
+            return self._settings.gain * scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
 
     def filt_quantized(
         self,
