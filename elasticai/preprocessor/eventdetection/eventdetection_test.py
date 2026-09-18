@@ -389,12 +389,6 @@ class TestCreateDesign:
                 out_invert=out_invert,
             )
         )
-        if is_signed and hysteresis_type in [
-            TargetsEventDetection.DoubleHyst,
-            TargetsEventDetection.PosHyst,
-            TargetsEventDetection.NegHyst,
-        ]:
-            pytest.skip("Not implemented")
 
         backup = get_path_to_project("build_test") / f"{hysteresis_type}"
         with temporary_directory(backup) as tmpdir:
