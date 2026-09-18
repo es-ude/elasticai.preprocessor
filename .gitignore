@@ -11,6 +11,7 @@ elasticai/__init__.py
 **/.env
 **/.devenv
 **/dist
+*data
 
 .DS_Store
 .coverage

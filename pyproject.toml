@@ -44,6 +44,9 @@ docs = [
   "sphinxcontrib-mermaid>=1.0.0",
   "sphinxext-opengraph>=0.9.1",
 ]
+example = [
+  "pyxdf>=1.17.5",
+]
 lint = [
   "ruff>=0.15.14",
   "tombi>=1.1.3",
@@ -106,7 +109,7 @@ include = [
   "pyproject.toml",
   "elasticai/**/*.py",
 ]
-exclude = [".venv", "build*", "equi_checker", "plugins_c"]
+exclude = [".venv", "build*", "equi_checker", "plugins_c", "example"]
 # Same as Black.
 line-length = 106
 indent-width = 4
@@ -140,7 +143,7 @@ exclude = [
 ]
 
 [tool.uv]
-default-groups = ["dev", "docs", "test", "lint"]
+default-groups = ["dev", "docs", "test", "lint", "example"]
 
 [tool.uv.sources]
 elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch = "main" }
