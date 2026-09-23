@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
-from pathlib import Path
 
 import numpy as np
 
-from elasticai.creator_plugins.sda.src import c_compile
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
     EventPreprocessor,
