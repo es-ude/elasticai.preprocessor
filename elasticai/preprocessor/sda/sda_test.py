@@ -2,19 +2,32 @@ from copy import deepcopy
 from unittest import TestCase
 
 import numpy as np
+import pytest
 
+from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor._check_funcs import compare_timestamps
+from elasticai.preprocessor.eventdetection import (
+    TargetsEventPreprocessors,
+    TargetsFrameAlignment,
+)
 from elasticai.preprocessor.eventdetection.frame_alignment_test import (
     _build_sorted_timestamps,
     _build_spike_signal,
 )
+from elasticai.preprocessor.thresholding import (
+    TargetsThreshold,
+)
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
-from .sda import SettingsSDA, SpikeDetection
+from .sda import (
+    SettingsSDA,
+    SpikeDetection,
+)
 
 TestSettings = SettingsSDA(
-    mode_align="min",
-    mode_sda="normal",
-    mode_thr="constant",
+    mode_align=TargetsFrameAlignment("min"),
+    mode_sda=TargetsEventPreprocessors("normal"),
+    mode_thr=TargetsThreshold("constant"),
     dx_sda=[1],
     sampling_rate=20e3,
     t_frame_length=1.6e-3,
@@ -240,9 +253,9 @@ class TestSpikeDetection(TestCase):
         self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
 
-    def test_spike_transient_spb(self):
+    def test_spike_transient_sbp(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "spb"
+        self.set0.mode_sda = "sbp"
         self.set0.mode_thr = "constant"
         self.set0.mode_align = "min"
         self.set0.f_filt = [200.0, 2000.0]
@@ -254,3 +267,48 @@ class TestSpikeDetection(TestCase):
         )
         self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 18)
+
+class TestCreateDesign:
+    @pytest.mark.parametrize("target", ["mcu", "pc"])
+    def test_create_design_generates_sda_normal_const_c_files(
+        self,
+        target: str,
+    ) -> None:
+        spikedetector = SpikeDetection(deepcopy(TestSettings))
+        spikedetector._settings.mode_sda = TargetsEventPreprocessors.Normal
+
+        backup = get_path_to_project("build_test") / "sda-normal-const"
+        with temporary_directory(backup) as tmpdir:
+            spikedetector.create_design(
+                id="0",
+                target=target,
+                bitwidth=8,
+                signed=True,
+                path2save=tmpdir,
+                thr_val=-40,
+            )
+            assert (tmpdir / "sda_normal_const_0.c").exists()
+            assert (tmpdir / "sda_normal_const_0.h").exists()
+            assert (tmpdir / "sda_normal_const_template.h").exists()
+
+    @pytest.mark.parametrize("target", ["mcu", "pc"])
+    def test_create_design_generates_sda_absolute_const_c_files(
+        self,
+        target: str,
+    ) -> None:
+        spikedetector = SpikeDetection(deepcopy(TestSettings))
+        spikedetector._settings.mode_sda = TargetsEventPreprocessors.Absolute
+
+        backup = get_path_to_project("build_test") / "sda-absolute-const"
+        with temporary_directory(backup) as tmpdir:
+            spikedetector.create_design(
+                id="0",
+                target=target,
+                bitwidth=8,
+                signed=True,
+                path2save=tmpdir,
+                thr_val=-40,
+            )
+            assert (tmpdir / "sda_absolute_const_0.c").exists()
+            assert (tmpdir / "sda_absolute_const_0.h").exists()
+            assert (tmpdir / "sda_absolute_const_template.h").exists()

@@ -45,18 +45,31 @@ class FrameWaveform:
 class SettingsSDA:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
-                        Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
-                        enhanced energy-derivation operator (eED),
-                        amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
-                        spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)
-        mode_thr:       String with used method for thresholding ['const': constant given value,
-                        'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
-                        'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
-                        'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
-                        'welford': Welford Online Algorithm for STD Calculation]
-        mode_align:     Aligning mode of the detected spike frames [none, max, min,
-                        ptp (Positive turning point), ntp (Negative turning point), abs-max (Absolute maximum)]
+        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [
+                            'normal': normal, 
+                            'absolute': absolute, 
+                            'neo': Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
+                            'mteo': Multiresolution Teager Energy Operator (MTEO), 
+                            'ado': absolute difference operator (ADO),
+                            'eed': enhanced energy-derivation operator (eED),
+                            'aso': amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
+                            'sbp': spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)]
+        mode_thr:       String with used method for thresholding [
+                            'const': constant given value,
+                            'abs_mean': absolute mean value, 
+                            'mad': median absolute derivation, 
+                            'mavg', moving average,
+                            'mavg_abs': absolute mean absolute value, 
+                            'rms_norm': Root-Mean-Squared,
+                            'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
+                            'welford': Welford Online Algorithm for STD Calculation]
+        mode_align:     Aligning mode of the detected spike frames [
+                            none, 
+                            max, 
+                            min,
+                            ptp (Positive turning point), 
+                            ntp (Negative turning point), 
+                            abs-max (Absolute maximum)]
         sampling_rate:  Sampling rate [Hz]
         dx_sda:         Position difference for extracting SDA method. Configuration with length(x) == 1: with dX = 1 --> NEO, dX > 1 --> k-NEO
         t_frame_length: Floating value with total window length [s]
@@ -124,6 +137,12 @@ class SpikeDetection:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
+        if isinstance(settings.mode_sda, str):
+            self._settings.mode_sda = TargetsEventPreprocessors(settings.mode_sda)
+        if isinstance(settings.mode_thr, str):
+            self._settings.mode_thr = TargetsThreshold(settings.mode_thr)
+        if isinstance(settings.mode_align, str):
+            self._settings.mode_align = TargetsFrameAlignment(settings.mode_align)
 
         self._threshold = Thresholding(
             settings=SettingsThreshold(
