@@ -7,13 +7,29 @@ import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
 from elasticai.creator_plugins.windower.src.c_compile import build_windower
-from elasticai.preprocessor.windower.window import SettingsWindow, WindowSequencer
+from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
+from elasticai.preprocessor.thresholding import TargetsThreshold
+from elasticai.preprocessor.windower.window import SettingsWindow, TargetsWindower, WindowSequencer
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
+
+def _ws(sampling_rate: float, window_sec: float, overlap_sec: float) -> SettingsWindow:
+    return SettingsWindow(
+        method_window=TargetsWindower.Sliding,
+        method_thr=TargetsThreshold.Constant,
+        method_input=TargetsEventPreprocessors.Normal,
+        sampling_rate=sampling_rate,
+        window_sec=window_sec,
+        overlap_sec=overlap_sec,
+        pre_time=0.001,
+        threshold=10.0,
+    )
+
+
 WINDOWER_CONFIGS = [
     pytest.param(
-        SettingsWindow(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05),
+        _ws(100.0, 0.10, 0.05),
         16,
         True,
         "signed short",
@@ -21,7 +37,7 @@ WINDOWER_CONFIGS = [
         id="int16_window10_overlap5",
     ),
     pytest.param(
-        SettingsWindow(sampling_rate=100.0, window_sec=0.08, overlap_sec=0.04),
+        _ws(100.0, 0.08, 0.04),
         8,
         True,
         "signed char",
@@ -29,7 +45,7 @@ WINDOWER_CONFIGS = [
         id="int8_window8_overlap4",
     ),
     pytest.param(
-        SettingsWindow(sampling_rate=100.0, window_sec=0.06, overlap_sec=0.0),
+        _ws(100.0, 0.06, 0.0),
         8,
         False,
         "unsigned char",
@@ -46,7 +62,7 @@ WINDOWER_CONFIGS = [
 
 
 def test_build_windower_generates_c_files(tmp_path: Path) -> None:
-    settings = SettingsWindow(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05)
+    settings = _ws(100.0, 0.10, 0.05)
     build_windower(settings=settings, bitwidth=16, signed=True, path2save=tmp_path, windower_id="0")
     assert (tmp_path / "windower_template.h").exists()
     assert (tmp_path / "windower_0.h").exists()

@@ -1,0 +1,52 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /home/christoph/BA/elastic-ai.preprocessor/.venv/bin/python3
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/christoph/BA/elastic-ai.preprocessor
+configfile: pyproject.toml
+plugins: anyio-4.14.2, rerunfailures-16.6, tach-0.35.0, hypothesis-6.165.10, testmon-2.2.0
+collecting ... collected 1 item
+
+elasticai/creator_plugins/windower/tests/pipeline_template_compile_test.py::test_pipeline_template_compiles_and_runs FAILED [100%]
+
+=================================== FAILURES ===================================
+___________________ test_pipeline_template_compiles_and_runs ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-christoph/pytest-12/test_pipeline_template_compile0')
+
+    def test_pipeline_template_compiles_and_runs(tmp_path: Path) -> None:
+        src = tmp_path / "pipeline_test.c"
+        exe = tmp_path / "pipeline_test"
+    
+        src.write_text(_C_SOURCE)
+    
+        cc = which("gcc") or which("cc")
+        compile_result = subprocess.run(
+            [
+                cc, "-Wall", "-Wextra",
+                f"-I{_IIR_INC}",
+                f"-I{_POLY_INC}",
+                f"-I{_WINDOWER_INC}",
+                str(src),
+                "-o", str(exe),
+            ],
+            capture_output=True,
+            text=True,
+        )
+>       assert compile_result.returncode == 0, (
+            f"Compilation failed:\n{compile_result.stderr}"
+        )
+E       AssertionError: Compilation failed:
+E         In file included from /tmp/pytest-of-christoph/pytest-12/test_pipeline_template_compile0/pipeline_test.c:4:
+E         /home/christoph/BA/elastic-ai.preprocessor/elasticai/creator_plugins/windower/c/pipeline_template.h:8:10: fatal error: downsampling_poly_template.h: Datei oder Verzeichnis nicht gefunden
+E             8 | #include "downsampling_poly_template.h"
+E               |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E         compilation terminated.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/gcc', '-Wall', '-Wextra', '-I/home/christoph/BA/elastic-ai.preprocessor/elasticai/creator_plugins/filter_data/c', '-I/home/christoph/BA/elastic-ai.preprocessor/elasticai/creator_plugins/downsampling/c', '-I/home/christoph/BA/elastic-ai.preprocessor/elasticai/creator_plugins/windower/c', '/tmp/pytest-of-christoph/pytest-12/test_pipeline_template_compile0/pipeline_test.c', '-o', '/tmp/pytest-of-christoph/pytest-12/test_pipeline_template_compile0/pipeline_test'], returncode=1, stdout='', stderr='In file included from /tmp/pytest-of-christoph/pytest-12/test_pipeline_template_compile0/pipeline_test.c:4:\n/home/christoph/BA/elastic-ai.preprocessor/elasticai/creator_plugins/windower/c/pipeline_template.h:8:10: fatal error: downsampling_poly_template.h: Datei oder Verzeichnis nicht gefunden\n    8 | #include "downsampling_poly_template.h"\n      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\ncompilation terminated.\n').returncode
+
+elasticai/creator_plugins/windower/tests/pipeline_template_compile_test.py:86: AssertionError
+=========================== short test summary info ============================
+FAILED elasticai/creator_plugins/windower/tests/pipeline_template_compile_test.py::test_pipeline_template_compiles_and_runs
+============================== 1 failed in 0.16s ===============================

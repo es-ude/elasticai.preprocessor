@@ -6,11 +6,8 @@ from unittest import TestCase, main
 import numpy as np
 import pytest
 
-from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.thresholding import TargetsThreshold
 from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
-
-from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+from elasticai.preprocessor.thresholding import TargetsThreshold
 
 from .window import (
     SettingsWindow,
@@ -19,11 +16,17 @@ from .window import (
     transformation_window_method,
 )
 
-WIN_METHOD_CONFIGS = {
-    pytest.param(TargetsWindower.Sequence, "sequence", id="Sequence"),
-    pytest.param(TargetsWindower.Sliding, "sliding", id="Sliding"),
-    pytest.param(TargetsWindower.Event, "event", id="Event"),
-}
+_DEFAULT_SETS = SettingsWindow(
+    method_window=TargetsWindower.Event,
+    method_thr=TargetsThreshold.Constant,
+    method_input=TargetsEventPreprocessors.Normal,
+    sampling_rate=10e3,
+    window_sec=10e-3,
+    overlap_sec=0.1e-3,
+    pre_time=1e-3,
+    threshold=10.0,
+)
+
 
 class TestWindowMethod(TestCase):
     time = np.linspace(start=0, stop=100e-3, num=2000, endpoint=False, dtype=float)
@@ -40,16 +43,7 @@ class TestWindowMethod(TestCase):
 
 
 class TestSettingsWindowSequencer(TestCase):
-    sets = SettingsWindow(
-        method_window=TargetsWindower.Event,
-        method_thr=TargetsThreshold.Constant,
-        method_input=TargetsEventPreprocessors.Normal,
-        sampling_rate=10e3, 
-        window_sec=10e-3, 
-        overlap_sec=0.1e-3,
-        pre_time=1e-3,
-        threshold=10.0,
-    )
+    sets = _DEFAULT_SETS
 
     def test_settings_length(self):
         self.assertEqual(self.sets.window_length, 100)
@@ -59,16 +53,7 @@ class TestSettingsWindowSequencer(TestCase):
 
 
 class TestWindowSequencer(TestCase):
-    sets = SettingsWindow(
-        method_window=TargetsWindower.Event,
-        method_thr=TargetsThreshold.Constant,
-        method_input=TargetsEventPreprocessors.Normal,
-        sampling_rate=10e3, 
-        window_sec=10e-3, 
-        overlap_sec=0.1e-3,
-        pre_time=1e-3,
-        threshold=10.0,
-    )
+    sets = _DEFAULT_SETS
 
     def test_window_sequence_match_full(self):
         set0 = deepcopy(self.sets)
@@ -113,10 +98,7 @@ class TestWindowSequencer(TestCase):
 
         rslt = WindowSequencer(set0).slide(stimuli)
 
-        assert rslt.shape == (
-            num_samples,
-            set0.window_length,
-        )
+        assert rslt.shape == (num_samples, set0.window_length)
         for idx, sequence in enumerate(rslt):
             start_point = idx
             chck = padded_stimuli[start_point : start_point + set0.window_length]
@@ -141,10 +123,7 @@ class TestWindowSequencer(TestCase):
 
         expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
 
-        assert rslt.shape == (
-            expected_num_windows,
-            set0.window_length,
-        )
+        assert rslt.shape == (expected_num_windows, set0.window_length)
 
         for idx, sequence in enumerate(rslt):
             start_point = int(idx * self.sets.window_length * 0.75)
@@ -170,10 +149,7 @@ class TestWindowSequencer(TestCase):
 
         expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
 
-        assert rslt.shape == (
-            expected_num_windows,
-            set0.window_length,
-        )
+        assert rslt.shape == (expected_num_windows, set0.window_length)
 
         for idx, sequence in enumerate(rslt):
             start_point = int(idx * self.sets.window_length * 0.5)
@@ -244,6 +220,44 @@ class TestWindowSequencer(TestCase):
         sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=100.0, pre_time=0.01)
         assert sequence == np.asarray([0])
 
+    def test_create_pipeline_design_generates_c_files(self):
+        from shutil import which
+        if which("cc") is None:
+            pytest.skip("requires a C compiler")
+
+        from elasticai.creator_plugins.windower.src.c_compile import (
+            SettingsPipelineDownsampling,
+            SettingsPipelineFilter,
+            TargetsDownsamplingC,
+            TargetsFilterC,
+        )
+        set0 = deepcopy(self.sets)
+        set0.method_window = TargetsWindower.Sliding
+        set0.overlap_sec = 0.0
+
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            WindowSequencer(set0).create_pipeline_design(
+                filter_settings=SettingsPipelineFilter(
+                    method=TargetsFilterC.IIR,
+                    iir_a=[1.0, 0.0],
+                    iir_b=[0.5, 0.5],
+                ),
+                downsampling_settings=SettingsPipelineDownsampling(
+                    method=TargetsDownsamplingC.PolyOne,
+                    ratio=4,
+                ),
+                bitwidth=32,
+                id="0",
+                path2save=path2save,
+                define_path=".",
+            )
+            for fname in ["pipeline_0.h", "pipeline_0.c",
+                          "filter_iir_template.h",
+                          "downsampling_poly_template.h",
+                          "windower_template.h"]:
+                assert (path2save / fname).exists(), f"{fname} missing"
+
     def test_create_verilog_windower(self):
         set0 = deepcopy(self.sets)
         set0.sampling_rate = 100
@@ -264,43 +278,6 @@ class TestWindowSequencer(TestCase):
                 file = path2save / filename
                 assert file.exists()
 
-
-class TestCreateDesign:
-    @pytest.mark.parametrize("target", ["mcu", "pc"])
-    @pytest.mark.parametrize("window_method,c_name", WIN_METHOD_CONFIGS)
-    def test_create_design_generates_windower_c_files(
-        self, 
-        target: str,
-        window_method: TargetsWindower,
-        c_name: str,
-    ) -> None:
-        windower = WindowSequencer(
-            SettingsWindow(
-                method_window=window_method,
-                method_thr=TargetsThreshold.Constant,
-                method_input=TargetsEventPreprocessors.Normal,
-                sampling_rate=10e3, 
-                window_sec=10e-3, 
-                overlap_sec=0.1e-3,
-                pre_time=1e-3,
-                threshold=10.0,
-            )
-        )
-        
-        backup = get_path_to_project("build_test") / "windower"
-        with temporary_directory(backup) as tmpdir:
-            windower.create_design(
-                target=target,
-                bitwidth=8,
-                id="0",
-                path2save=tmpdir,
-                signed=True,
-                threshold=10,
-                pre_samples=5,
-            )
-            assert (tmpdir / f"windower_{c_name}_0.c").exists()
-            assert (tmpdir / f"windower_{c_name}_0.h").exists()
-            assert (tmpdir / f"windower_{c_name}_template.h").exists()
 
 if __name__ == "__main__":
     main()
