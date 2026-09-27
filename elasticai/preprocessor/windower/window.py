@@ -329,7 +329,7 @@ class WindowSequencer:
 
         Uses the window settings from this WindowSequencer instance (window_length,
         overlap → num_shift) together with the supplied filter and decimation
-        configuration to call build_pipeline_from_settings().
+        configuration to call build_pipeline().
 
         :param filter_settings:      SettingsPipelineFilter — filter stage configuration.
         :param downsampling_settings: SettingsPipelineDownsampling — decimation stage config.
@@ -357,9 +357,9 @@ class WindowSequencer:
         """
         from elasticai.creator_plugins.windower.src.c_compile import (
             SettingsPipeline,
-            build_pipeline_from_settings,
+            build_pipeline,
         )
-        build_pipeline_from_settings(
+        build_pipeline(
             settings=SettingsPipeline(
                 filter=filter_settings,
                 downsampling=downsampling_settings,

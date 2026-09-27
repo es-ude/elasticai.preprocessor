@@ -1,9 +1,6 @@
 from .pipeline import (
     build_pipeline as build_pipeline,
 )
-from .pipeline import (
-    build_pipeline_from_settings as build_pipeline_from_settings,
-)
 from .pipeline_settings import (
     SettingsPipeline as SettingsPipeline,
 )
