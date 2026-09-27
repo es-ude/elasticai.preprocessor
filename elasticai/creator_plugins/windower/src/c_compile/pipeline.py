@@ -4,12 +4,7 @@ from shutil import copyfile
 
 import numpy as np
 
-from elasticai.preprocessor.translation.ir2c import (
-    generate_c_files,
-    get_embedded_datatype,
-    replace_variables_with_parameters,
-)
-from elasticai.preprocessor.windower.window import SettingsWindow
+from elasticai.preprocessor.translation.ir2c import get_embedded_datatype
 
 from .pipeline_settings import (
     SettingsPipeline,
@@ -81,104 +76,8 @@ _DECIMATION_TABLE: dict[TargetsDownsamplingC, tuple[str | None, str | None, obje
 }
 
 
+
 def build_pipeline(
-    iir_coefficients_a: list[float],
-    iir_coefficients_b: list[float],
-    downsampling_ratio: int,
-    settings: SettingsWindow,
-    bitwidth: int,
-    signed: bool,
-    path2save: Path,
-    pipeline_id: str = "0",
-    define_path: str = "src",
-) -> None:
-    """Generate C files for the streaming pipeline: IIR filter → polyphase decimation → windower.
-
-    The pipeline processes one sample at a time and returns a complete window
-    once enough samples have been accumulated:
-
-        bool calc_pipeline_{id}(input_type data, input_type *out);
-
-    Returns false while the pipeline is filling up.  Returns true when
-    out[0..window_length-1] holds a new window.
-
-    The generated files are:
-        pipeline_{id}.h          — function prototype
-        pipeline_{id}.c          — DEF_PIPELINE_IMPL instantiation
-        pipeline_template.h      — pipeline macro (copied)
-        filter_iir_template.h    — IIR-filter macro (copied)
-        downsampling_poly_template.h — decimation macro (copied)
-        windower_template.h      — windower macro (copied)
-
-    Args:
-        iir_coefficients_a:  Denominator coefficients [a0, a1, ..., aN].
-                             a0 is the normalisation factor (usually 1.0).
-        iir_coefficients_b:  Numerator coefficients [b0, b1, ..., bN].
-                             Must have the same length as iir_coefficients_a.
-        downsampling_ratio:  Decimation factor (must be a power of two, >= 1).
-        settings:            Window settings (sampling_rate, window_sec, overlap_sec).
-        bitwidth:            Bit width of each sample (2..32).
-        signed:              Whether the C data type is signed.
-        path2save:           Directory where generated files are written.
-        pipeline_id:         ID appended to the generated function name.
-        define_path:         Include path written into the generated #include lines.
-    """
-    if downsampling_ratio < 1:
-        raise ValueError("dsr must be >= 1")
-    if not np.log2(downsampling_ratio).is_integer():
-        raise ValueError("dsr must be 2^n")
-    if len(iir_coefficients_a) != len(iir_coefficients_b):
-        raise ValueError("iir_coefficients_a and iir_coefficients_b must have the same length")
-    assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
-
-    coeff_lgth = len(iir_coefficients_a)
-    tap_lgth = coeff_lgth - 1
-    window_length = settings.window_length
-    num_shift = window_length - settings.overlap_length
-    module_id = pipeline_id.lower()
-
-    coeffs_string = (
-        ", ".join(map(str, iir_coefficients_a))
-        + ", "
-        + ", ".join(map(str, iir_coefficients_b))
-    )
-
-    params = {
-        "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
-        "path2include":  define_path,
-        "template_name": "pipeline_template.h",
-        "device_id":     module_id.upper(),
-        "data_type":     get_embedded_datatype(bitwidth, signed),
-        "coeff_lgth":    str(coeff_lgth),
-        "tap_lgth":      str(tap_lgth),
-        "dsr":           str(downsampling_ratio),
-        "window_length": str(window_length),
-        "num_shift":     str(num_shift),
-        "coeffs_string": coeffs_string,
-    }
-
-    template_c = _generate_pipeline_template()
-    generate_c_files(
-        path2save=path2save,
-        template_name=params["template_name"],
-        file_name="pipeline",
-        module_id=module_id,
-        proto_file=replace_variables_with_parameters(template_c["head"], params),
-        impl_file=replace_variables_with_parameters(template_c["func"], params),
-        path2template=_WINDOWER_C,
-    )
-
-    # pipeline_template.h #includes three sub-templates; copy them alongside
-    # so the output directory is self-contained.
-    for src_dir, name in [
-        (_FILTER_C,  "filter_iir_template.h"),
-        (_POLY_C,    "downsampling_poly_template.h"),
-        (_WINDOWER_C, "windower_template.h"),
-    ]:
-        copyfile(src=str(src_dir / name), dst=str(path2save / name))
-
-
-def build_pipeline_from_settings(
     settings: SettingsPipeline,
     path2save: Path,
     pipeline_id: str = "0",
@@ -335,27 +234,3 @@ def _validate_pipeline_settings(s: SettingsPipeline) -> None:
         raise ValueError("bitwidth must be between 2 and 32")
 
 
-def _generate_pipeline_template() -> dict[str, list[str]]:
-    header_template = [
-        "// --- Generating pipeline (IIR filter → polyphase decimation → windower)",
-        "// Copyright @ UDE-IES",
-        "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type},"
-        " coeff_lgth = {$coeff_lgth}, tap_lgth = {$tap_lgth},"
-        " dsr = {$dsr}, wl = {$window_length}, nshift = {$num_shift}",
-        '#include "{$path2include}/{$template_name}"',
-        "DEF_PIPELINE_PROTO({$device_id}, {$data_type})",
-    ]
-    implementation_template = [
-        "// --- Generating pipeline (IIR filter → polyphase decimation → windower)",
-        "// Copyright @ UDE-IES",
-        "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type},"
-        " coeff_lgth = {$coeff_lgth}, tap_lgth = {$tap_lgth},"
-        " dsr = {$dsr}, wl = {$window_length}, nshift = {$num_shift}",
-        '#include "{$path2include}/{$template_name}"',
-        "DEF_PIPELINE_IMPL({$device_id}, {$data_type},"
-        " {$coeff_lgth}, {$tap_lgth}, {$dsr}, {$window_length}, {$num_shift},"
-        " {$coeffs_string})",
-    ]
-    return {"head": header_template, "func": implementation_template}
