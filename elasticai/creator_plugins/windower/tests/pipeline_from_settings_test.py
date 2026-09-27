@@ -1,4 +1,4 @@
-"""Tests for build_pipeline_from_settings: all supported filter and
+"""Tests for build_pipeline: all supported filter and
 decimation combinations compile and produce the expected window count.
 """
 import subprocess
@@ -13,7 +13,7 @@ from elasticai.creator_plugins.windower.src.c_compile import (
     SettingsPipelineFilter,
     TargetsDownsamplingC,
     TargetsFilterC,
-    build_pipeline_from_settings,
+    build_pipeline,
 )
 from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
 from elasticai.preprocessor.thresholding import TargetsThreshold
@@ -41,7 +41,7 @@ def _window_settings(sampling_rate: float = 1000.0, window_sec: float = 0.008) -
 def _compile_and_run(tmp_path: Path, settings: SettingsPipeline,
                      num_input_samples: int) -> subprocess.CompletedProcess:
     """Build pipeline, compile a test driver, run it, return the result."""
-    build_pipeline_from_settings(
+    build_pipeline(
         settings=settings,
         path2save=tmp_path,
         pipeline_id="0",
@@ -89,7 +89,7 @@ int main(void) {{
 
 def test_validate_iir_empty_coefficients(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="iir_a and iir_b must be non-empty"):
-        build_pipeline_from_settings(SettingsPipeline(
+        build_pipeline(SettingsPipeline(
             filter=SettingsPipelineFilter(method=TargetsFilterC.IIR),
             downsampling=SettingsPipelineDownsampling(method=TargetsDownsamplingC.Bypass),
             window=_window_settings(), bitwidth=32, signed=True,
@@ -98,7 +98,7 @@ def test_validate_iir_empty_coefficients(tmp_path: Path) -> None:
 
 def test_validate_poly_non_power_of_two(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="dsr must be 2"):
-        build_pipeline_from_settings(SettingsPipeline(
+        build_pipeline(SettingsPipeline(
             filter=SettingsPipelineFilter(method=TargetsFilterC.Bypass),
             downsampling=SettingsPipelineDownsampling(method=TargetsDownsamplingC.PolyOne, ratio=3),
             window=_window_settings(), bitwidth=32, signed=True,
