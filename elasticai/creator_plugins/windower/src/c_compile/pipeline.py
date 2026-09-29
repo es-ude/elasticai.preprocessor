@@ -212,7 +212,7 @@ def _validate_pipeline_settings(settings: SettingsPipeline) -> None:
             if d.cic_stages < 1:
                 raise ValueError("CIC: cic_stages must be >= 1")
 
-    if s.bitwidth not in range(2, 33):
+    if settings.bitwidth not in range(2, 33):
         raise ValueError("bitwidth must be between 2 and 32")
 
 
