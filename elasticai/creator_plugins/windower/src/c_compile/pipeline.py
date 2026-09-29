@@ -22,12 +22,8 @@ _WINDOWER_C = _CREATOR_PLUGINS / "windower"    / "c"
 _FILTER_C   = _CREATOR_PLUGINS / "filter_data" / "c"
 _POLY_C     = _CREATOR_PLUGINS / "datarate" / "c"
 
-# ---------------------------------------------------------------------------
-# Lookup tables: for each filter/downsampling type, which template to copy
-# and how to render the IMPL macro and the call in the wrapper function.
+# Lookup tables: for each filter/downsampling type,
 # Each entry: (template_header | None, fn_name_template, macro_renderer)
-# ---------------------------------------------------------------------------
-
 def _iir_macro(id: str, dtype: str, f: SettingsPipelineFilter) -> str:
     coeff_lgth = len(f.iir_a)
     tap_lgth = coeff_lgth - 1
@@ -84,20 +80,6 @@ def build_pipeline(
     define_path: str = "src",
 ) -> None:
     """Generate C files for a streaming pipeline from a SettingsPipeline container.
-
-    The pipeline processes one sample at a time:
-
-        Filter → Decimation → Windower → bool (window ready)
-
-    Each stage is optional (set method to Bypass).  The generated function is:
-
-        bool calc_pipeline_{id}(data_type data, data_type *out);
-
-    Generated files in path2save/:
-        pipeline_{id}.h         — function prototype
-        pipeline_{id}.c         — full pipeline implementation
-        <all required template .h files> — copied alongside
-
     Args:
         settings:     Complete pipeline configuration (SettingsPipeline).
         path2save:    Directory where generated files are written.
@@ -196,9 +178,9 @@ def build_pipeline(
     )
 
 
-def _validate_pipeline_settings(s: SettingsPipeline) -> None:
-    f = s.filter
-    d = s.downsampling
+def _validate_pipeline_settings(settings: SettingsPipeline) -> None:
+    f = settings.filter
+    d = settings.downsampling
 
     match f.method:
         case TargetsFilterC.IIR:
