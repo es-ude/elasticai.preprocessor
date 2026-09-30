@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 
-from .sequential import (
+from elasticai.preprocessor.sequential import (
     PreprocessingModule,
     PreprocessingSequential,
     SequentialSignal,
