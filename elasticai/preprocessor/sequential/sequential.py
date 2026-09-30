@@ -48,8 +48,8 @@ class PreprocessingModule(ABC):
     @abstractmethod
     def __call__(self, x: SequentialSignal) -> SequentialSignal: ...
 
-    @abstractmethod
-    def create_design(self, id: str, settings: SettingsCreateSequential) -> None: ...
+    # @abstractmethod
+    # def create_design(self, id: str, settings: SettingsCreateSequential) -> None: ...
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}"
@@ -102,4 +102,4 @@ class PreprocessingSequential:
         for idx, module in enumerate(self.modules):
             if not hasattr(module, "create_design"):
                 raise AttributeError(f"module {module} has no `create_design` method")
-            module.create_design(id=f"{idx}", settings=settings)
+            module.create_design(id=f"{idx}", settings=settings)  # type: ignore
