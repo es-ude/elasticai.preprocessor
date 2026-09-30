@@ -27,7 +27,7 @@ THRESHOLDING_CONFIGS = [
     pytest.param(1000.0, 10e-3, TargetsThreshold.MovingAverage, "thresholding_mavg", id="method_mavg"),
     pytest.param(
         512.0, 0.015625, TargetsThreshold.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"
-    ),  # window_steps = int(0.015625 * 512) = 8 = 2^3
+    ),  # window_length = int(0.015625 * 512) = 8 = 2^3
     pytest.param(
         1000.0,
         10e-3,
@@ -41,17 +41,17 @@ THRESHOLDING_CONFIGS = [
         TargetsThreshold.MovingAverageAbsolute,
         "thresholding_mavg_pow2_abs",
         id="method_mavg_pow2_abs",
-    ),  # window_steps = 8 = 2^3
+    ),  # window_length = 8 = 2^3
 ]
 
 
 class SettingsThresholdingTest(TestCase):
     set0: SettingsThreshold = deepcopy(DefaultSettingsThreshold)
 
-    def test_window_steps(self):
+    def test_window_length(self):
         self.set0.sampling_rate = 1e3
         self.set0.window_sec = 0.1
-        self.assertEqual(self.set0.window_steps, 100)
+        self.assertEqual(self.set0.window_length, 100)
 
 
 class ThresholdingTest(TestCase):
