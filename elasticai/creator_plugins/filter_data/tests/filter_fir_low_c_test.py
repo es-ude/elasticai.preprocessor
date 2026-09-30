@@ -59,7 +59,7 @@ def tmp_path() -> Path:
 def test_build(tmp_path: Path, target: str) -> None:
     backup = tmp_path / f"build_{target}"
     with temporary_directory(backup) as tmpdir:
-        settings = SettingsFilter(1.0, 1000.0, 1, [500.0], "fir", "butter", "lowpass")
+        settings = SettingsFilter(1000.0, 1, [500.0], "fir", "butter", "lowpass")
         Filtering(settings).create_design(target, bitwidth=8, id="0", path2save=tmpdir)
         assert (tmpdir / "filter_fir_mavg_0.c").exists()
         assert (tmpdir / "filter_fir_mavg_0.h").exists()
@@ -74,7 +74,6 @@ def test_build_equal(
     c_type: str,
 ) -> None:
     settings = SettingsFilter(
-        gain=1.0,
         fs=1000.0,
         n_order=1,
         f_filt=[500.0],
