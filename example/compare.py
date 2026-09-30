@@ -5,9 +5,10 @@ from dataclasses import dataclass
 from pyxdf import load_xdf
 from matplotlib import pyplot as plt
 
-from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.downsampling import SettingsDownSampling, DownSampling
-from elasticai.preprocessor.filter import SettingsFilter, Filtering
+from elasticai.preprocessor import get_path_to_project, PreprocessingSequential
+from elasticai.preprocessor.sequential import SequentialSignal, SettingsCreateSequential
+from elasticai.preprocessor.downsampling import SettingsDownSampling, DownSampling, TargetsDownSampling
+from elasticai.preprocessor.filter import SettingsFilter, Filtering, TargetsFilter
 
 
 @dataclass
@@ -42,32 +43,53 @@ def load_smatable_data(path2data: Path) -> Data:
 
 
 def process_data(data: Data) -> Data:
-    filt = Filtering(
-        settings=SettingsFilter(
-            gain=1.0,
-            fs=data.sampling_rate,
-            n_order=1,
-            f_filt=[100., 300.],
-            type="iir",
-            f_type="butter",
-            b_type="bandpass"
-        )
+    sets_filt = SettingsFilter(
+        method=TargetsFilter.IIR,
+        gain=1.0,
+        fs=data.sampling_rate,
+        n_order=1,
+        f_filt=[100., 300.],
+        f_type="butter",
+        b_type="bandpass"
     )
-    down = DownSampling(
-        settings=SettingsDownSampling(
-            sampling_rate=data.sampling_rate,
-            dsr=8
+    sets_down = SettingsDownSampling(
+        method=TargetsDownSampling.Polyphase,
+        num_stages=5,
+        sampling_rate=data.sampling_rate,
+        dsr=8
+    )
+
+    dut = PreprocessingSequential(
+        Filtering(settings=sets_filt),
+        DownSampling(settings=sets_down)
+    )
+    data = dut(
+        x=data.data,
+        fs=data.sampling_rate,
+    )
+    dut.create_design(
+        settings=SettingsCreateSequential(
+            target="fpga",
+            total_bitwidth=8,
+            frac_bitwidth=5,
+            do_signed=True,
+            path2build=Path("build")
         )
     )
 
     data0 = list()
     for idx, xraw in enumerate(data.data):
-        x = filt.filt(xin=xraw)
-        data0.append(down.do_decimation_polyphase(uin=x, take_first_order=True))
+        data0.append(
+            dut(
+                x=xraw,
+                fs=data.sample_rate,
+            )
+        )
+
     return Data(
-        sampling_rate=down.sampling_rate_out,
-        time=np.arange(start=0, stop=data0[0].size, step=1) / down.sampling_rate_out,
-        data=np.asarray(data0),
+        sampling_rate=data0[-1].sample_rate,
+        time=np.arange(start=0, stop=data0[0].data.size, step=1) / data0[-1].sample_rate,
+        data=np.asarray([data.data for data in data0]),
         channel_id=data.channel_id
     )
 
