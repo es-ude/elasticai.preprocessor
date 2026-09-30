@@ -28,10 +28,15 @@ def _poly_names(take_first_order: bool) -> tuple[str, str]:
 def test_create_design_generates_poly_c_files(
     tmp_path: Path, target: str, take_first_order: bool
 ) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=4))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0,
+            dsr=4,
+            method=TargetsDownSampling.Polyphase,
+            num_stages=1 if take_first_order else 2,
+        )
+    )
     downsampler.create_design(
-        method=TargetsDownSampling.Polyphase,
-        take_first_order=take_first_order,
         target=target,
         bitwidth=8,
         id="0",
@@ -46,11 +51,16 @@ def test_create_design_generates_poly_c_files(
 
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_first_order: bool) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0,
+            dsr=0,
+            method=TargetsDownSampling.Polyphase,
+            num_stages=1 if take_first_order else 2,
+        )
+    )
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
-            method=TargetsDownSampling.Polyphase,
-            take_first_order=take_first_order,
             target="mcu",
             bitwidth=8,
             id="0",
@@ -60,11 +70,16 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_f
 
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 def test_create_design_rejects_downsampling_ratio_not_bin(tmp_path: Path, take_first_order: bool) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0,
+            dsr=3,
+            method=TargetsDownSampling.Polyphase,
+            num_stages=1 if take_first_order else 2,
+        )
+    )
     with pytest.raises(ValueError, match=r"dsr must be 2\^n"):
         downsampler.create_design(
-            method=TargetsDownSampling.Polyphase,
-            take_first_order=take_first_order,
             target="mcu",
             bitwidth=8,
             id="0",
@@ -81,12 +96,15 @@ def test_generated_poly_c_matches_python_frame(
     c_type: str,
     take_first_order: bool,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=4)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0,
+        dsr=4,
+        method=TargetsDownSampling.Polyphase,
+        num_stages=1 if take_first_order else 2,
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Polyphase,
-        take_first_order=take_first_order,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -106,7 +124,7 @@ def test_generated_poly_c_matches_python_frame(
     loader.load()
 
     input_frame = np.arange(8, dtype=numpy_dtype)
-    expected_float = downsampler.do_decimation_polyphase(
+    expected_float = downsampler._do_decimation_polyphase(
         input_frame.astype(float), take_first_order=take_first_order
     )
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)
@@ -131,12 +149,15 @@ def test_generated_poly_c_matches_python_sinewave(
     c_type: str,
     take_first_order: bool,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=4)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0,
+        dsr=4,
+        method=TargetsDownSampling.Polyphase,
+        num_stages=1 if take_first_order else 2,
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Polyphase,
-        take_first_order=take_first_order,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -159,7 +180,7 @@ def test_generated_poly_c_matches_python_sinewave(
     t = np.arange(64) / settings.sampling_rate
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
 
-    expected_float = downsampler.do_decimation_polyphase(
+    expected_float = downsampler._do_decimation_polyphase(
         input_frame.astype(float), take_first_order=take_first_order
     )
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)

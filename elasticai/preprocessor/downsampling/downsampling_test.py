@@ -8,12 +8,15 @@ import numpy as np
 from .downsampling import (
     DefaultSettingsDownSampling,
     DownSampling,
+    SequentialSignal,
     SettingsDownSampling,
     TargetsDownSampling,
 )
 
 test_settings = SettingsDownSampling(
+    method=TargetsDownSampling.Simple,
     sampling_rate=1000.0,
+    num_stages=5,
     dsr=10,
 )
 
@@ -40,16 +43,18 @@ class TestDownSampling(TestCase):
         self.assertEqual(results, 2.5e3)
 
     def test_do_simple(self):
-        results = DownSampling(self.sets).do_simple(self.input)
+        results = DownSampling(self.sets)._do_simple(self.input)
         self.assertEqual(results.size, self.sets.sampling_rate / self.sets.dsr)
 
     def test_cic_size(self):
+        self.sets.num_stages = 5
         check = int(1 + (self.input.size - 1) / self.sets.dsr)
-        results = DownSampling(self.sets).do_cic(self.input, 5)
+        results = DownSampling(self.sets)._do_cic(self.input)
         self.assertEqual(results.size, check)
 
     def test_cic_type(self):  #
-        results = DownSampling(self.sets).do_cic(self.input, 5)
+        self.sets.num_stages = 5
+        results = DownSampling(self.sets)._do_cic(self.input)
         self.assertEqual(type(results), np.ndarray)
 
     def test_polyphase_one_size(self):
@@ -72,17 +77,38 @@ class TestDownSampling(TestCase):
 
     def test_do_subsampling_without_augmentation_returns_offset_zero_only(self):
         self.sets.dsr = 3
+        self.sets.method = TargetsDownSampling.Subsampling
         data = np.array(
             [
                 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
             ]
         )
-
-        results = DownSampling(self.sets).do_subsampling(data, augment=False)
+        dut = DownSampling(self.sets)
+        results = dut.do_subsampling(data, augment=False, take_sample=0)
 
         np.testing.assert_array_equal(
             results,
+            np.array(
+                [
+                    [0, 3, 6, 9],
+                    [10, 13, 16, 19],
+                ]
+            ),
+        )
+
+        np.testing.assert_array_equal(
+            dut.decimate(data),
+            np.array(
+                [
+                    [0, 3, 6, 9],
+                    [10, 13, 16, 19],
+                ]
+            ),
+        )
+
+        np.testing.assert_array_equal(
+            dut(SequentialSignal(data=data, sample_rate=self.sets.sampling_rate)).data,
             np.array(
                 [
                     [0, 3, 6, 9],
@@ -155,19 +181,18 @@ class TestDownSampling(TestCase):
             DownSampling(self.sets).do_subsampling(data)
 
     def test_create_cic_verilog(self):
-        sets = deepcopy(test_settings)
+        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets.num_stages = 2
+        sets.method = TargetsDownSampling.CIC
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
-
             DownSampling(sets).create_design(
-                method=TargetsDownSampling.CIC,
                 id="0",
                 target="fpga",
                 bitwidth=16,
                 signed=True,
                 path2save=path2save,
-                num_stages=2,
             )
             files_available = [
                 "cic_0.v",
@@ -177,19 +202,18 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_subsampling_verilog(self):
-        sets = deepcopy(test_settings)
+        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets.method = TargetsDownSampling.Subsampling
+        sets.num_stages = 2
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
-
             DownSampling(sets).create_design(
-                method=TargetsDownSampling.Subsampling,
                 id="0",
                 target="fpga",
                 bitwidth=16,
                 signed=True,
                 path2save=path2save,
-                num_stages=2,
             )
             files_available = [
                 "subsampler_0.v",
@@ -199,19 +223,18 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_simple_verilog(self):
-        sets = deepcopy(test_settings)
+        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets.method = TargetsDownSampling.Simple
+        sets.num_stages = 2
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
-
             DownSampling(sets).create_design(
-                method=TargetsDownSampling.Simple,
                 id="0",
                 target="fpga",
                 bitwidth=16,
                 signed=True,
                 path2save=path2save,
-                num_stages=2,
             )
             files_available = [
                 "downsampler_mean_0.v",
@@ -221,13 +244,13 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_polydec_fpga_verilog(self):
-        sets = deepcopy(test_settings)
+        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets.method = TargetsDownSampling.Polyphase
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
             DownSampling(sets).create_design(
-                method=TargetsDownSampling.Polyphase,
                 id="0",
                 target="fpga",
                 bitwidth=16,
@@ -242,14 +265,13 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_polydec_asic_verilog(self):
-        sets = deepcopy(test_settings)
-        sets.type = "polydec_asic"
+        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets.method = TargetsDownSampling.Polyphase
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
             DownSampling(sets).create_design(
-                method=TargetsDownSampling.Polyphase,
                 id="0",
                 target="asic",
                 bitwidth=16,

@@ -18,10 +18,16 @@ INTEGER_CONFIGS = [
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_simple_c_files(tmp_path: Path, target: str) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            sampling_rate=1000.0,
+            dsr=3,
+            num_stages=1,
+            method=TargetsDownSampling.Simple,
+        )
+    )
 
     downsampler.create_design(
-        method=TargetsDownSampling.Simple,
         target=target,
         bitwidth=8,
         id="0",
@@ -40,11 +46,12 @@ def test_generated_simple_c_matches_python_frame(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0, dsr=3, method=TargetsDownSampling.Simple, num_stages=1
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Simple,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -63,7 +70,7 @@ def test_generated_simple_c_matches_python_frame(
     loader.load()
 
     input_frame = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=numpy_dtype)
-    expected = downsampler.do_simple(input_frame).astype(numpy_dtype)
+    expected = downsampler._do_simple(input_frame).astype(numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
     c_results = []
@@ -83,11 +90,12 @@ def test_generated_simple_c_matches_python_sinewave(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0, dsr=3, method=TargetsDownSampling.Simple, num_stages=1
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Simple,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -109,7 +117,7 @@ def test_generated_simple_c_matches_python_sinewave(
     t = np.arange(60) / settings.sampling_rate
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
 
-    expected = downsampler.do_simple(input_frame).astype(numpy_dtype)
+    expected = downsampler._do_simple(input_frame).astype(numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
     c_results = []

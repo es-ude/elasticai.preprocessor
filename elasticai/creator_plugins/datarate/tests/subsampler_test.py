@@ -144,6 +144,8 @@ def test_build_equal(
 
     dut = DownSampling(
         SettingsDownSampling(
+            method=TargetsDownSampling.Subsampling,
+            num_stages=5,
             sampling_rate=1000.0,
             dsr=num_dsr,
         )
@@ -156,7 +158,6 @@ def test_build_equal(
 
         dut.create_design(
             target="fpga",
-            method=TargetsDownSampling.Subsampling,
             bitwidth=bitwidth,
             signed=is_signed,
             id="1",
