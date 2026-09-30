@@ -38,13 +38,18 @@ class SettingsThreshold:
     do_quant: bool
 
     @property
-    def window_steps(self) -> int:
-        """Getting the stepsize of the window"""
-        return int(self.window_sec * self.sampling_rate)
+    def window_length(self) -> int:
+        """Returning an integer with total number of samples for building the window sequence"""
+        assert self.window_sec > 0, "Window length must be greater than zero"
+        return int(abs(self.window_sec * self.sampling_rate))
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method=TargetsThreshold.Constant, sampling_rate=1000.0, window_sec=10e-3, thr_val=0.1, do_quant=False
+    method=TargetsThreshold.Constant, 
+    sampling_rate=1000.0, 
+    window_sec=10e-3, 
+    thr_val=0.1, 
+    do_quant=False
 )
 
 
@@ -140,10 +145,10 @@ class Thresholding:
                     define_path=".",
                 )
             case "mov_avg_norm":
-                if self._is_power_of_two(self._settings.window_steps):
+                if self._is_power_of_two(self._settings.window_length):
                     c_compile.build_thresholding_mavg_pow2(
-                        log_size=int(np.log2(self._settings.window_steps)),
-                        window_size=self._settings.window_steps,
+                        log_size=int(np.log2(self._settings.window_length)),
+                        window_size=self._settings.window_length,
                         bitwidth=bitwidth,
                         signed=signed,
                         path2save=path2save,
@@ -152,7 +157,7 @@ class Thresholding:
                     )
                 else:
                     c_compile.build_thresholding_mavg(
-                        window_size=self._settings.window_steps,
+                        window_size=self._settings.window_length,
                         bitwidth=bitwidth,
                         signed=signed,
                         path2save=path2save,
@@ -160,10 +165,10 @@ class Thresholding:
                         define_path=".",
                     )
             case "mov_avg_abs_norm":
-                if self._is_power_of_two(self._settings.window_steps):
+                if self._is_power_of_two(self._settings.window_length):
                     c_compile.build_thresholding_mavg_pow2_abs(
-                        log_size=int(np.log2(self._settings.window_steps)),
-                        window_size=self._settings.window_steps,
+                        log_size=int(np.log2(self._settings.window_length)),
+                        window_size=self._settings.window_length,
                         bitwidth=bitwidth,
                         signed=signed,
                         path2save=path2save,
@@ -172,7 +177,7 @@ class Thresholding:
                     )
                 else:
                     c_compile.build_thresholding_mavg_abs(
-                        window_size=self._settings.window_steps,
+                        window_size=self._settings.window_length,
                         bitwidth=bitwidth,
                         signed=signed,
                         path2save=path2save,
@@ -209,17 +214,17 @@ class Thresholding:
             case TargetsThreshold.Constant:
                 params["params"].update({"CONST_THR": thr_val})
             case TargetsThreshold.MovingAverage:
-                if self._is_power_of_two(self._settings.window_steps):
+                if self._is_power_of_two(self._settings.window_length):
                     params["type"] = "mov_avg_pow2"
                 else:
                     params["type"] = "mov_avg_norm"
-                params["params"].update({"LENGTH": self._settings.window_steps})
+                params["params"].update({"LENGTH": self._settings.window_length})
             case TargetsThreshold.MovingAverageAbsolute:
-                if self._is_power_of_two(self._settings.window_steps):
+                if self._is_power_of_two(self._settings.window_length):
                     params["type"] = "mov_avg_abs_pow2"
                 else:
                     params["type"] = "mov_avg_abs_norm"
-                params["params"].update({"LENGTH": self._settings.window_steps})
+                params["params"].update({"LENGTH": self._settings.window_length})
             case _:
                 raise NotImplementedError(
                     f"Threshold method '{self._settings.method}' does not have a Verilog implementation."
@@ -287,7 +292,7 @@ class Thresholding:
         return np.zeros_like(xin) + threshold
 
     def _thr_mavg(self, xin: np.ndarray) -> np.ndarray:
-        M = self._settings.window_steps
+        M = self._settings.window_length
         xin_padded = np.pad(xin, (M - 1, 0), mode="constant")
         if np.issubdtype(xin.dtype, np.integer):
             window_sums = np.convolve(
