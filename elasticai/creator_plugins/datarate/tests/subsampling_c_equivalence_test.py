@@ -18,10 +18,13 @@ INTEGER_CONFIGS = [
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=3))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+        )
+    )
 
     downsampler.create_design(
-        method=TargetsDownSampling.Subsampling,
         target=target,
         bitwidth=8,
         id="0",
@@ -35,11 +38,14 @@ def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str
 
 
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
+    downsampler = DownSampling(
+        SettingsDownSampling(
+            method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=0
+        )
+    )
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
-            method=TargetsDownSampling.Subsampling,
             target="mcu",
             bitwidth=8,
             id="0",
@@ -56,11 +62,12 @@ def test_generated_subsampling_c_matches_python_frame(
     c_type: str,
     augment: bool,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
+    settings = SettingsDownSampling(
+        method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Subsampling,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -79,11 +86,11 @@ def test_generated_subsampling_c_matches_python_frame(
     loader.load()
 
     dsr = settings.dsr
-    input_frame = np.arange(9, dtype=numpy_dtype)  # 9 = 3 vollständige Fenster à dsr=3
+    input_frame = np.arange(9, dtype=numpy_dtype)
     if augment:
-        expected = input_frame  # alle Elemente jedes Fensters in Reihenfolge
+        expected = input_frame
     else:
-        expected = input_frame[0::dsr]  # erstes Element jedes Fensters
+        expected = input_frame[0::dsr]
 
     out = loader.ffi().new(f"{c_type}[{dsr}]")
     c_results = []
@@ -106,11 +113,12 @@ def test_generated_subsampling_c_matches_python_sinewave(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=3)
+    settings = SettingsDownSampling(
+        method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.Subsampling,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
@@ -130,7 +138,7 @@ def test_generated_subsampling_c_matches_python_sinewave(
 
     dsr = settings.dsr
     amplitude = 100 if bitwidth == 8 else 10000
-    t = np.arange(60) / settings.sampling_rate  # 60 = 20 vollständige Fenster à dsr=3
+    t = np.arange(60) / settings.sampling_rate
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
     expected = input_frame[0::dsr]
 

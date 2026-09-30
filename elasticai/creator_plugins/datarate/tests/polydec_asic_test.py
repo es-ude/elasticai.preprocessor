@@ -157,8 +157,7 @@ def test_build_second_order(cocotb_test_fixture: CocotbTestFixture, poly_order: 
 def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,
-            dsr=poly_order,
+            sampling_rate=1000.0, dsr=poly_order, method=TargetsDownSampling.Polyphase, num_stages=1
         )
     )
     data_in = build_test_signal(
@@ -173,7 +172,6 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
         build_dir = tmpdir / "verilog"
         dut.create_design(
             target="asic",
-            method=TargetsDownSampling.Polyphase,
             bitwidth=bitwidth,
             id="1",
             path2save=build_dir,
@@ -194,8 +192,7 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
 def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,
-            dsr=poly_order,
+            sampling_rate=1000.0, dsr=poly_order, method=TargetsDownSampling.Polyphase, num_stages=1
         )
     )
     data_in = build_test_signal(
@@ -212,7 +209,6 @@ def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwid
 
         dut.create_design(
             target="asic",
-            method=TargetsDownSampling.Polyphase,
             bitwidth=bitwidth,
             id="1",
             path2save=build_dir,

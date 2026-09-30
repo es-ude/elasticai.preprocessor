@@ -128,8 +128,7 @@ def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: 
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,
-            dsr=dec_rate,
+            sampling_rate=1000.0, dsr=dec_rate, method=TargetsDownSampling.CIC, num_stages=n_dec
         )
     )
     # Test-Signal
@@ -137,7 +136,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_
         bitwidth=bitwidth,
         num_samples=20,
     )
-    data_checked = dut.do_cic(uin=np.asarray(data_in), num_stages=n_dec).tolist()
+    data_checked = dut._do_cic(uin=np.asarray(data_in)).tolist()
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
@@ -145,7 +144,6 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_
 
         dut.create_design(
             target="fpga",
-            method=TargetsDownSampling.CIC,
             bitwidth=bitwidth,
             id="1",
             path2save=build_dir,

@@ -153,8 +153,7 @@ def test_build_equal(
 ):
     dut = DownSampling(
         SettingsDownSampling(
-            sampling_rate=1000.0,
-            dsr=num_dsr,
+            sampling_rate=1000.0, dsr=num_dsr, method=TargetsDownSampling.Simple, num_stages=1
         )
     )
 
@@ -163,7 +162,7 @@ def test_build_equal(
         start=arith.minimum_as_integer, stop=arith.maximum_as_integer, num=10 * num_dsr, dtype=int
     ).tolist()
     sig_in.extend([sig_in[-1] for _ in range(num_dsr)])
-    data_checked = (dut.do_simple(uin=np.asarray(sig_in)).astype(int)).tolist()
+    data_checked = (dut._do_simple(uin=np.asarray(sig_in)).astype(int)).tolist()
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
@@ -171,7 +170,6 @@ def test_build_equal(
 
         dut.create_design(
             target="fpga",
-            method=TargetsDownSampling.Simple,
             bitwidth=bitwidth,
             signed=is_signed,
             id="1",

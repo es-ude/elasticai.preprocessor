@@ -161,6 +161,8 @@ def test_build_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: in
 def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
+            method=TargetsDownSampling.Polyphase,
+            num_stages=2,
             sampling_rate=1000.0,
             dsr=poly_order,
         )
@@ -178,7 +180,6 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
         build_dir = tmpdir / "verilog"
         dut.create_design(
             target="fpga",
-            method=TargetsDownSampling.Polyphase,
             bitwidth=bitwidth,
             id="1",
             path2save=build_dir,
@@ -199,6 +200,8 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
 def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
         SettingsDownSampling(
+            method=TargetsDownSampling.Polyphase,
+            num_stages=1,
             sampling_rate=1000.0,
             dsr=poly_order,
         )
@@ -217,7 +220,6 @@ def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwid
 
         dut.create_design(
             target="fpga",
-            method=TargetsDownSampling.Polyphase,
             bitwidth=bitwidth,
             id="1",
             path2save=build_dir,

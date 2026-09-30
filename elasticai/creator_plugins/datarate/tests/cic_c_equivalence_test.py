@@ -17,11 +17,12 @@ INTEGER_CONFIGS = [
 
 
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
-    downsampler = DownSampling(SettingsDownSampling(sampling_rate=1000.0, dsr=0))
+    downsampler = DownSampling(
+        SettingsDownSampling(sampling_rate=1000.0, dsr=0, method=TargetsDownSampling.CIC, num_stages=5)
+    )
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
-            method=TargetsDownSampling.CIC,
             target="mcu",
             bitwidth=8,
             id="0",
@@ -38,17 +39,17 @@ def test_generated_cic_c_matches_python_frame(
     c_type: str,
 ) -> None:
     num_stages = 3
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=4)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0, dsr=4, method=TargetsDownSampling.CIC, num_stages=num_stages
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.CIC,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
         signed=True,
-        num_stages=num_stages,
     )
 
     adapter = tmp_path / "adapter.h"
@@ -62,7 +63,7 @@ def test_generated_cic_c_matches_python_frame(
     loader.load()
 
     input_frame = np.array([10] * 16, dtype=numpy_dtype)
-    expected_float = downsampler.do_cic(input_frame.astype(float), num_stages=num_stages)
+    expected_float = downsampler._do_cic(input_frame.astype(float))
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
@@ -84,17 +85,17 @@ def test_generated_cic_c_matches_python_sinewave(
     c_type: str,
 ) -> None:
     num_stages = 3
-    settings = SettingsDownSampling(sampling_rate=1000.0, dsr=4)
+    settings = SettingsDownSampling(
+        sampling_rate=1000.0, dsr=4, method=TargetsDownSampling.CIC, num_stages=num_stages
+    )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
     downsampler.create_design(
-        method=TargetsDownSampling.CIC,
         target="mcu",
         bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
         signed=True,
-        num_stages=num_stages,
     )
 
     adapter = tmp_path / "adapter.h"
@@ -111,7 +112,7 @@ def test_generated_cic_c_matches_python_sinewave(
     t = np.arange(64) / settings.sampling_rate
     input_frame = (np.sin(2 * np.pi * 10 * t) * amplitude).astype(numpy_dtype)
 
-    expected_float = downsampler.do_cic(input_frame.astype(float), num_stages=num_stages)
+    expected_float = downsampler._do_cic(input_frame.astype(float))
     expected = np.array([int(v) for v in expected_float], dtype=numpy_dtype)
 
     out = loader.ffi().new(f"{c_type} *")
