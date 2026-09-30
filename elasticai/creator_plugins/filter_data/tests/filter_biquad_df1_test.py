@@ -176,7 +176,7 @@ def test_build(
             fs=2e3,
             n_order=order,
             f_filt=[50],
-            type="iir",
+            method="iir",
             f_type="butter",
             b_type="lowpass",
         )
@@ -230,7 +230,7 @@ def test_build_equal(
             fs=2e3,
             n_order=order,
             f_filt=[150],
-            type="iir",
+            method="iir",
             f_type="butter",
             b_type="lowpass",
         )

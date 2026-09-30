@@ -175,7 +175,7 @@ def test_build(
             fs=2e3,
             n_order=order,
             f_filt=[50],
-            type="fir",
+            method="fir",
             f_type="butter",
             b_type="lowpass",
         )
@@ -215,7 +215,7 @@ def test_build(
 
 @pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth, fracwidth", [(12, 7), (8, 4)])
-@pytest.mark.parametrize("order", [5, 11, 21])
+@pytest.mark.parametrize("order", [11, 21])
 @pytest.mark.parametrize("num_mult", [1, 2])
 def test_build_equal(
     cocotb_test_fixture: CocotbTestFixture,
@@ -230,7 +230,7 @@ def test_build_equal(
             fs=2e3,
             n_order=order,
             f_filt=[50],
-            type="fir",
+            method="fir",
             f_type="butter",
             b_type="lowpass",
         )

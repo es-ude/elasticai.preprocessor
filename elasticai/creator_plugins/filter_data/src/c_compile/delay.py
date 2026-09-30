@@ -32,7 +32,7 @@ def build_filter_delay(
     """
     assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
     assert settings.b_type.lower() == "allpass"
-    assert settings.type.lower() == "fir", f"Key 'type' must be 'fir' and not '{settings.type.lower()}'"
+    assert settings.method.value.lower() == "fir", f"Key 'type' must be 'fir' and not '{settings.method.value.lower()}'"
 
     module_id = f"{filter_id.lower()}"
     data_type_filter = get_embedded_datatype(bitwidth, signed)

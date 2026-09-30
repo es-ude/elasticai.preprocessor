@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from logging import Logger, getLogger
 from pathlib import Path
 
@@ -14,6 +15,12 @@ from elasticai.preprocessor._plot_helper import (
     get_textsize_paper,
     save_figure,
 )
+from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
+
+
+class TargetsFilter(Enum):
+    IIR = "iir"
+    FIR = "fir"
 
 
 @dataclass
@@ -36,7 +43,7 @@ class SettingsFilter:
         fs:         Sampling rate [Hz]
         n_order:    Integer with number of filter order
         f_filt:     List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
-        type:       String with selected filter algorithm ['iir', 'fir']
+        method:     String with selected filter algorithm ['iir', 'fir']
         f_type:     String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
         b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
     """
@@ -45,7 +52,7 @@ class SettingsFilter:
     fs: float
     n_order: int
     f_filt: list
-    type: str
+    method: TargetsFilter
     f_type: str
     b_type: str
 
@@ -59,15 +66,14 @@ DefaultSettingsFilter = SettingsFilter(
     fs=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
-    type="iir",
+    method=TargetsFilter.IIR,
     f_type="butter",
     b_type="bandpass",
 )
 
 
-class Filtering(CommonDigitalFunctions):
+class Filtering(CommonDigitalFunctions, PreprocessingModule):
     __logger: Logger
-    _type_supported: list = ["fir", "iir"]
     _btype_supported: list = ["lowpass", "highpass", "bandpass", "bandstop", "notch", "allpass"]
     _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
@@ -83,8 +89,16 @@ class Filtering(CommonDigitalFunctions):
         super().__init__()
         self.__logger = getLogger(__name__)
         self._settings = settings
+        if isinstance(settings.method, str):
+            self._settings.method = TargetsFilter(settings.method.lower())
         self.__use_filtfilt = use_filtfilt
         self.__process_filter()
+
+    def __call__(self, x: SequentialSignal) -> SequentialSignal:
+        return SequentialSignal(
+            data=self.filt(x.data),
+            sample_rate=x.sample_rate,
+        )
 
     def get_coeffs(self) -> FilterCoeffs:
         """Getting the filter coefficients
@@ -102,17 +116,17 @@ class Filtering(CommonDigitalFunctions):
         """
         self.define_limits(
             total_bitwidth=bit_size,
-            frac_bitwidth=bit_size - (1 if self._settings.type == "fir" else 2),
+            frac_bitwidth=bit_size - (1 if self._settings.method == TargetsFilter.IIR else 2),
             bit_signed=True,
         )
         arith = FxpArithmetic(
             FxpParams(
                 total_bits=bit_size,
-                frac_bits=bit_size - (1 if self._settings.type == "fir" else 2),
+                frac_bits=bit_size - (1 if self._settings.method == TargetsFilter.FIR else 2),
                 signed=True,
             )
         )
-        if self._settings.type.lower() == "fir":
+        if self._settings.method == TargetsFilter.FIR:
             quant_a = [1.0]
         else:
             quant_a = arith.cut_as_integer(self._coeff_a.tolist())
@@ -130,7 +144,7 @@ class Filtering(CommonDigitalFunctions):
 
     def get_coeffs_verilog_string(self, bitwidth: int, only_half_fir: bool = False) -> str:
         params: FilterCoeffs = self.get_coeffs_quantized(bit_size=bitwidth)[0]
-        if self._settings.type.lower() == "fir":
+        if self._settings.method == TargetsFilter.FIR:
             conv = FxpConverter(FxpParams(total_bits=bitwidth, frac_bits=bitwidth - 1, signed=True))
             used_params = params.b[: int(len(params.b) / 2 + 1)] if only_half_fir else params.b.copy()
             return conv.rational_to_hex_string_array_verilog(used_params)
@@ -226,23 +240,20 @@ class Filtering(CommonDigitalFunctions):
                     )
 
     def __process_filter(self) -> None:
-        assert self._settings.type.lower() in self._type_supported, (
-            f"Type {self._settings.type} is not supported from {self._type_supported}"
-        )
         assert self._settings.f_type.lower() in self._ftype_supported, (
             f"Filter type {self._settings.f_type} is not supported from {self._ftype_supported}"
         )
         assert self._settings.b_type.lower() in self._btype_supported, (
             f"Structure type {self._settings.b_type} is not supported from {self._btype_supported}"
         )
-        self.__logger.debug(
-            f"Build {self._settings.type.upper()} filter: {self._settings.b_type}, {self._settings.f_type}"
-        )
 
-        if self._settings.type.lower() == "iir":
-            self.__extract_filter_coeffs_iir()
-        elif self._settings.type.lower() == "fir":
-            self.__extract_filter_coeffs_fir()
+        match self._settings.method.value:
+            case TargetsFilter.IIR.value:
+                self.__extract_filter_coeffs_iir()
+            case TargetsFilter.FIR.value:
+                self.__extract_filter_coeffs_fir()
+            case _:
+                raise AttributeError("Wrong method selection")
 
     def filt(self, xin: np.ndarray) -> np.ndarray:
         """Apply filter structure on transient input data
@@ -283,7 +294,7 @@ class Filtering(CommonDigitalFunctions):
         x = self._quantize_fxp(x)
         offset = (
             3
-            if self._settings.type.lower() == "iir"
+            if self._settings.method == TargetsFilter.IIR
             else (x < 0)
             if not self._settings.b_type == "allpass"
             else 0
@@ -291,7 +302,7 @@ class Filtering(CommonDigitalFunctions):
         return x - offset
 
     def __get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
-        if self._settings.type == "iir":
+        if self._settings.method == TargetsFilter.IIR:
             frange = np.array(self._settings.f_filt)
             filter = scft.iirfilter(
                 N=self._settings.n_order,
@@ -461,7 +472,7 @@ class Filtering(CommonDigitalFunctions):
         }
 
     def _create_design_verilog(self, id: str, bitwidth: int, path2save: Path, num_mult: int = 1) -> None:
-        if self._settings.type.lower() == "iir":
+        if self._settings.method == TargetsFilter.IIR:
             if self._settings.n_order not in [2]:
                 raise ValueError(
                     f"IIR filter order {self._settings.n_order} is not supported for biquad filter"
@@ -473,7 +484,7 @@ class Filtering(CommonDigitalFunctions):
             params = self._create_iir_biquad_verilog(
                 id=id, bitwidth=bitwidth, use_dsp_mult=True, num_mult=num_mult
             )
-        elif self._settings.type.lower() == "fir":
+        elif self._settings.method == TargetsFilter.FIR:
             if self._settings.b_type.lower() not in ["allpass"]:
                 if self._settings.f_filt[0] / self._settings.fs == 0.5:
                     params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
@@ -487,14 +498,14 @@ class Filtering(CommonDigitalFunctions):
                 else:
                     raise ValueError(f"FIR filter type {self._settings.b_type} is not supported")
         else:
-            raise ValueError(f"Filter type {self._settings.type} is not supported")
+            raise ValueError(f"Filter type {self._settings.method} is not supported")
 
         hw_filters.load_and_plugin(packages=["filter_data"], path2save=path2save, **params)
 
     def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         from elasticai.creator_plugins.filter_data.src import c_compile
 
-        filter_type = self._settings.type.lower()
+        filter_type = self._settings.method.value
         filter_structure = self._settings.b_type.lower()
 
         if filter_type == "iir":
@@ -539,4 +550,4 @@ class Filtering(CommonDigitalFunctions):
                 define_path=".",
             )
         else:
-            raise ValueError(f"Filter type {self._settings.type} is not supported")
+            raise ValueError(f"Filter type {self._settings.method.value} is not supported")

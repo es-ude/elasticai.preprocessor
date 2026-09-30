@@ -73,7 +73,15 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(1.0, 1000.0, 1, [500.0], "fir", "butter", "lowpass")
+    settings = SettingsFilter(
+        gain=1.0,
+        fs=1000.0,
+        n_order=1,
+        f_filt=[500.0],
+        method="fir",
+        f_type="butter",
+        b_type="lowpass"
+    )
     check_filter_c_equivalence(
         settings,
         tmp_path,

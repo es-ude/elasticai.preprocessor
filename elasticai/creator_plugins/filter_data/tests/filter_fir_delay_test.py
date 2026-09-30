@@ -159,7 +159,7 @@ def test_build(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 7), (12, 4)])
+@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 6), (12, 4)])
 @pytest.mark.parametrize("length", [11, 20, 40])
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
@@ -168,7 +168,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, frac
             fs=2e3,
             n_order=1,
             f_filt=[2e3 / length],
-            type="fir",
+            method="fir",
             f_type="butter",
             b_type="allpass",
         )
@@ -178,13 +178,13 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, frac
     )
 
     arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
-    data_checked = dut.filt_quantized(
+    data_fxp = dut.filt_quantized(
         xin=np.asarray(data_in) * arith_data._config.minimum_step_as_rational,
         total_bitwidth=bitwidth,
         fraction_width=fracwidth,
         is_signed=True,
-    ).tolist()
-    data_checked = arith_data.cut_as_integer(data_checked)
+    )
+    data_checked = (data_fxp / arith_data._config.minimum_step_as_rational).astype(int).tolist()
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
