@@ -17,7 +17,7 @@ test_settings = SettingsFilter(
     fs=1e3,
     n_order=2,
     f_filt=[250],
-    type="iir",
+    method="iir",
     f_type="butter",
     b_type="lowpass",
 )
@@ -66,7 +66,7 @@ class TestDigitalFilters(TestCase):
     def test_lowpass_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
@@ -81,7 +81,7 @@ class TestDigitalFilters(TestCase):
     def test_lowpass_iir_first_order_quantized(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
@@ -98,7 +98,7 @@ class TestDigitalFilters(TestCase):
     def test_lowpass_iir_second_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
@@ -113,7 +113,7 @@ class TestDigitalFilters(TestCase):
     def test_highpass_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "highpass"
         sets.f_filt = [50.0]
@@ -128,7 +128,7 @@ class TestDigitalFilters(TestCase):
     def test_bandpass_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "bandpass"
         sets.f_filt = [50.0, 100.0]
@@ -143,7 +143,7 @@ class TestDigitalFilters(TestCase):
     def test_bandstop_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "bandstop"
         sets.f_filt = [50.0, 100.0]
@@ -158,7 +158,7 @@ class TestDigitalFilters(TestCase):
     def test_notch_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "notch"
         sets.f_filt = [50.0]
@@ -173,7 +173,7 @@ class TestDigitalFilters(TestCase):
     def test_allpass_iir_first_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 1
         sets.b_type = "allpass"
         sets.f_filt = [50.0]
@@ -188,7 +188,7 @@ class TestDigitalFilters(TestCase):
     def test_lowpass_fir_taps21(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 21
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
@@ -203,7 +203,7 @@ class TestDigitalFilters(TestCase):
     def test_lowpass_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
@@ -218,7 +218,7 @@ class TestDigitalFilters(TestCase):
     def test_highpass_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "highpass"
         sets.f_filt = [20.0]
@@ -233,7 +233,7 @@ class TestDigitalFilters(TestCase):
     def test_bandpass_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "bandpass"
         sets.f_filt = [20.0, 100.0]
@@ -248,7 +248,7 @@ class TestDigitalFilters(TestCase):
     def test_bandstop_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "bandstop"
         sets.f_filt = [20.0, 100.0]
@@ -263,7 +263,7 @@ class TestDigitalFilters(TestCase):
     def test_notch_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 501
         sets.b_type = "notch"
         sets.f_filt = [50.0, 1.0]
@@ -278,7 +278,7 @@ class TestDigitalFilters(TestCase):
     def test_allpass_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
         sets: SettingsFilter = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 1
         sets.b_type = "allpass"
         sets.f_filt = [sets.fs / 50]
@@ -290,7 +290,7 @@ class TestDigitalFilters(TestCase):
 
     def test_compare_normal_vs_quantized_fir_lowpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "lowpass"
         sets.f_filt = [80.0]
@@ -314,7 +314,7 @@ class TestDigitalFilters(TestCase):
 
     def test_compare_normal_vs_quantized_fir_highpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 51
         sets.b_type = "highpass"
         sets.f_filt = [80.0]
@@ -338,7 +338,7 @@ class TestDigitalFilters(TestCase):
 
     def test_compare_normal_vs_quantized_iir_lowpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         sets.b_type = "lowpass"
         sets.f_filt = [80.0]
@@ -362,7 +362,7 @@ class TestDigitalFilters(TestCase):
 
     def test_compare_normal_vs_quantized_iir_highpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         sets.b_type = "highpass"
         sets.f_filt = [80.0]
@@ -386,7 +386,7 @@ class TestDigitalFilters(TestCase):
 
     def test_coeffs_fir_lowpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 11
         result = Filtering(sets).get_coeffs()
 
@@ -408,7 +408,7 @@ class TestDigitalFilters(TestCase):
 
     def test_coeffs_iir_lowpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         result = Filtering(sets).get_coeffs()
 
@@ -422,7 +422,7 @@ class TestDigitalFilters(TestCase):
 
     def test_coeffs_quantized_fir_8bit(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 11
         result = Filtering(sets).get_coeffs_quantized(8)
 
@@ -459,7 +459,7 @@ class TestDigitalFilters(TestCase):
 
     def test_coeffs_quantized_iir_8bit(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         result = Filtering(sets).get_coeffs_quantized(8)
 
@@ -482,28 +482,28 @@ class TestDigitalFilters(TestCase):
 
     def test_verilog_string_iir(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.n_order = 2
         result = Filtering(sets).get_coeffs_verilog_string(8, True)
         assert result == "{8'h12, 8'h25, 8'h12, 8'h00, 8'hF6}"
 
     def test_verilog_string_fir_8bit_half(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 11
         result = Filtering(sets).get_coeffs_verilog_string(8, True)
         assert result == "{8'h00, 8'h00, 8'hFB, 8'h00, 8'h24, 8'h3F}"
 
     def test_verilog_string_fir_8bit_full(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.n_order = 11
         result = Filtering(sets).get_coeffs_verilog_string(8, False)
         assert result == "{8'h00, 8'h00, 8'hFB, 8'h00, 8'h24, 8'h3F, 8'h24, 8'h00, 8'hFB, 8'h00, 8'h00}"
 
     def test_create_verilog_filter_biquad(self):
         sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets.method = "iir"
         sets.b_type = "lowpass"
         sets.n_order = 2
 
@@ -519,7 +519,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_verilog_filter_fir_full(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 20
 
@@ -541,7 +541,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_verilog_filter_fir_half(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 21
 
@@ -563,7 +563,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_verilog_filter_fir_delay(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "allpass"
         sets.n_order = 12
 
@@ -579,7 +579,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_verilog_filter_fir_simple_lowpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 1
         sets.f_filt = [sets.fs / 2]
@@ -596,7 +596,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_c_filter_fir_full(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 20
 
@@ -614,7 +614,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_c_filter_fir_optimized(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 21
 
@@ -626,7 +626,7 @@ class TestDigitalFilters(TestCase):
 
     def test_create_c_filter_fir_allpass(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "allpass"
         sets.n_order = 12
         sets.f_filt = [50.0]
@@ -642,8 +642,8 @@ class TestDigitalFilters(TestCase):
             }
 
     def test_create_c_filter_iir(self):
-        sets = deepcopy(test_settings)
-        sets.type = "iir"
+        sets: SettingsFilter = deepcopy(test_settings)
+        sets.method = "iir"
         sets.b_type = "lowpass"
         sets.n_order = 2
 
@@ -659,8 +659,8 @@ class TestDigitalFilters(TestCase):
 
     @skipUnless(which("cc"), "requires a C compiler")
     def test_create_c_filter_fir_compiles(self):
-        sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets: SettingsFilter = deepcopy(test_settings)
+        sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 21
 
@@ -674,7 +674,7 @@ class TestDigitalFilters(TestCase):
     @skipUnless(which("cc"), "requires a C compiler")
     def test_create_c_filter_fir_allpass_compiles(self):
         sets = deepcopy(test_settings)
-        sets.type = "fir"
+        sets.method = "fir"
         sets.b_type = "allpass"
         sets.n_order = 1
         sets.f_filt = [sets.fs / 21]

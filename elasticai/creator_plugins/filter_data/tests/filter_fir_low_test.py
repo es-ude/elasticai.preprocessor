@@ -182,7 +182,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, frac
             fs=2e3,
             n_order=1,
             f_filt=[1e3],
-            type="fir",
+            method="fir",
             f_type="butter",
             b_type="lowpass",
         )
