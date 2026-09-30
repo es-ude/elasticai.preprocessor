@@ -164,7 +164,6 @@ def test_build(
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
         SettingsFilter(
-            gain=1.0,
             fs=2e3,
             n_order=1,
             f_filt=[2e3 / length],

@@ -55,7 +55,7 @@ def tmp_path() -> Path:
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_build(tmp_path: Path, target: str) -> None:
-    settings = SettingsFilter(1.0, 1000.0, 6, [100.0], "fir", "butter", "lowpass")
+    settings = SettingsFilter(1000.0, 6, [100.0], "fir", "butter", "lowpass")
     Filtering(settings).create_design(target, bitwidth=8, id="0", path2save=tmp_path)
     assert (tmp_path / "filter_fir_low_0.c").exists()
     assert (tmp_path / "filter_fir_low_0.h").exists()
@@ -69,7 +69,7 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(1.0, 1000.0, 50, [100.0], "fir", "butter", "lowpass")
+    settings = SettingsFilter(1000.0, 50, [100.0], "fir", "butter", "lowpass")
     check_filter_c_equivalence(
         settings,
         tmp_path,

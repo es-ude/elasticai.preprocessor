@@ -13,7 +13,6 @@ from elasticai.preprocessor.transformation import do_fft
 from .filtering import Filtering, SettingsFilter
 
 test_settings = SettingsFilter(
-    gain=1,
     fs=1e3,
     n_order=2,
     f_filt=[250],

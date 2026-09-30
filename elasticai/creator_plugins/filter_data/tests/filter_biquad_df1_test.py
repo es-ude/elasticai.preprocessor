@@ -172,7 +172,6 @@ def test_build(
 ):
     dut = Filtering(
         SettingsFilter(
-            gain=1.0,
             fs=2e3,
             n_order=order,
             f_filt=[50],
@@ -226,7 +225,6 @@ def test_build_equal(
 ):
     dut = Filtering(
         SettingsFilter(
-            gain=1.0,
             fs=2e3,
             n_order=order,
             f_filt=[150],

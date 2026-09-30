@@ -80,7 +80,7 @@ def tmp_path() -> Path:
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_build(tmp_path: Path, target: str) -> None:
-    settings = SettingsFilter(1.0, 1000.0, 4, [50.0], "fir", "butter", "allpass")
+    settings = SettingsFilter(1000.0, 4, [50.0], "fir", "butter", "allpass")
 
     backup = tmp_path / f"build_{target}"
     backup.mkdir(parents=True, exist_ok=True)
@@ -98,7 +98,7 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(1.0, 1000.0, 1, [1000.0 / 21], "fir", "butter", "allpass")
+    settings = SettingsFilter(1000.0, 1, [1000.0 / 21], "fir", "butter", "allpass")
     check_filter_c_equivalence(
         settings,
         tmp_path,

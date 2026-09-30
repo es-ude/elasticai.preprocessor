@@ -39,7 +39,6 @@ class FilterCoeffs:
 class SettingsFilter:
     """Configuration class for defining the filter processor
     Attributes:
-        gain:       Integer with applied amplification factor [V/V]
         fs:         Sampling rate [Hz]
         n_order:    Integer with number of filter order
         f_filt:     List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
@@ -48,7 +47,6 @@ class SettingsFilter:
         b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
     """
 
-    gain: float
     fs: float
     n_order: int
     f_filt: list
@@ -62,7 +60,6 @@ class SettingsFilter:
 
 
 DefaultSettingsFilter = SettingsFilter(
-    gain=1.0,
     fs=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
@@ -261,9 +258,9 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         :return:        Numpy array with filtered data
         """
         if not self.__use_filtfilt:
-            return self._settings.gain * scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
+            return scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
         else:
-            return self._settings.gain * scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
+            return scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
 
     def filt_quantized(
         self,
