@@ -4,12 +4,5 @@ version = "0.1"
 api_version = "0.1"
 target_runtime = "verilog"
 target_platform = "FPGA"
-generated = [
-  "eventdetector_normal_signed",
-  "eventdetector_sub_signed",
-  "eventdetector_normal_unsigned",
-  "eventdetector_sub_unsigned",
-  "eventdetector_hyst_unsigned",
-  "eventdetector_hyst_signed"
-]
+generated = ["eventdetector_normal_signed", "eventdetector_sub_signed", "eventdetector_normal_unsigned", "eventdetector_sub_unsigned", "eventdetector_hyst_unsigned", "eventdetector_hyst_signed"]
 static_files = []

@@ -5,16 +5,8 @@ readme = "README.md"
 requires-python = ">=3.12, <3.14"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [
-  { name = "Andreas Erbsloeh", email = "andreas.erbsloeh@uni-due.de" },
-  { name = "Florian Hettstedt", email = "florian.hettstedt@uni-due.de" }
-]
-keywords = [
-  "embedded hardware",
-  "hardware-software co-design",
-  "quantization",
-  "signal preprocessing"
-]
+authors = [{ name = "Andreas Erbsloeh", email = "andreas.erbsloeh@uni-due.de" }, { name = "Florian Hettstedt", email = "florian.hettstedt@uni-due.de" }]
+keywords = ["embedded hardware", "hardware-software co-design", "quantization", "signal preprocessing"]
 dependencies = [
   "elasticai-creator",
   "numpy>=2.4.6",
