@@ -53,6 +53,7 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> Non
         )
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("augment", [False, True])
 def test_generated_subsampling_c_matches_python_frame(
@@ -106,6 +107,7 @@ def test_generated_subsampling_c_matches_python_frame(
         assert passed, f"augment={augment}, index={index}: {reason}"
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_subsampling_c_matches_python_sinewave(
     tmp_path: Path,

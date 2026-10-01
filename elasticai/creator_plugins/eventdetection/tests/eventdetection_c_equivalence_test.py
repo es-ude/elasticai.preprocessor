@@ -76,6 +76,7 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
     assert (tmp_path / "eventdetection_template.h").exists()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("c_hysteresis", HYSTERESIS_TYPE_CONFIGS)
 @pytest.mark.parametrize("is_signed", [True])

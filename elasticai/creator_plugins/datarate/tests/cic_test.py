@@ -131,7 +131,6 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_
             sampling_rate=1000.0, dsr=dec_rate, method=TargetsDownSampling.CIC, num_stages=n_dec
         )
     )
-    # Test-Signal
     data_in = build_test_signal(
         bitwidth=bitwidth,
         num_samples=20,

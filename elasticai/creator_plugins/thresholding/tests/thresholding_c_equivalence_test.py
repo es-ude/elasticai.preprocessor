@@ -44,6 +44,7 @@ THRESHOLDING_CONFIGS = [
 ]
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 @pytest.mark.parametrize("is_signed", [True])

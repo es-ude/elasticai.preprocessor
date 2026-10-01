@@ -77,6 +77,7 @@ def test_generated_cic_c_matches_python_frame(
         assert passed, f"index={index}: {reason}"
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_cic_c_matches_python_sinewave(
     tmp_path: Path,

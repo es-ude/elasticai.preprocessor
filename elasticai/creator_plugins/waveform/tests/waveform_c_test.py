@@ -18,6 +18,7 @@ def build_path():
         yield tmpdir
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [4, 8, 12, 18, 30])
 @pytest.mark.parametrize("is_signed", [True, False])
 @pytest.mark.parametrize("num_params", [21, 31])
@@ -72,7 +73,7 @@ def test_waveform_full_equi(build_path: Path, num_params: int, bitwidth: int, is
             assert received == offset
 
 
-# @pytest.mark.parametrize("bitwidth", [4, 8, 12, 18, 32])
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth", [4, 8])
 @pytest.mark.parametrize("is_signed", [True, False])
 @pytest.mark.parametrize("num_params", [11])
