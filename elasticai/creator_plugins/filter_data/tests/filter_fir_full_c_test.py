@@ -62,6 +62,7 @@ def test_build(tmp_path: Path, target: str) -> None:
     assert (tmp_path / "filter_fir_template.h").exists()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_build_equal(
     tmp_path: Path,

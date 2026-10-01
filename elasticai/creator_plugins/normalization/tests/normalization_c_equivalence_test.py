@@ -82,6 +82,7 @@ def test_create_design_rejects_other_peak_modes(tmp_path: Path) -> None:
         assert False
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_minmax_c_matches_python_frames(
     tmp_path: Path,
@@ -131,6 +132,7 @@ def test_generated_minmax_c_matches_python_frames(
             assert passed, f"frame={input_values}, index={index}: {reason}"
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_zscore_c_matches_python_frames(
     tmp_path: Path,
@@ -180,6 +182,7 @@ def test_generated_zscore_c_matches_python_frames(
             assert passed, f"frame={input_values}, index={index}: {reason}"
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,_,c_type", INTEGER_CONFIGS)
 def test_generated_minmax_c_accepts_empty_frame(
     tmp_path: Path,
@@ -211,6 +214,7 @@ def test_generated_minmax_c_accepts_empty_frame(
     assert float(c_output[0]) == 23.0
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,_,c_type", INTEGER_CONFIGS)
 def test_generated_zscore_c_accepts_empty_frame(
     tmp_path: Path,

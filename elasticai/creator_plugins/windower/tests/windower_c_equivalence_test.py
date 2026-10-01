@@ -53,6 +53,7 @@ def test_build_windower_generates_c_files(tmp_path: Path) -> None:
     assert (tmp_path / "windower_0.c").exists()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("settings,bitwidth,signed,c_type,np_dtype", WINDOWER_CONFIGS)
 def test_windower_c_matches_python(
     tmp_path: Path,
@@ -87,16 +88,9 @@ def test_windower_c_matches_python(
 
     num_samples = window_length + 3 * num_shift
     samples = np.arange(num_samples, dtype=np_dtype)
-
-    # Python reference: WindowSequencer.slide() from window.py.
-    # slide() pre-pads with overlap_length zeros before the signal, which produces
-    # ceil(overlap_length / num_shift) extra windows at the start containing those
-    # zeros. The C function outputs its first window only after window_length real
-    # samples have arrived (no zeros). Skip the pre-padded Python windows to align.
-    n_skip = -(-settings.overlap_length // num_shift)  # ceil division
+    n_skip = -(-settings.overlap_length // num_shift)
     py_windows = WindowSequencer(settings).slide(samples)[n_skip:]
 
-    # C: feed signal sample by sample, collect windows on true return
     ffi = loader.ffi()
     calc_windower = loader.get("calc_windower_0")
     out = ffi.new(f"{c_type}[{window_length}]")

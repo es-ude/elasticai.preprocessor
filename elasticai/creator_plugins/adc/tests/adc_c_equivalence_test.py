@@ -105,6 +105,7 @@ def test_build_adc_quant_generates_c_files(tmp_path: Path) -> None:
     assert (tmp_path / "adc_0.c").exists()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("settings,c_type", ADC_CONFIGS)
 def test_adc_c_matches_python(
     tmp_path: Path,

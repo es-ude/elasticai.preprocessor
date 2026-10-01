@@ -87,6 +87,7 @@ def test_create_design_rejects_downsampling_ratio_not_bin(tmp_path: Path, take_f
         )
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_poly_c_matches_python_frame(
@@ -140,6 +141,7 @@ def test_generated_poly_c_matches_python_frame(
         assert passed, f"index={index}: {reason}"
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
 def test_generated_poly_c_matches_python_sinewave(

@@ -83,7 +83,7 @@ def _build_and_load_with_trigger(
     return loader
 
 
-# data only
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_data_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
@@ -93,6 +93,7 @@ def test_replayer_c_data_values(tmp_path: Path, bitwidth: int, signed: bool, c_t
     assert result == DATA
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_done_flag(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
@@ -105,6 +106,7 @@ def test_replayer_c_done_flag(tmp_path: Path, bitwidth: int, signed: bool, c_typ
         next_fn()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_wraps_around(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
@@ -117,6 +119,7 @@ def test_replayer_c_wraps_around(tmp_path: Path, bitwidth: int, signed: bool, c_
     assert result == DATA
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_reset(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load(tmp_path, bitwidth, signed, c_type)
@@ -134,7 +137,7 @@ def test_replayer_c_reset(tmp_path: Path, bitwidth: int, signed: bool, c_type: s
     assert result == DATA
 
 
-# data and trigger
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_trgg_data_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
@@ -144,6 +147,7 @@ def test_replayer_c_trgg_data_values(tmp_path: Path, bitwidth: int, signed: bool
     assert result == DATA
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_trgg_trigger_values(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
@@ -157,6 +161,7 @@ def test_replayer_c_trgg_trigger_values(tmp_path: Path, bitwidth: int, signed: b
     assert result_trgg == TRIGGER
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_trgg_done_flag(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)
@@ -169,6 +174,7 @@ def test_replayer_c_trgg_done_flag(tmp_path: Path, bitwidth: int, signed: bool, 
         next_fn()
 
 
+@pytest.mark.simulation
 @pytest.mark.parametrize("bitwidth,signed,c_type", INTEGER_CONFIGS)
 def test_replayer_c_trgg_reset(tmp_path: Path, bitwidth: int, signed: bool, c_type: str) -> None:
     loader = _build_and_load_with_trigger(tmp_path, bitwidth, signed, c_type)

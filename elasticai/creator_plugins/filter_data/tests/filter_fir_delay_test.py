@@ -159,7 +159,7 @@ def test_build(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(8, 6), (12, 4)])
+@pytest.mark.parametrize("bitwidth, fracwidth", [(4,4), (8, 6), (12, 4)])
 @pytest.mark.parametrize("length", [11, 20, 40])
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
