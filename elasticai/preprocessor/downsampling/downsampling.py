@@ -9,11 +9,11 @@ from elasticai.creator_plugins.datarate.src import c_compile
 from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
 
 
-class TargetsDownSampling(IntEnum):
-    Subsampling = 0
-    Simple = 1
-    CIC = 2
-    Polyphase = 3
+class TargetsDownSampling(Enum):
+    Subsampling = "subsampling"
+    Simple = "simple"
+    CIC = "cic"
+    Polyphase = "polyphase"
 
 
 @dataclass
@@ -26,7 +26,7 @@ class SettingsDownSampling:
         dsr:            Integer with downsampling ratio for reducing the input sampling rate (SR_out = SR_in / OSR)
     """
 
-    method: int | TargetsDownSampling
+    method: TargetsDownSampling
     sampling_rate: float
     num_stages: int
     dsr: int
