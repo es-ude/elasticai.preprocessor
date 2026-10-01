@@ -50,6 +50,7 @@ test = [
   "pytest>=9.0.3",
   "pytest-rerunfailures>=16.3",
   "pytest-testmon>=2.2.0",
+  "pytest-xdist>=3.8.0",
 ]
 
 [build-system]
