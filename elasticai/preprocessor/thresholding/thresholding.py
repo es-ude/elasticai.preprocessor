@@ -45,11 +45,7 @@ class SettingsThreshold:
 
 
 DefaultSettingsThreshold = SettingsThreshold(
-    method=TargetsThreshold.Constant, 
-    sampling_rate=1000.0, 
-    window_sec=10e-3, 
-    thr_val=0.1, 
-    do_quant=False
+    method=TargetsThreshold.Constant, sampling_rate=1000.0, window_sec=10e-3, thr_val=0.1, do_quant=False
 )
 
 

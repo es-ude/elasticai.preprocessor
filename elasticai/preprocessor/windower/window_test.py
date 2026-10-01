@@ -24,6 +24,7 @@ WIN_METHOD_CONFIGS = {
     pytest.param(TargetsWindower.Event, "event", id="Event"),
 }
 
+
 class TestWindowMethod(TestCase):
     time = np.linspace(start=0, stop=100e-3, num=2000, endpoint=False, dtype=float)
     vsig = np.sin(2 * np.pi * 100.0 * time) + 0.25 * np.sin(2 * np.pi * 1000.0 * time)
@@ -43,8 +44,8 @@ class TestSettingsWindowSequencer(TestCase):
         method_window=TargetsWindower.Event,
         method_thr=TargetsThreshold.Constant,
         method_input=TargetsEventPreprocessors.Normal,
-        sampling_rate=10e3, 
-        window_sec=10e-3, 
+        sampling_rate=10e3,
+        window_sec=10e-3,
         overlap_sec=0.1e-3,
         pre_time=1e-3,
         threshold=10.0,
@@ -62,8 +63,8 @@ class TestWindowSequencer(TestCase):
         method_window=TargetsWindower.Event,
         method_thr=TargetsThreshold.Constant,
         method_input=TargetsEventPreprocessors.Normal,
-        sampling_rate=10e3, 
-        window_sec=10e-3, 
+        sampling_rate=10e3,
+        window_sec=10e-3,
         overlap_sec=0.1e-3,
         pre_time=1e-3,
         threshold=10.0,
@@ -268,7 +269,7 @@ class TestCreateDesign:
     @pytest.mark.parametrize("target", ["mcu", "pc"])
     @pytest.mark.parametrize("window_method,c_name", WIN_METHOD_CONFIGS)
     def test_create_design_generates_windower_c_files(
-        self, 
+        self,
         target: str,
         window_method: TargetsWindower,
         c_name: str,
@@ -278,14 +279,14 @@ class TestCreateDesign:
                 method_window=window_method,
                 method_thr=TargetsThreshold.Constant,
                 method_input=TargetsEventPreprocessors.Normal,
-                sampling_rate=10e3, 
-                window_sec=10e-3, 
+                sampling_rate=10e3,
+                window_sec=10e-3,
                 overlap_sec=0.1e-3,
                 pre_time=1e-3,
                 threshold=10.0,
             )
         )
-        
+
         backup = get_path_to_project("build_test") / "windower"
         with temporary_directory(backup) as tmpdir:
             windower.create_design(
@@ -300,6 +301,7 @@ class TestCreateDesign:
             assert (tmpdir / f"windower_{c_name}_0.c").exists()
             assert (tmpdir / f"windower_{c_name}_0.h").exists()
             assert (tmpdir / f"windower_{c_name}_template.h").exists()
+
 
 if __name__ == "__main__":
     main()

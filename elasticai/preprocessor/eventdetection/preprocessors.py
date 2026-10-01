@@ -22,10 +22,10 @@ class SettingsEventPreprocessor:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
         type:           Applied comparator preprocessing method for transient signals [
-                            normal, 
-                            absolute, 
+                            normal,
+                            absolute,
                             Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (window_size = 1 or kNEO with window_size > 1),
-                            Multiresolution Teager Energy Operator (MTEO), 
+                            Multiresolution Teager Energy Operator (MTEO),
                             absolute difference operator (ADO),
                             enhanced energy-derivation operator (eED),
                             amplitude slope operator (ASO, window_size and f_hp as additional float arg),
