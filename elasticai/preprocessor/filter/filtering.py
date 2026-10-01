@@ -282,9 +282,14 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             frac_bitwidth=fraction_width,
         )
 
-        params = self.get_coeffs_quantized(bit_size=total_bitwidth)[0]
-        self._coeff_b = np.asarray(params.b)
-        self._coeff_a = np.asarray(params.a)
+        if self._settings.method == TargetsFilter.FIR and self._settings.b_type == "allpass":
+            params = self.get_coeffs()
+            self._coeff_b = np.asarray(params.b)
+            self._coeff_a = np.asarray(params.a)
+        else:
+            params = self.get_coeffs_quantized(bit_size=total_bitwidth)[0]
+            self._coeff_b = np.asarray(params.b)
+            self._coeff_a = np.asarray(params.a)
 
         x = self._quantize_fxp(xin)
         x = self.filt(x)
