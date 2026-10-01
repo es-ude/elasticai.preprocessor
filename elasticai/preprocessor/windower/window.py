@@ -278,7 +278,6 @@ class WindowSequencer:
         pre_samples: int = 0,
         num_shift: int = 0,
     ) -> None:
-        from elasticai.creator_plugins.windower.src import c_compile
         match self._settings.method_window:
             case TargetsWindower.Sequence:
                 self._settings.overlap_sec=0.0
