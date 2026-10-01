@@ -19,7 +19,7 @@ def _ws(sampling_rate: float, window_sec: float, overlap_sec: float) -> Settings
         method_window=TargetsWindower.Sliding,
         method_thr=TargetsThreshold.Constant,
         method_input=TargetsEventPreprocessors.Normal,
-        sampling_rate=sampling_rate,
+        sampling_rate=100.0,
         window_sec=window_sec,
         overlap_sec=overlap_sec,
         pre_time=0.001,
