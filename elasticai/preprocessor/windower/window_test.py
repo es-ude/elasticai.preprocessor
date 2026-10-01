@@ -13,9 +13,9 @@ from elasticai.preprocessor.thresholding import (
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 from .window import (
+    WindowerTargets,
     WindowSequencer,
     WindowSettings,
-    WindowerTargets,
     transformation_window_method,
 )
 
@@ -24,6 +24,7 @@ WIN_METHOD_CONFIGS = {
     pytest.param(WindowerTargets.Sliding, "sliding", id="Sliding"),
     pytest.param(WindowerTargets.Event, "event", id="Event"),
 }
+
 
 class TestWindowMethod(TestCase):
     time = np.linspace(start=0, stop=100e-3, num=2000, endpoint=False, dtype=float)
@@ -288,7 +289,6 @@ class TestCreateDesign:
         self,
         target: str,
         window_method: WindowerTargets,
-        window_method: TargetsWindower,
         c_name: str,
     ) -> None:
         windower = WindowSequencer(
@@ -297,11 +297,11 @@ class TestCreateDesign:
                 method_thr=TargetsThreshold.Constant,
                 sampling_rate=2e3,
                 window_sec=0.1,
-                overlap_sec=0.0
+                overlap_sec=0.0,
             )
         )
 
-        backup = get_path_to_project("build_test") / f"windower"
+        backup = get_path_to_project("build_test") / "windower"
 
         backup = get_path_to_project("build_test") / "windower"
         with temporary_directory(backup) as tmpdir:
@@ -317,6 +317,7 @@ class TestCreateDesign:
             assert (tmpdir / f"windower_{c_name}_0.c").exists()
             assert (tmpdir / f"windower_{c_name}_0.h").exists()
             assert (tmpdir / f"windower_{c_name}_template.h").exists()
+
 
 if __name__ == "__main__":
     main()

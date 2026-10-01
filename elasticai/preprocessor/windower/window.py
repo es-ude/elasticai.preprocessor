@@ -16,19 +16,19 @@ def transformation_window_method(window_size: int, method: str = "hamming") -> n
     """Generating window for smoothing input of signal transformation method.
     :param window_size: Integer number with size of the window
     :param method:      Selection of window method [
-                            '': Ones, 
-                            'hamming', 
-                            'hanning', 
-                            'gaussian', 
-                            'bartlett', 
+                            '': Ones,
+                            'hamming',
+                            'hanning',
+                            'gaussian',
+                            'bartlett',
                             'blackman']
     :return:            Numpy array with window
     """
     methods_avai = {
-        "":         np.ones(window_size),
-        "hamming":  np.hamming(window_size),
+        "": np.ones(window_size),
+        "hamming": np.hamming(window_size),
         "gaussian": gaussian(window_size, int(0.16 * window_size), sym=True),
-        "hanning":  np.hanning(window_size),
+        "hanning": np.hanning(window_size),
         "bartlett": np.bartlett(window_size),
         "blackman": np.blackman(window_size),
     }
@@ -40,8 +40,8 @@ def transformation_window_method(window_size: int, method: str = "hamming") -> n
 
 class WindowerTargets(Enum):
     Sequence = "sequence"
-    Sliding  = "sliding"
-    Event    = "event"
+    Sliding = "sliding"
+    Event = "event"
 
 
 @dataclass
@@ -53,7 +53,7 @@ class WindowSettings:
         overlap_sec:    Floating value with overlapping the sequences [s]
     """
 
-    # method_window: WindowerTargets
+    method_window: WindowerTargets
     # method_thr: ThresholdTargets
     # method_input: EventPreprocessorTargets
     sampling_rate: float
@@ -241,7 +241,7 @@ class WindowSequencer:
         pre_samples: int = 0,
     ) -> None:
         match self._settings.method_window:
-            case TargetsWindower.Sequence:
+            case WindowerTargets.Sequence:
                 c_compile.build_windower_sequence(
                     settings=self._settings,
                     bitwidth=bitwidth,
@@ -250,7 +250,7 @@ class WindowSequencer:
                     windower_id=id,
                     define_path=".",
                 )
-            case TargetsWindower.Sliding:
+            case WindowerTargets.Sliding:
                 c_compile.build_windower_sliding(
                     settings=self._settings,
                     bitwidth=bitwidth,
@@ -259,7 +259,7 @@ class WindowSequencer:
                     windower_id=id,
                     define_path=".",
                 )
-            case TargetsWindower.Event:
+            case WindowerTargets.Event:
                 c_compile.build_windower_event(
                     settings=self._settings,
                     threshold=threshold,
@@ -272,5 +272,5 @@ class WindowSequencer:
                 )
             case _:
                 raise NotImplementedError(
-                    f"window_method'{self._settings.window_method}' does not have a C implementation yet."
+                    f"window_method'{self._settings.value}' does not have a C implementation yet."
                 )

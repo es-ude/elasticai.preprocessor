@@ -5,19 +5,19 @@ from elasticai.preprocessor.windower.window import SettingsWindow
 
 
 class TargetsFilterC(Enum):
-    IIR           = "iir"
-    FIR           = "fir"
+    IIR = "iir"
+    FIR = "fir"
     MovingAverage = "mavg"
-    FirDelay      = "delay"
-    Bypass        = "bypass"
+    FirDelay = "delay"
+    Bypass = "bypass"
 
 
 class TargetsDownsamplingC(Enum):
     PolyOne = "poly_one"
     PolyTwo = "poly_two"
-    CIC     = "cic"
-    Simple  = "simple"
-    Bypass  = "bypass"
+    CIC = "cic"
+    Simple = "simple"
+    Bypass = "bypass"
 
 
 @dataclass
@@ -37,6 +37,7 @@ class SettingsPipelineFilter:
                     Bypass:
                         no additional fields required
     """
+
     method: TargetsFilterC
     # IIR
     iir_a: list[float] = field(default_factory=list)
@@ -62,6 +63,7 @@ class SettingsPipelineDownsampling:
                     Bypass:
                         no additional fields required (ratio is ignored)
     """
+
     method: TargetsDownsamplingC
     ratio: int = 1
     cic_stages: int = 1
@@ -82,8 +84,9 @@ class SettingsPipeline:
         bitwidth      — bit width of each sample for the C data type (2..32)
         signed        — whether the C data type is signed
     """
-    filter:       SettingsPipelineFilter
+
+    filter: SettingsPipelineFilter
     downsampling: SettingsPipelineDownsampling
-    window:       SettingsWindow
-    bitwidth:     int
-    signed:       bool
+    window: SettingsWindow
+    bitwidth: int
+    signed: bool
