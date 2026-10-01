@@ -111,7 +111,7 @@ in {
     };
     "test:simulation" = {
       exec = ''
-        ${uv_run} pytest -m 'simulation' --reruns 2
+        ${uv_run} pytest -m 'simulation' --reruns 2 -n auto
       '';
     };
     "test:all" = {
