@@ -49,6 +49,7 @@ def build_windower_sequence(
         path2template=Path(design_plugin.__file__).parent / "c",
     )
 
+
 def _generate_windower_sequence_template() -> dict[str, list[str]]:
     header_template = [
         "// --- Generating windower_sequence",
@@ -67,6 +68,7 @@ def _generate_windower_sequence_template() -> dict[str, list[str]]:
         "DEF_WINDOWER_SEQUENCE_IMPL({$device_id}, {$data_type}, {$window_length})",
     ]
     return {"head": header_template, "func": implementation_template}
+
 
 def build_windower_sliding(
     settings: WindowSettings,
@@ -110,6 +112,7 @@ def build_windower_sliding(
         impl_file=replace_variables_with_parameters(template_c["func"], params),
         path2template=Path(design_plugin.__file__).parent / "c",
     )
+
 
 def _generate_windower_sliding_template() -> dict[str, list[str]]:
     header_template = [
@@ -179,12 +182,13 @@ def build_windower_event(
         path2template=Path(design_plugin.__file__).parent / "c",
     )
 
+
 def _generate_windower_event_template() -> dict[str, list[str]]:
     header_template = [
         "// --- Generating windower_event",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length},
+        "// Params: ID = {$device_id}, type = {$data_type}, window = {$window_length}",
         "// Params: threshold = {$threshold}, pre_samples = {$pre_samples}"
         '#include "{$path2include}/{$template_name}"',
         "DEF_WINDOWER_EVENT_PROTO({$device_id}, {$data_type})",
