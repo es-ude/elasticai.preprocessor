@@ -99,7 +99,7 @@ def build_pipeline(
     deci_tmpl, deci_fn_base, deci_macro_fn = _DECIMATION_TABLE[settings.downsampling.method]
 
     # --- collect which template headers are needed ---
-    templates_needed: list[tuple[Path, str]] = [(_WINDOWER_C, "windower_template.h")]
+    templates_needed: list[tuple[Path, str]] = [(_WINDOWER_C, "windower_sliding_template.h")]
     if filt_tmpl:
         templates_needed.append((_FILTER_C, filt_tmpl))
     if deci_tmpl:
@@ -123,7 +123,7 @@ def build_pipeline(
         stage_macros.append(filt_macro_fn(module_id, dtype, settings.filter))
     if deci_macro_fn:
         stage_macros.append(deci_macro_fn(module_id, dtype, settings.downsampling))
-    stage_macros.append(f"DEF_WINDOWER_IMPL({module_id}, {dtype}, {wl}, {nshift})")
+    stage_macros.append(f"DEF_WINDOWER_SLIDING_IMPL({module_id}, {dtype}, {wl}, {nshift})")
 
     # --- build wrapper function body ---
     wrapper_lines: list[str] = [
@@ -142,7 +142,7 @@ def build_pipeline(
             f"    if (!{deci_fn_base}_{module_id}({current}, &down_out)) {{ return false; }}",
         ]
         current = "down_out"
-    wrapper_lines.append(f"    return calc_windower_{module_id}({current}, out);")
+    wrapper_lines.append(f"    return calc_windower_sliding_{module_id}({current}, out);")
     wrapper_lines.append("}")
 
     # --- stage descriptions for the header comment ---
