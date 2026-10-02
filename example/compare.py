@@ -45,7 +45,6 @@ def load_smatable_data(path2data: Path) -> Data:
 def process_data(data: Data) -> Data:
     sets_filt = SettingsFilter(
         method=TargetsFilter.IIR,
-        gain=1.0,
         fs=data.sampling_rate,
         n_order=1,
         f_filt=[100., 300.],

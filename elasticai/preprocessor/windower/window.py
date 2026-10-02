@@ -49,7 +49,7 @@ class TargetsWindower(Enum):
 class SettingsWindow:
     """Class for defining the properties for applying a window on transient signals
     Attributes:
-        methods_window: TargetsWidower [
+        method_window:  TargetsWidower [
                         Sequence: cut xin in pieces,
                         Siding: return a sliding window over xin,
                         Event: return window based on event detection]
@@ -237,6 +237,8 @@ class WindowSequencer:
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
+                threshold=threshold,
+                pre_samples=pre_samples,
             )
         else:
             self._create_design_verilog(
