@@ -7,15 +7,23 @@ from numpy.lib.stride_tricks import sliding_window_view
 from scipy.signal.windows import gaussian
 
 import elasticai.creator_plugins.windower as hw_windower
+from elasticai.creator_plugins.windower.src import c_compile
 from elasticai.preprocessor._check_funcs import check_key_elements
+from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
 from elasticai.preprocessor.thresholding import SettingsThreshold, TargetsThreshold, Thresholding
 
 
 def transformation_window_method(window_size: int, method: str = "hamming") -> np.ndarray:
     """Generating window for smoothing input of signal transformation method.
-    :param window_size:     Integer number with size of the window
-    :param method:          Selection of window method ['': Ones, 'hamming', 'hanning', 'gaussian', 'bartlett', 'blackman']
-    :return:                Numpy array with window
+    :param window_size: Integer number with size of the window
+    :param method:      Selection of window method [
+                            '': Ones,
+                            'hamming',
+                            'hanning',
+                            'gaussian',
+                            'bartlett',
+                            'blackman']
+    :return:            Numpy array with window
     """
     methods_avai = {
         "": np.ones(window_size),
@@ -41,17 +49,41 @@ class TargetsWindower(Enum):
 class SettingsWindow:
     """Class for defining the properties for applying a window on transient signals
     Attributes:
+        methods_window: TargetsWidower [
+                        Sequence: cut xin in pieces,
+                        Siding: return a sliding window over xin,
+                        Event: return window based on event detection]
+        method_thr:     TargetsThreshold [
+                        Constant: const. thr-val for each sample,
+                        AbsoluteMean: get const. thr-val from py-fn,
+                        MedianAbsoluteDeviatinon: get const. thr-val from py-fn,
+                        MovingAverage: calc mavg from samples,
+                        MovingAverageAbsolute: cals mavg_abs from samples,
+                        RmsNorm: get const. thr-val from py-fn,
+                        RmsBlackrock: get const. thr-val from py-fn,
+                        Welford: calc Welford-thr from samples]
+        method_input:   TargetsEventPreprocessor [
+                        Normal: xout = xin,
+                        Absolute: xout = abs(xin),
+                        NEO: non-linear energy operator,
+                        MTEO: Multiresolution Teager Energy Operator,
+                        ADO: absolute difference operator,
+                        ASO: amplitude slope operator,
+                        EED: enhandced energy-derivation orperator,
+                        SBP: spike band-power estimation]
         sampling_rate:  Floating value with sampling rate of the transient signal [Hz]
         window_sec:     Floating value with the size of the window [s]
         overlap_sec:    Floating value with overlapping the sequences [s]
     """
 
-    # method_window: TargetsWindower
-    # method_thr: TargetsThreshold
-    # method_input: TargetsEventPreprocessor
+    method_window: TargetsWindower
+    method_thr: TargetsThreshold
+    method_input: TargetsEventPreprocessors
     sampling_rate: float
     window_sec: float
     overlap_sec: float
+    pre_time: float
+    threshold: float
 
     @property
     def window_length(self) -> int:
@@ -66,7 +98,16 @@ class SettingsWindow:
         return int(abs(self.overlap_sec * self.sampling_rate))
 
 
-DefaultSettingsWindow = SettingsWindow(sampling_rate=2e3, window_sec=0.1, overlap_sec=0.0)
+DefaultSettingsWindow = SettingsWindow(
+    method_window=TargetsWindower.Event,
+    method_thr=TargetsThreshold.Constant,
+    method_input=TargetsEventPreprocessors.NEO,
+    sampling_rate=2e3,
+    window_sec=0.1,
+    overlap_sec=0.0,
+    pre_time=0.01,
+    threshold=10.0,
+)
 
 
 class WindowSequencer:
@@ -172,6 +213,9 @@ class WindowSequencer:
         bitwidth: int,
         id: str,
         path2save: Path,
+        num_shift: int = 0,
+        pre_samples: int = 0,
+        threshold: int = 0,
         signed: bool = True,
     ) -> None:
         """Create a target-specific windower design.
@@ -193,6 +237,8 @@ class WindowSequencer:
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
+                threshold=threshold,
+                pre_samples=pre_samples,
             )
         else:
             self._create_design_verilog(
@@ -224,5 +270,47 @@ class WindowSequencer:
             **params,
         )
 
-    def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
-        raise NotImplementedError
+    def _create_design_c(
+        self,
+        id: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+        threshold: int = 0,
+        pre_samples: int = 0,
+        num_shift: int = 0,
+    ) -> None:
+        match self._settings.method_window:
+            case TargetsWindower.Sequence:
+                self._settings.overlap_sec = 0.0
+                c_compile.build_windower_sliding(
+                    settings=self._settings,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    define_path=".",
+                )
+            case TargetsWindower.Sliding:
+                c_compile.build_windower_sliding(
+                    settings=self._settings,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    windower_id=id,
+                    define_path=".",
+                )
+            case TargetsWindower.Event:
+                c_compile.build_windower_event(
+                    settings=self._settings,
+                    threshold=threshold,
+                    pre_padding=pre_samples,
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    windower_id=id,
+                    define_path=".",
+                )
+            case _:
+                raise NotImplementedError(
+                    f"method_window '{self._settings.method_window}' has no C implementation yet."
+                )
