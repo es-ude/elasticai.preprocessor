@@ -237,6 +237,8 @@ class WindowSequencer:
                 bitwidth=bitwidth,
                 signed=signed,
                 path2save=path2save,
+                threshold=threshold,
+                pre_samples=pre_samples,
             )
         else:
             self._create_design_verilog(
