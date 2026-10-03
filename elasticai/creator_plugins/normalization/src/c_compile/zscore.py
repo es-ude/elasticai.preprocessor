@@ -20,12 +20,49 @@ def build_normalization_zscore(
     assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
     module_id = normalization_id.lower()
+    _build_normalization_zscore(
+        data_type=get_embedded_datatype(bitwidth, signed),
+        module_id=module_id,
+        device_id=module_id.upper(),
+        path2save=path2save,
+        define_path=define_path,
+    )
+
+
+def build_normalization_zscore_float32(
+    path2save: Path,
+    normalization_id: str = "0",
+    define_path: str = "src",
+) -> None:
+    """Generate a Float32 z-score normalization."""
+    module_id = f"float32_{normalization_id.lower()}"
+    _build_normalization_zscore(
+        data_type="float",
+        module_id=module_id,
+        device_id=module_id,
+        path2save=path2save,
+        define_path=define_path,
+    )
+
+
+def _build_normalization_zscore(
+    *,
+    data_type: str,
+    module_id: str,
+    device_id: str,
+    path2save: Path,
+    define_path: str,
+) -> None:
+    generated_header = f"normalization_zscore_{module_id}.h"
+
     params = {
         "datetime_created": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "header_guard": f"NORMALIZATION_ZSCORE_{module_id.upper()}_H",
         "path2include": define_path,
         "template_name": "normalization_zscore_template.h",
-        "device_id": module_id.upper(),
-        "data_type": get_embedded_datatype(bitwidth, signed),
+        "generated_header": generated_header,
+        "device_id": device_id,
+        "data_type": data_type,
     }
     template_c = _generate_normalization_zscore_template()
     generate_c_files(
@@ -44,14 +81,23 @@ def _generate_normalization_zscore_template() -> dict[str, list[str]]:
         "// --- Generating zscore normalization",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
+        "#ifndef {$header_guard}",
+        "#define {$header_guard}",
         '#include "{$path2include}/{$template_name}"',
+        "#ifdef __cplusplus",
+        'extern "C" {',
+        "#endif",
         "DEF_NEW_NORMALIZATION_ZSCORE_PROTO({$device_id}, {$data_type})",
+        "#ifdef __cplusplus",
+        "}",
+        "#endif",
+        "#endif",
     ]
     implementation_template = [
         "// --- Generating zscore normalization",
         "// Copyright @ UDE-IES",
         "// Code generated on: {$datetime_created}",
-        '#include "{$path2include}/{$template_name}"',
+        '#include "{$path2include}/{$generated_header}"',
         "DEF_NEW_NORMALIZATION_ZSCORE_IMPL({$device_id}, {$data_type})",
     ]
     return {"head": header_template, "func": implementation_template}

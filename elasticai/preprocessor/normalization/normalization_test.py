@@ -211,6 +211,51 @@ def test_normalization_method(
     np.testing.assert_almost_equal(result, expected_numpy, decimal=6)
 
 
+@pytest.mark.parametrize(
+    "method, expected_nonzero",
+    [
+        ("minmax", 1.0),
+        ("zscore", 0.0),
+    ],
+)
+def test_constant_windows_stay_finite(method: str, expected_nonzero: float) -> None:
+    normalizer = DataNormalization(SettingsNormalization(method=method, peak_mode=2))
+    input_numpy = np.asarray([[0.0, 0.0, 0.0], [7.0, 7.0, 7.0]], dtype=np.float32)
+    expected = np.asarray(
+        [[0.0, 0.0, 0.0], [expected_nonzero, expected_nonzero, expected_nonzero]],
+        dtype=np.float32,
+    )
+
+    output_numpy = normalizer.normalize(input_numpy)
+    output_torch = normalizer.normalize(torch.from_numpy(input_numpy.copy()))
+
+    assert np.all(np.isfinite(output_numpy))
+    assert torch.all(torch.isfinite(output_torch))
+    np.testing.assert_array_equal(output_numpy, expected)
+    torch.testing.assert_close(output_torch, torch.from_numpy(expected))
+
+
+@pytest.mark.parametrize("method", ["minmax", "zscore"])
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        (np.float16, np.float16),
+        (np.int8, np.float64),
+    ],
+)
+def test_safe_normalization_preserves_numpy_division_dtype(
+    method: str,
+    dtype: type[np.generic],
+    expected_dtype: type[np.generic],
+) -> None:
+    normalizer = DataNormalization(SettingsNormalization(method=method, peak_mode=2))
+    input_data = np.asarray([[1, 2, 3], [0, 0, 0]], dtype=dtype)
+
+    output = normalizer.normalize(input_data)
+
+    assert output.dtype == np.dtype(expected_dtype)
+
+
 def test_create_c_minmax_absmax():
     sets = SettingsNormalization(
         method="minmax",
