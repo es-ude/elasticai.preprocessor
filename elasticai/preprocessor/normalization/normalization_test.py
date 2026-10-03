@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from .normalization import DataNormalization, SettingsNormalization
+from .normalization import DataNormalization, SettingsNormalization, TargetsNormalization
 
 
 def generate_test_data(
@@ -132,69 +132,84 @@ def test_error_wrong_input():
 @pytest.mark.parametrize(
     "method, mode, expected_numpy, expected_torch",
     [
-        ("zeroone", 2, (0.0, 1.0), (0.0, 1.0)),
-        ("minmax", 2, (-1.0, 1.0), (-1.0, 1.0)),
+        (TargetsNormalization("zeroone"), 2, (0.0, 1.0), (0.0, 1.0)),
+        (TargetsNormalization("minmax"), 2, (-1.0, 1.0), (-1.0, 1.0)),
         (
-            "norm",
+            TargetsNormalization("norm"),
             0,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            "norm",
+            TargetsNormalization("norm"),
             1,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            "norm",
+            TargetsNormalization("norm"),
             2,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            "zscore",
+            TargetsNormalization("zscore"),
             0,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            "zscore",
+            TargetsNormalization("zscore"),
             1,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            "zscore",
+            TargetsNormalization("zscore"),
             2,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            "medianmad",
+            TargetsNormalization("medianmad"),
             0,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
         (
-            "medianmad",
+            TargetsNormalization("medianmad"),
             1,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
         (
-            "medianmad",
+            TargetsNormalization("medianmad"),
             2,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
-        ("meanmad", 0, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
-        ("meanmad", 1, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
-        ("meanmad", 2, (-1.620773402838807, 1.620773402838807), (-1.620773434638977, 1.6207733154296875)),
+        (
+            TargetsNormalization("meanmad"),
+            0,
+            (-1.620773402838807, 1.620773402838807),
+            (-1.620773434638977, 1.6207733154296875),
+        ),
+        (
+            TargetsNormalization("meanmad"),
+            1,
+            (-1.620773402838807, 1.620773402838807),
+            (-1.620773434638977, 1.6207733154296875),
+        ),
+        (
+            TargetsNormalization("meanmad"),
+            2,
+            (-1.620773402838807, 1.620773402838807),
+            (-1.620773434638977, 1.6207733154296875),
+        ),
     ],
 )
 def test_normalization_method(
-    method: str, mode: int, expected_numpy: tuple[float], expected_torch: tuple[float]
+    method: TargetsNormalization, mode: int, expected_numpy: tuple[float], expected_torch: tuple[float]
 ):
     sets = SettingsNormalization(
         method=method,
@@ -213,7 +228,7 @@ def test_normalization_method(
 
 def test_create_c_minmax_absmax():
     sets = SettingsNormalization(
-        method="minmax",
+        method=TargetsNormalization("minmax"),
         peak_mode=2,
     )
 
@@ -230,7 +245,7 @@ def test_create_c_minmax_absmax():
 
 def test_create_c_zscore():
     sets = SettingsNormalization(
-        method="zscore",
+        method=TargetsNormalization("zscore"),
         peak_mode=0,
     )
 

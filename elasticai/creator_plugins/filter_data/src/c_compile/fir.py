@@ -46,7 +46,7 @@ def build_filter_fir(
         "template_name": "filter_fir_template.h",
         "device_id": module_id.lower(),
         "data_type": data_type_filter,
-        "fs": f"{settings.fs}",
+        "fs": f"{settings.sampling_rate}",
         "filter_type": f"{settings.b_type}, {settings.f_type}",
         "filter_corner": ", ".join(map(str, settings.f_filt)),
         "filter_order": str(len(coeff_b)),

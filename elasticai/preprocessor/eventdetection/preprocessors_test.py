@@ -25,8 +25,8 @@ def test_methods_overview(settings: SettingsEventPreprocessor):
         assert method in rslt
 
 
-def test_methods_none(settings: SettingsEventPreprocessor):
-    settings.type = "none"
+def test_invalid_methods_raises(settings: SettingsEventPreprocessor):
+    settings.method = "none"
     try:
         EventPreprocessor(settings=settings)
     except:
@@ -36,7 +36,7 @@ def test_methods_none(settings: SettingsEventPreprocessor):
 
 
 def test_sda_normal(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "normal"
+    settings.method = "normal"
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = signal
 
@@ -45,7 +45,7 @@ def test_sda_normal(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_absolute(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "absolute"
+    settings.method = "absolute"
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(signal)
 
@@ -54,7 +54,7 @@ def test_sda_absolute(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_neo_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "neo"
+    settings.method = "neo"
     settings.window_size = [1]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.zeros_like(signal) + 0.06184665997806704
@@ -64,7 +64,7 @@ def test_sda_neo_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_neo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "neo"
+    settings.method = "neo"
     settings.window_size = [2]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.zeros_like(signal) + 0.23208660251050067
@@ -74,7 +74,7 @@ def test_sda_neo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_mteo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "mteo"
+    settings.method = "mteo"
     settings.window_size = [1, 2, 3]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.zeros_like(signal) + 0.4686047402353426
@@ -84,7 +84,7 @@ def test_sda_mteo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_ado_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "ado"
+    settings.method = "ado"
     settings.window_size = [1]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)
@@ -96,7 +96,7 @@ def test_sda_ado_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_ado_threes(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "ado"
+    settings.method = "ado"
     settings.window_size = [3]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)
@@ -108,7 +108,7 @@ def test_sda_ado_threes(settings: SettingsEventPreprocessor, signal: np.ndarray)
 
 
 def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "eed"
+    settings.method = "eed"
     settings.f_filt = [150.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)
@@ -120,7 +120,7 @@ def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+    settings.method = "spb"
     try:
         EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     except:
@@ -130,7 +130,7 @@ def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
 
 
 def test_sda_spb(settings: SettingsEventPreprocessor, signal: np.ndarray):
-    settings.type = "spb"
+    settings.method = "spb"
     settings.f_filt = [100.0, 1000.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(rslt)

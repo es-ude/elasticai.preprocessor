@@ -45,18 +45,32 @@ class FrameWaveform:
 class SettingsSDA:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        mode_sda:       Applied spike detection algorithm (SDA) on transient signal [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
-                        Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
-                        enhanced energy-derivation operator (eED),
-                        amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
-                        spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)
-        mode_thr:       String with used method for thresholding ['const': constant given value,
-                        'abs_mean': absolute mean value, 'mad': median absolute derivation, 'mavg', moving average,
-                        'mavg_abs': absolute mean absolute value, 'rms_norm': Root-Mean-Squared,
-                        'rms_move': Moving RMS, 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
-                        'welford': Welford Online Algorithm for STD Calculation]
-        mode_align:     Aligning mode of the detected spike frames [none, max, min,
-                        ptp (Positive turning point), ntp (Negative turning point), abs-max (Absolute maximum)]
+        method:         TargetsEventPreprocessors: Applied spike detection algorithm (SDA) on transient signal [
+                            normal,
+                            absolute,
+                            Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (dx_sda = 1 or kNEO with dx_sda > 1),
+                            Multiresolution Teager Energy Operator (MTEO),
+                            absolute difference operator (ADO),
+                            enhanced energy-derivation operator (eED),
+                            amplitude slope operator (ASO, k for window size, and f_hp as additional float arg),
+                            spike band-power estimation [Nason et al., 2020] (SBP, using f_bp with two values as additional arg)]
+        mode_thr:       TargetsThreshold [
+                            Constant: constant given value,
+                            AbsoluteMean: absolute mean value,
+                            MedinanAbsoluteDeviation: mad,
+                            MovingAverage: mavg,
+                            MovingAverageAbsolute: mavg_abs: absolute mean absolute value,
+                            RmsNorm: rms_norm: Root-Mean-Squared,
+                            RmsBlackrock: 'rms_black': RMS method used in Blackrock Neurotechnology Systems,
+                            Welford: 'welford': Welford Online Algorithm for STD Calculation]
+        mode_align:     TargetsFrameAlignment Aligning mode of the detected spike frames [
+                            Normal = "none"
+                            Max = "max"
+                            Min = "min"
+                            PositiveTurning = "ptp"
+                            NegativeTurning = "ntp"
+                            AbsMax = "absmax"
+                            AbsMin = "absmin"]
         sampling_rate:  Sampling rate [Hz]
         dx_sda:         Position difference for extracting SDA method. Configuration with length(x) == 1: with dX = 1 --> NEO, dX > 1 --> k-NEO
         t_frame_length: Floating value with total window length [s]
@@ -65,7 +79,7 @@ class SettingsSDA:
         f_filt:         List with floating of the filter frequencies [Hz]
     """
 
-    mode_sda: TargetsEventPreprocessors
+    method: TargetsEventPreprocessors
     mode_thr: TargetsThreshold
     mode_align: TargetsFrameAlignment
     dx_sda: list
@@ -99,7 +113,7 @@ class SettingsSDA:
 DefaultSettingsSDA = SettingsSDA(
     sampling_rate=20e3,
     dx_sda=[1],
-    mode_sda=TargetsEventPreprocessors("eed"),
+    method=TargetsEventPreprocessors("eed"),
     mode_thr=TargetsThreshold("constant"),
     mode_align=TargetsFrameAlignment("min"),
     t_frame_length=1.6e-3,
@@ -136,7 +150,7 @@ class SpikeDetection:
         )
         self._event_pre = EventPreprocessor(
             settings=SettingsEventPreprocessor(
-                type=self._settings.mode_sda,
+                method=self._settings.method,
                 sampling_rate=self._settings.sampling_rate,
                 window_size=self._settings.dx_sda,
                 f_filt=self._settings.f_filt,
@@ -144,12 +158,14 @@ class SpikeDetection:
         )
         self._events = EventDetection(
             settings=SettingsEventDetection(
-                type=TargetsEventDetection("normal"), out_invert=False, window_size=1
+                method=TargetsEventDetection("normal"),
+                window_size=1,
+                out_invert=False,
             )
         )
         self._aligner = FrameAligner(
             settings=SettingsFrameAlignment(
-                type=self._settings.mode_align,
+                method=self._settings.mode_align,
                 sampling_rate=self._settings.sampling_rate,
                 align_sec=self._settings.t_frame_start,
                 offset_sec=self._settings.dt_offset,

@@ -3,10 +3,12 @@ import numpy as np
 from elasticai.preprocessor.windower import transformation_window_method
 
 
-def do_fft(y: np.ndarray, fs: float, method_window: str = "hamming") -> tuple[np.ndarray, np.ndarray]:
+def do_fft(
+    y: np.ndarray, sampling_rate: float, method_window: str = "hamming"
+) -> tuple[np.ndarray, np.ndarray]:
     """Performing the Discrete Fast Fourier Transformation.
     :param y:               Transient input signal
-    :param fs:              Sampling rate [Hz]
+    :param sampling_rate:   Sampling rate [Hz]
     :param method_window:   Selected window ['': None, 'Hamming', 'hanning', 'guassian', 'bartlett', 'blackman']
     :return:                Tuple with (1) freq - Frequency and (2) Y - Discrete output
     """
@@ -18,7 +20,7 @@ def do_fft(y: np.ndarray, fs: float, method_window: str = "hamming") -> tuple[np
     N = y.size // 2
     fft_out = 2 / N * np.abs(np.fft.fft(fft_in))
     fft_out[0] = fft_out[0] / 2
-    freq = fs * np.fft.fftfreq(fft_out.size)
+    freq = sampling_rate * np.fft.fftfreq(fft_out.size)
 
     # Taking positive range
     xsel = np.where(freq >= 0.0)
@@ -27,18 +29,20 @@ def do_fft(y: np.ndarray, fs: float, method_window: str = "hamming") -> tuple[np
     return freq, fft_out
 
 
-def do_fft_withimag(y: np.ndarray, fs: float, method_window: str = "") -> tuple[np.ndarray, np.ndarray]:
+def do_fft_withimag(
+    y: np.ndarray, sampling_rate: float, method_window: str = ""
+) -> tuple[np.ndarray, np.ndarray]:
     """Performing the Discrete Fast Fourier Transformation with imaginary part.
-    :param y:   Transient input signal
-    :param fs:  Sampling rate [Hz]
+    :param y:               Transient input signal
+    :param sampling_rate:   Sampling rate [Hz]
     :param method_window:   Selected window
-    :return:    Tuple with (1) freq - Frequency and (2) Y - Discrete output
+    :return:                Tuple with (1) freq - Frequency and (2) Y - Discrete output
     """
     window = transformation_window_method(window_size=y.size, method=method_window)
     fft_in = window * y
 
     fft_out = np.fft.rfft(fft_in)
-    freq = np.fft.rfftfreq(fft_in.size, d=1 / fs)
+    freq = np.fft.rfftfreq(fft_in.size, d=1 / sampling_rate)
     return freq, fft_out
 
 

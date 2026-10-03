@@ -1,26 +1,46 @@
 from dataclasses import dataclass
+from enum import Enum, IntEnum
 from pathlib import Path
 
 import numpy as np
 import torch
 
 
+class TargetsNormalization(Enum):
+    Norm = "norm"
+    MedinanMAD = "medianmad"
+    MeanMAD = "meanmad"
+    Minmax = "minmax"
+    Zscore = "zscore"
+    Zeroone = "zeroone"
+
+
+class PeakMode(IntEnum):
+    Max = 0
+    Min = 1
+    AbsMax = 2
+
+
 @dataclass
 class SettingsNormalization:
     """Settings for performing normalization on input data
     Attributes:
-        method (str):               The normalization method ["minmax", "norm", "zscore", "medianmad", or "meanmad"]
-        peak_mode (int):            Mode for taking peak value (0: max, 1: min, 2: abs-max)
-
+        method: TargetsNormalitzation [
+                    Norm = "norm"
+                    MedinanMAD = "medianmad"
+                    MeanMAD = "meanmad"
+                    Minmax = "minmax"
+                    Zscore = "zscore"]
+        peak_mode:  Mode for taking peak value (0: max, 1: min, 2: abs-max)
     """
 
-    method: str
-    peak_mode: int
+    method: TargetsNormalization
+    peak_mode: int | PeakMode
 
 
 DefaultSettingsNormalization = SettingsNormalization(
-    method="minmax",
-    peak_mode=2,
+    method=TargetsNormalization.Minmax,
+    peak_mode=PeakMode.AbsMax,
 )
 
 
@@ -42,12 +62,12 @@ class DataNormalization:
         """
         self._settings = settings
         self.__list_norm_methods = {
-            "zeroone": self._normalize_zeroone,
-            "minmax": self._normalize_minmax,
-            "norm": self._normalize_norm,
-            "zscore": self._normalize_zscore,
-            "medianmad": self._normalize_medianmad,
-            "meanmad": self._normalize_meanmad,
+            TargetsNormalization("zeroone"): self._normalize_zeroone,
+            TargetsNormalization("minmax"): self._normalize_minmax,
+            TargetsNormalization("norm"): self._normalize_norm,
+            TargetsNormalization("zscore"): self._normalize_zscore,
+            TargetsNormalization("medianmad"): self._normalize_medianmad,
+            TargetsNormalization("meanmad"): self._normalize_meanmad,
         }
 
     def list_normalization_methods(self) -> list:
@@ -69,8 +89,8 @@ class DataNormalization:
         Returns:
             Numpy array with normalized frames
         """
-        if self._settings.method.lower() in self.__list_norm_methods.keys():
-            return self.__list_norm_methods[self._settings.method.lower()](dataset)
+        if self._settings.method in self.__list_norm_methods.keys():
+            return self.__list_norm_methods[self._settings.method](dataset)
         else:
             raise NotImplementedError("Selected mode is not available.")
 
@@ -94,8 +114,8 @@ class DataNormalization:
         target = target.lower()
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if self._settings.method.lower() not in self.list_normalization_methods():
-            raise ValueError(f"Method {self._settings.method.lower()} is not available!")
+        if self._settings.method not in self.list_normalization_methods():
+            raise ValueError(f"Method {self._settings.method} is not available!")
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
@@ -115,17 +135,17 @@ class DataNormalization:
     def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         from elasticai.creator_plugins.normalization.src import c_compile
 
-        method = self._settings.method.lower()
-        if method not in ("minmax", "zscore"):
+        method = self._settings.method
+        if method not in (TargetsNormalization("minmax"), TargetsNormalization("zscore")):
             raise NotImplementedError(
                 "C generation currently supports only minmax and zscore normalization"
             )
-        if method == "minmax" and self._settings.peak_mode != 2:
-            raise NotImplementedError("C generation currently supports only peak_mode=2")
+        if method == TargetsNormalization("minmax") and self._settings.peak_mode != PeakMode.AbsMax:
+            raise NotImplementedError("C generation currently supports only peak_mode=AbsMax")
 
         builders = {
-            "minmax": c_compile.build_normalization_minmax,
-            "zscore": c_compile.build_normalization_zscore,
+            TargetsNormalization("minmax"): c_compile.build_normalization_minmax,
+            TargetsNormalization("zscore"): c_compile.build_normalization_zscore,
         }
         builders[method](
             bitwidth=bitwidth,
@@ -176,7 +196,7 @@ class DataNormalization:
 
     ################################ IMPLEMENTED METHODS ################################
     def _normalize_zeroone(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
-        self._settings.peak_mode = 2
+        self._settings.peak_mode = PeakMode.AbsMax
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(2 * self.__params["scale_used"], dataset.shape[-1])
@@ -187,7 +207,7 @@ class DataNormalization:
         return dataset_norm
 
     def _normalize_minmax(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
-        self._settings.peak_mode = 2
+        self._settings.peak_mode = PeakMode.AbsMax
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])

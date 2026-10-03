@@ -9,7 +9,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 import elasticai.creator_plugins.windower as windower
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -25,7 +25,7 @@ def build_testdata(
     data = list()
     for _ in range(num_repeats):
         data.extend(waveform)
-    return arith_data.cut_as_integer(data)
+    return list(map(arith_data.cut_as_integer, data))
 
 
 @cocotb.test()
@@ -164,10 +164,10 @@ def test_build(
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
         SettingsFilter(
-            fs=2e3,
+            method=TargetsFilter("fir"),
+            sampling_rate=2e3,
             n_order=1,
             f_filt=[2e3 / length],
-            method="fir",
             f_type="butter",
             b_type="allpass",
         )

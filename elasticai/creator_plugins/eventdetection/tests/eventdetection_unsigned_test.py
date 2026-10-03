@@ -164,7 +164,7 @@ def test_eventdetection_unsigned_sub_codesign(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
 ) -> None:
-    sets = SettingsEventDetection(window_size=10, type=TargetsEventDetection.Normal, out_invert=True)
+    sets = SettingsEventDetection(window_size=10, method=TargetsEventDetection.Normal, out_invert=True)
     dut = EventDetection(settings=sets)
 
     arith = int_arithmetic(total_bits=bitwidth, signed=False)

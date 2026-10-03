@@ -21,24 +21,28 @@ class TargetsEventPreprocessors(Enum):
 class SettingsEventPreprocessor:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
-        type:           Applied comparator preprocessing method for transient signals [normal, absolute, Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (window_size = 1 or kNEO with window_size > 1),
-                        Multiresolution Teager Energy Operator (MTEO), absolute difference operator (ADO),
-                        enhanced energy-derivation operator (eED),
-                        amplitude slope operator (ASO, window_size and f_hp as additional float arg),
-                        spike band-power estimation (SBP, using f_bp with two values as additional arg)
+        method:         TargetsEventPreprocessors: Applied comparator preprocessing method for transient signals [
+                            Normal = "normal"
+                            Absolute = "absolute"
+                            NEO = "neo": Non-Linear Energy Operator (NEO) or Teager-Kaiser-Operator (window_size = 1 or kNEO with window_size > 1),
+                            MTEO = "mteo": Multiresolution Teager Energy Operator (MTEO),
+                            ADO = "ado": absolute difference operator (ADO),
+                            ASO = "aso": amplitude slope operator (ASO, window_size and f_hp as additional float arg),
+                            EED = "eed": enhanced energy-derivation operator (eED),
+                            SPB = "spb": spike band-power estimation (SBP, using f_bp with two values as additional arg)
         sampling_rate:  Sampling rate [Hz]
         window_size:    Position difference for extracting SDA method. Configuration with length(x) == 1: with dX = 1 --> NEO, dX > 1 --> k-NEO
         f_filt:         List with filter frequencies for the methods (ASO, SBP)
     """
 
-    type: TargetsEventPreprocessors
+    method: TargetsEventPreprocessors
     sampling_rate: float
     window_size: list[int]
     f_filt: list[float]
 
 
 DefaultSettingsEventPreprocessor = SettingsEventPreprocessor(
-    type=TargetsEventPreprocessors.Normal, sampling_rate=10e3, window_size=[5], f_filt=[150.0]
+    method=TargetsEventPreprocessors.Normal, sampling_rate=10e3, window_size=[5], f_filt=[150.0]
 )
 
 
@@ -52,8 +56,8 @@ class EventPreprocessor:
         :return:            None"""
         self._logger = getLogger(__name__)
         self._settings = settings
-        if isinstance(settings.type, str):
-            self._settings.type = TargetsEventPreprocessors(settings.type)
+        if isinstance(settings.method, str):
+            self._settings.method = TargetsEventPreprocessors(settings.method)
 
     def _get_methods(self) -> list:
         split_key = "_sda_"
@@ -120,11 +124,11 @@ class EventPreprocessor:
             raise ValueError("Length of dx_sda must be greater than 1")
         if self._settings.window_size[0] < 1:
             raise ValueError("Value of dx_sda[0] must be greater than 1")
-        if self._settings.type.value not in self._get_methods():
+        if self._settings.method.value not in self._get_methods():
             raise ValueError(
-                f"Event Preprocessing Method '{self._settings.type}' is not known. Please change!"
+                f"Event Preprocessing Method '{self._settings.method}' is not known. Please change!"
             )
-        return getattr(self, f"_sda_{self._settings.type.value}")(xraw)
+        return getattr(self, f"_sda_{self._settings.method.value}")(xraw)
 
     def create_design(self) -> None:
         raise NotImplementedError

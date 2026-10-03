@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import Enum
 from pathlib import Path
 
 import numpy as np

@@ -39,28 +39,28 @@ class FilterCoeffs:
 class SettingsFilter:
     """Configuration class for defining the filter processor
     Attributes:
-        fs:         Sampling rate [Hz]
-        n_order:    Integer with number of filter order
-        f_filt:     List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
-        method:     String with selected filter algorithm ['iir', 'fir']
-        f_type:     String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
-        b_type:     String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
+        method:         TargetsFiler selected filter algorithm [IIR, FIR]
+        sampling_rate:  Sampling rate [Hz]
+        n_order:        Integer with number of filter order
+        f_filt:         List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
+        f_type:         String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
+        b_type:         String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
     """
 
-    fs: float
+    method: TargetsFilter
+    sampling_rate: float
     n_order: int
     f_filt: list
-    method: TargetsFilter
     f_type: str
     b_type: str
 
     @property
     def _num_delay_taps(self) -> int:
-        return int(self.fs / self.f_filt[0])
+        return int(self.sampling_rate / self.f_filt[0])
 
 
 DefaultSettingsFilter = SettingsFilter(
-    fs=0.3e3,
+    sampling_rate=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
     method=TargetsFilter.IIR,
@@ -158,7 +158,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 filter = scft.iirnotch(
                     w0=float(self._settings.f_filt[0]),
                     Q=self._settings.n_order,
-                    fs=self._settings.fs,
+                    fs=self._settings.sampling_rate,
                 )
                 self._coeff_b = filter[0]
                 self._coeff_a = filter[1]
@@ -167,7 +167,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     assert len(self._settings.f_filt) == 1, (
                         "f_filt should have length of 1 with [f_b] value"
                     )
-                    val = np.tan(np.pi * frange[0] / self._settings.fs)
+                    val = np.tan(np.pi * frange[0] / self._settings.sampling_rate)
                     iir_c0 = (val - 1) / (val + 1)
                     self._coeff_b = np.array([iir_c0, 1.0])
                     self._coeff_a = np.array([1.0, iir_c0])
@@ -175,9 +175,9 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     assert len(self._settings.f_filt) == 2, (
                         "f_filt should have length of 2 with [f_b, bandwidth] value"
                     )
-                    val = np.tan(np.pi * frange[1] / self._settings.fs)
+                    val = np.tan(np.pi * frange[1] / self._settings.sampling_rate)
                     iir_c0 = (val - 1) / (val + 1)
-                    iir_c1 = -np.cos(2 * np.pi * frange[0] / self._settings.fs)
+                    iir_c1 = -np.cos(2 * np.pi * frange[0] / self._settings.sampling_rate)
                     self._coeff_b = np.array([-iir_c0, iir_c1 * (1 - iir_c0), 1.0])
                     self._coeff_a = np.array([1.0, iir_c1 * (1 - iir_c0), -iir_c0])
                 else:
@@ -186,7 +186,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 filter = scft.iirfilter(
                     N=self._settings.n_order,
                     Wn=frange[0] if len(frange) == 1 else frange,
-                    fs=self._settings.fs,
+                    fs=self._settings.sampling_rate,
                     ftype=self._settings.f_type.lower(),
                     btype=self._settings.b_type.lower(),
                     analog=False,
@@ -208,7 +208,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     frange[0] - frange[1],
                     frange[0],
                     frange[0] + frange[1],
-                    self._settings.fs / 2,
+                    self._settings.sampling_rate / 2,
                 ]
                 gain = [1, 1, 0, 1, 1]
 
@@ -216,7 +216,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     numtaps=self._settings.n_order,
                     freq=freq,
                     gain=gain,
-                    fs=self._settings.fs,
+                    fs=self._settings.sampling_rate,
                 )
             case "allpass":
                 self._coeff_b = np.array(
@@ -226,13 +226,16 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     ]
                 )
             case _:
-                if self._settings.n_order == 1 and self._settings.f_filt[0] / self._settings.fs == 0.5:
+                if (
+                    self._settings.n_order == 1
+                    and self._settings.f_filt[0] / self._settings.sampling_rate == 0.5
+                ):
                     self._coeff_b = np.array([0.5, 0.5])
                 else:
                     self._coeff_b = scft.firwin(
                         numtaps=self._settings.n_order,
                         cutoff=frange,
-                        fs=self._settings.fs,
+                        fs=self._settings.sampling_rate,
                         pass_zero=self._settings.b_type.lower(),
                     )
 
@@ -488,7 +491,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             )
         elif self._settings.method == TargetsFilter.FIR:
             if self._settings.b_type.lower() not in ["allpass"]:
-                if self._settings.f_filt[0] / self._settings.fs == 0.5:
+                if self._settings.f_filt[0] / self._settings.sampling_rate == 0.5:
                     params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
                 elif self._settings.n_order % 2 == 1:
                     params = self._create_fir_half_verilog(id, bitwidth, True, num_mult)
@@ -522,7 +525,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         elif (
             filter_type == "fir"
             and filter_structure == "lowpass"
-            and self._settings.f_filt[0] / self._settings.fs == 0.5
+            and self._settings.f_filt[0] / self._settings.sampling_rate == 0.5
         ):
             c_compile.build_filter_simple(
                 order=2,

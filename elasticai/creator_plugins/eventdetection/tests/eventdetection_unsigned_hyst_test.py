@@ -164,7 +164,7 @@ def test_build(
     dut = EventDetection(
         SettingsEventDetection(
             window_size=window_size,
-            type=TargetsEventDetection.DoubleHyst,
+            method=TargetsEventDetection.DoubleHyst,
             out_invert=False,
         )
     )
@@ -206,11 +206,11 @@ def test_equal(
     threshold = 2 ** (bitwidth - 1)
     window_size = 10
 
-    for vtype in [TargetsEventDetection.PosHyst]:
+    for vmethod in [TargetsEventDetection.PosHyst]:
         dut = EventDetection(
             SettingsEventDetection(
                 window_size=window_size,
-                type=vtype,
+                method=vmethod,
                 out_invert=True,
             )
         )
@@ -234,7 +234,7 @@ def test_equal(
             dut.create_design(
                 target="fpga",
                 bitwidth=bitwidth,
-                id=f"{vtype.value}",
+                id=f"{vmethod.value}",
                 path2save=build_dir,
                 signed=False,
             )
@@ -246,7 +246,9 @@ def test_equal(
                     "check": data_checked,
                 }
             )
-            cocotb_test_fixture.set_top_module_name(f"EVENTDETECTOR_HYST_UNSIGNED_{vtype.value.upper()}")
+            cocotb_test_fixture.set_top_module_name(
+                f"EVENTDETECTOR_HYST_UNSIGNED_{vmethod.value.upper()}"
+            )
             cocotb_test_fixture.clear_srcs()
             cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
             cocotb_test_fixture.run(

@@ -6,7 +6,7 @@ import pytest
 
 from elasticai.creator_plugins.filter_data.tests._filter_c_check import check_filter_c_equivalence
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -55,7 +55,14 @@ def tmp_path() -> Path:
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_build(tmp_path: Path, target: str) -> None:
-    settings = SettingsFilter(1000.0, 6, [100.0], "fir", "butter", "lowpass")
+    settings = SettingsFilter(
+        method=TargetsFilter("fir"),
+        sampling_rate=1000.0,
+        n_order=6,
+        f_filt=[100.0],
+        f_type="butter",
+        b_type="lowpass"
+    )
     Filtering(settings).create_design(target, bitwidth=8, id="0", path2save=tmp_path)
     assert (tmp_path / "filter_fir_low_0.c").exists()
     assert (tmp_path / "filter_fir_low_0.h").exists()
@@ -70,7 +77,13 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(1000.0, 50, [100.0], "fir", "butter", "lowpass")
+    settings = SettingsFilter(
+        method=TargetsFilter("fir"),
+        sampling_rate=1000.0,
+        n_order=50,
+        f_filt=[100.0],
+        f_type="butter",
+        b_type="lowpass")
     check_filter_c_equivalence(
         settings,
         tmp_path,
