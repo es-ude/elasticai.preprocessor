@@ -13,7 +13,7 @@ from elasticai.preprocessor.transformation import do_fft
 from .filtering import Filtering, SettingsFilter
 
 test_settings = SettingsFilter(
-    fs=1e3,
+    sampling_rate=1e3,
     n_order=2,
     f_filt=[250],
     method="iir",
@@ -22,8 +22,8 @@ test_settings = SettingsFilter(
 )
 
 
-def extract_peaks(signal: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    freq, trans = do_fft(y=signal, fs=fs)
+def extract_peaks(signal: np.ndarray, sampling_rate: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    freq, trans = do_fft(y=signal, sampling_rate=sampling_rate)
     peakx, _ = find_peaks(x=trans, height=0.05)
     return freq[peakx], trans[peakx], peakx
 
@@ -32,7 +32,7 @@ class TestDigitalFilters(TestCase):
     time = np.linspace(
         start=0.0,
         stop=5.0,
-        num=int(5.0 * test_settings.fs),
+        num=int(5.0 * test_settings.sampling_rate),
         endpoint=False,
         dtype=float,
     )
@@ -56,7 +56,7 @@ class TestDigitalFilters(TestCase):
 
     def test_signal_generation(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
-        f0, y0, _ = extract_peaks(signal, test_settings.fs)
+        f0, y0, _ = extract_peaks(signal, test_settings.sampling_rate)
         assert self.freq == f0.tolist()
         np.testing.assert_almost_equal(
             y0, [1.07953976, 1.07954007, 1.07954007, 1.07954005, 1.07954001], decimal=3
@@ -71,8 +71,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.98, 0.93, 0.71, 0.44, 0.21], decimal=1)
@@ -88,8 +88,8 @@ class TestDigitalFilters(TestCase):
             signal, total_bitwidth=10, fraction_width=4, is_signed=True
         )
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.98, 0.93, 0.71, 0.44, 0.21], decimal=1)
@@ -103,8 +103,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.98, 0.71, 0.23, 0.05], decimal=1)
@@ -118,8 +118,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.19, 0.36, 0.71, 0.9, 0.98], decimal=1)
@@ -133,8 +133,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0, 100.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.1, 0.21, 0.71, 0.71, 0.25], decimal=1)
@@ -148,8 +148,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0, 100.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.98, 0.71, 0.71, 0.97], decimal=1)
@@ -163,8 +163,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.98, 0.9, 0.001, 0.84, 0.97], decimal=1)
@@ -178,8 +178,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.99, 0.99, 0.99], decimal=1)
@@ -193,8 +193,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.98, 0.92, 0.59, 0.09, 0.001], decimal=2)
@@ -208,8 +208,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.5, 0.001, 0.001], decimal=2)
@@ -223,8 +223,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [20.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.26, 0.5, 0.99, 0.99, 0.99], decimal=2)
@@ -238,8 +238,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [20.0, 100.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.25, 0.49, 0.99, 0.49, 0.001], decimal=2)
@@ -253,8 +253,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [20.0, 100.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.88, 0.59, 0.01, 0.59, 1.18], decimal=2)
@@ -268,8 +268,8 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0, 1.0]
         result = Filtering(sets).filt(signal)
 
-        freq0, peak0, pos = extract_peaks(signal, sets.fs)
-        freq1, peak1 = do_fft(result, sets.fs)
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.73, 0.99, 0.99], decimal=2)
@@ -280,7 +280,7 @@ class TestDigitalFilters(TestCase):
         sets.method = "fir"
         sets.n_order = 1
         sets.b_type = "allpass"
-        sets.f_filt = [sets.fs / 50]
+        sets.f_filt = [sets.sampling_rate / 50]
         result = Filtering(sets).filt(signal)
 
         result_reduced = result[sets._num_delay_taps - 1 :]
@@ -293,7 +293,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 51
         sets.b_type = "lowpass"
         sets.f_filt = [80.0]
-        sets.fs = 200.0
+        sets.sampling_rate = 200.0
         bitwidth = 10
 
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
@@ -317,7 +317,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 51
         sets.b_type = "highpass"
         sets.f_filt = [80.0]
-        sets.fs = 200.0
+        sets.sampling_rate = 200.0
         bitwidth = 10
 
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
@@ -341,7 +341,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 2
         sets.b_type = "lowpass"
         sets.f_filt = [80.0]
-        sets.fs = 200.0
+        sets.sampling_rate = 200.0
         bitwidth = 10
 
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
@@ -365,7 +365,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 2
         sets.b_type = "highpass"
         sets.f_filt = [80.0]
-        sets.fs = 200.0
+        sets.sampling_rate = 200.0
         bitwidth = 10
 
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
@@ -581,7 +581,7 @@ class TestDigitalFilters(TestCase):
         sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 1
-        sets.f_filt = [sets.fs / 2]
+        sets.f_filt = [sets.sampling_rate / 2]
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
@@ -676,7 +676,7 @@ class TestDigitalFilters(TestCase):
         sets.method = "fir"
         sets.b_type = "allpass"
         sets.n_order = 1
-        sets.f_filt = [sets.fs / 21]
+        sets.f_filt = [sets.sampling_rate / 21]
 
         with TemporaryDirectory() as directory:
             project_dir = Path(directory)

@@ -6,7 +6,7 @@ import pytest
 
 from elasticai.creator_plugins.filter_data.tests._filter_c_check import check_filter_c_equivalence
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
@@ -59,7 +59,13 @@ def tmp_path() -> Path:
 def test_build(tmp_path: Path, target: str) -> None:
     backup = tmp_path / f"build_{target}"
     with temporary_directory(backup) as tmpdir:
-        settings = SettingsFilter(1000.0, 1, [500.0], "fir", "butter", "lowpass")
+        settings = SettingsFilter(
+            method=TargetsFilter("fir"),
+            sampling_rate=1000.0,
+            n_order=1,
+            f_filt=[500.0],
+            f_type="butter",
+            b_type="lowpass")
         Filtering(settings).create_design(target, bitwidth=8, id="0", path2save=tmpdir)
         assert (tmpdir / "filter_fir_mavg_0.c").exists()
         assert (tmpdir / "filter_fir_mavg_0.h").exists()
@@ -75,10 +81,10 @@ def test_build_equal(
     c_type: str,
 ) -> None:
     settings = SettingsFilter(
-        fs=1000.0,
+        method="fir",
+        sampling_rate=1000.0,
         n_order=1,
         f_filt=[500.0],
-        method="fir",
         f_type="butter",
         b_type="lowpass"
     )

@@ -60,7 +60,7 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
     eventdetector = EventDetection(
         SettingsEventDetection(
             window_size=10,
-            type=TargetsEventDetection.DoubleHyst,
+            method=TargetsEventDetection.DoubleHyst,
             out_invert=False,
         )
     )
@@ -92,7 +92,7 @@ def test_generated_eventdetection_c_matches_python_frame(
 ) -> None:
     block_plot = False
     settings = SettingsEventDetection(
-        window_size=10, type=TargetsEventDetection(c_hysteresis), out_invert=out_invert
+        window_size=10, method=TargetsEventDetection(c_hysteresis), out_invert=out_invert
     )
     eventdetector = EventDetection(settings)
 

@@ -43,8 +43,8 @@ def build_filter_delay(
         "template_name": "filter_fir_delay_template.h",
         "device_id": module_id.lower(),
         "data_type": data_type_filter,
-        "fs": f"{settings.fs}",
-        "t_dly_us": str(filter_order / settings.fs * 1e6),
+        "fs": f"{settings.sampling_rate}",
+        "t_dly_us": str(filter_order / settings.sampling_rate * 1e6),
         "filter_order": str(filter_order),
     }
 

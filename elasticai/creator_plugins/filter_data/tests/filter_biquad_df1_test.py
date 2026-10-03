@@ -12,7 +12,7 @@ from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -28,7 +28,7 @@ def build_testdata(
     data = list()
     for _ in range(num_repeats):
         data.extend(waveform)
-    return arith_data.cut_as_integer(data)
+    return list(map(arith_data.cut_as_integer, data))
 
 
 def plot_results(data_in, data_out, data_check):
@@ -172,10 +172,10 @@ def test_build(
 ):
     dut = Filtering(
         SettingsFilter(
-            fs=2e3,
+            method=TargetsFilter("iir"),
+            sampling_rate=2e3,
             n_order=order,
             f_filt=[50],
-            method="iir",
             f_type="butter",
             b_type="lowpass",
         )
@@ -225,10 +225,10 @@ def test_build_equal(
 ):
     dut = Filtering(
         SettingsFilter(
-            fs=2e3,
+            method=TargetsFilter("iir"),
+            sampling_rate=2e3,
             n_order=order,
             f_filt=[150],
-            method="iir",
             f_type="butter",
             b_type="lowpass",
         )
@@ -245,7 +245,7 @@ def test_build_equal(
         fraction_width=fracwidth,
         is_signed=True,
     ).tolist()
-    data_checked = arith_data.cut_as_integer(data_checked)
+    data_checked = list(map(arith_data.cut_as_integer, data_checked))
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:

@@ -4,17 +4,24 @@ from unittest import TestCase
 import numpy as np
 
 from elasticai.preprocessor._check_funcs import compare_timestamps
+from elasticai.preprocessor.eventdetection import (
+    TargetsEventPreprocessors,
+    TargetsFrameAlignment,
+)
 from elasticai.preprocessor.eventdetection.frame_alignment_test import (
     _build_sorted_timestamps,
     _build_spike_signal,
+)
+from elasticai.preprocessor.thresholding import (
+    TargetsThreshold,
 )
 
 from .sda import SettingsSDA, SpikeDetection
 
 TestSettings = SettingsSDA(
-    mode_align="min",
-    mode_sda="normal",
-    mode_thr="constant",
+    method=TargetsEventPreprocessors("normal"),
+    mode_thr=TargetsThreshold("constant"),
+    mode_align=TargetsFrameAlignment("min"),
     dx_sda=[1],
     sampling_rate=20e3,
     t_frame_length=1.6e-3,
@@ -88,7 +95,7 @@ class TestSpikeDetection(TestCase):
         )
 
     def test_position_align_none(self):
-        self.set0.mode_align = "none"
+        self.set0.mode_align = TargetsFrameAlignment("none")
         rslt = SpikeDetection(self.set0).get_frames_from_positions(
             xraw=self.signal_eap[0], xpos=self.signal_eap[1], xoffset=-20
         )
@@ -102,7 +109,7 @@ class TestSpikeDetection(TestCase):
         self.assertGreater(rslt_pos.f1_score, 0.95)
 
     def test_position_align_min(self):
-        self.set0.mode_align = "min"
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames_from_positions(
             xraw=self.signal_eap[0], xpos=self.signal_eap[1], xoffset=-18
         )
@@ -120,9 +127,9 @@ class TestSpikeDetection(TestCase):
         )
 
     def test_frame_normal_const(self):
-        self.set0.mode_sda = "normal"
-        self.set0.mode_thr = "constant"
-        self.set0.mode_align = "none"
+        self.set0.method = TargetsEventPreprocessors("normal")
+        self.set0.mode_thr = TargetsThreshold("constant")
+        self.set0.mode_align = TargetsFrameAlignment("none")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -133,9 +140,9 @@ class TestSpikeDetection(TestCase):
         self.assertGreater(rslt_pos.f1_score, 0.95)
 
     def test_spike_transient_min_const(self):
-        self.set0.mode_sda = "normal"
-        self.set0.mode_thr = "constant"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("normal")
+        self.set0.mode_thr = TargetsThreshold("constant")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -151,9 +158,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_neo(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "neo"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("neo")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -169,9 +176,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_mteo(self):
         self.set0.dx_sda = [2, 4, 6]
-        self.set0.mode_sda = "mteo"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("mteo")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -183,9 +190,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_absolute(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "absolute"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("absolute")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -198,9 +205,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_ado(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "ado"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("ado")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -213,9 +220,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_aso(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "aso"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("aso")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
@@ -227,9 +234,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_eed(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "eed"
-        self.set0.mode_thr = "rms_black"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("eed")
+        self.set0.mode_thr = TargetsThreshold("rms_black")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         self.set0.f_filt = [200.0]
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
         rslt_pos = compare_timestamps(
@@ -242,9 +249,9 @@ class TestSpikeDetection(TestCase):
 
     def test_spike_transient_spb(self):
         self.set0.dx_sda = [2]
-        self.set0.mode_sda = "spb"
-        self.set0.mode_thr = "constant"
-        self.set0.mode_align = "min"
+        self.set0.method = TargetsEventPreprocessors("spb")
+        self.set0.mode_thr = TargetsThreshold("constant")
+        self.set0.mode_align = TargetsFrameAlignment("min")
         self.set0.f_filt = [200.0, 2000.0]
         rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=60e-6)
         rslt_pos = compare_timestamps(

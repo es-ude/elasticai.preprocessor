@@ -2,6 +2,7 @@
 **/__pycache__
 elasticai/__init__.py
 .DS_Store
+tags
 
 **/.python-version
 **/build*
@@ -13,7 +14,6 @@ elasticai/__init__.py
 **/dist
 *data
 
-.DS_Store
 .coverage
 coverage.xml
 .testmondata*

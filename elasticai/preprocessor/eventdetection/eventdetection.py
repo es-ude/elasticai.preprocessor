@@ -20,23 +20,23 @@ class TargetsEventDetection(Enum):
 class SettingsEventDetection:
     """Settings class for configuring the properties of the event detection module
     Attributes:
-        window_size:    Hysteresis window
-        type:           Applied types of hysteresis [
+        method:           Applied types of hysteresis [
             'normal':      event_on/off -> threshold,
             'pos_hyst':    event_on -> thr + h, event_off -> thr,
             'neg_hyst':    event_on -> thr, event_off thr - h,
             'double_hyst': event_on -> thr + h, event_off -> thr - h]
+        window_size:    Hysteresis window
         out_invert:     Is event low [True] or event high [False]
     """
 
+    method: TargetsEventDetection
     window_size: int
-    type: TargetsEventDetection
     out_invert: bool
 
 
 DefaultSettingsEventDetection = SettingsEventDetection(
+    method=TargetsEventDetection.Normal,
     window_size=10,
-    type=TargetsEventDetection.Normal,
     out_invert=False,
 )
 
@@ -52,15 +52,15 @@ class EventDetection:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
-        if isinstance(settings.type, str):
-            self._settings.type = TargetsEventDetection(settings.type)
+        if isinstance(settings.method, str):
+            self._settings.method = TargetsEventDetection(settings.method)
 
     def _type_hysteresis(self, threshold: int) -> list:
         thr_zero = threshold
         thr_pos = thr_zero + self._settings.window_size
         thr_neg = thr_zero - self._settings.window_size
 
-        match self._settings.type:
+        match self._settings.method:
             case TargetsEventDetection.Normal:
                 list_out = [thr_zero, thr_zero]
             case TargetsEventDetection.PosHyst:
@@ -70,7 +70,7 @@ class EventDetection:
             case TargetsEventDetection.DoubleHyst:
                 list_out = [thr_pos, thr_neg]
             case _:
-                raise NotImplementedError(f"Hysteresis_type '{self._settings.type}' does not exist.")
+                raise NotImplementedError(f"Hysteresis_method '{self._settings.method}' does not exist.")
         return list_out
 
     def get_events(self, xin: np.ndarray, threshold: np.ndarray) -> np.ndarray:
@@ -157,7 +157,7 @@ class EventDetection:
 
         c_compile.build_eventdetection(
             hysteresis=self._settings.window_size,
-            hysteresis_type=self._settings.type.value,
+            hysteresis_type=self._settings.method.value,
             out_invert=self._settings.out_invert,
             bitwidth=bitwidth,
             signed=signed,
@@ -177,7 +177,7 @@ class EventDetection:
 
         module_appendix = "un" if not signed else ""
         thr_on, thr_off = self._type_hysteresis(0)
-        match self._settings.type:
+        match self._settings.method:
             case TargetsEventDetection.Normal:
                 load_and_plugin(
                     type=f"eventdetector_sub_{module_appendix}signed",

@@ -9,7 +9,6 @@ from scipy.signal import convolve2d
 class SettingsReferencing:
     """Class for defining the properties of the common referencing methods
     Attributes:
-        dim:            Integer with applied dimension
         kernel_size:    Kernel size for convolution (must be odd-numbered)
     """
 

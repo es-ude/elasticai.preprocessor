@@ -19,14 +19,14 @@ class TargetsFrameAlignment(Enum):
 class SettingsFrameAlignment:
     """Class with settings for the FrameGenerator to configure his properties
     Attributes:
-        type:           Aligning mode of the detected spike frames [none, max, min,
+        method:         Aligning mode of the detected spike frames [none, max, min,
                         ptp (Positive turning point), ntp (Negative turning point), abs-max (Absolute maximum)]
         sampling_rate:  Sampling rate of the transient signal [Hz]
         align_sec:      Starting position for aligning the frame waveform [s]
         offset_sec:     Offset for aligning the frame waveform [s]
     """
 
-    type: TargetsFrameAlignment
+    method: TargetsFrameAlignment
     sampling_rate: float
     offset_sec: float
     align_sec: float
@@ -41,7 +41,7 @@ class SettingsFrameAlignment:
 
 
 DefaultSettingsFrameAlignment = SettingsFrameAlignment(
-    type=TargetsFrameAlignment.Max,
+    method=TargetsFrameAlignment.Max,
     sampling_rate=20e3,
     align_sec=0.4e-3,
     offset_sec=0.4e-3,
@@ -55,8 +55,8 @@ class FrameAligner:
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
-        if isinstance(settings.type, str):
-            self._settings.type = TargetsFrameAlignment(settings.type)
+        if isinstance(settings.method, str):
+            self._settings.method = TargetsFrameAlignment(settings.method)
 
     def _frame_align_none(self, frame_in: np.ndarray) -> int:
         return self._settings.length_offset_int
@@ -98,11 +98,12 @@ class FrameAligner:
         :param frame_in:    Numpy array with detected spike frames
         :return:            List with integer of starting positions
         """
-        method = f"_frame_align_{self._settings.type.value.lower()}"
-        if method in self._get_methods():
+        method_name = self._settings.method.value.lower()
+        if method_name not in self._get_methods():
             raise ValueError(
-                f"Frame Aligning Method '{self._settings.type.value.lower()}' is not in {self._get_methods()}. Please change!"
+                f"Frame Aligning Method '{method_name}' is not in {self._get_methods()}. Please change!"
             )
+        method = f"_frame_align_{method_name}"
 
         num_trials = frame_in.shape[0] if len(frame_in.shape) > 1 else 1
         frames_out = list()

@@ -6,7 +6,7 @@ import pytest
 
 from elasticai.creator_plugins.filter_data.tests._filter_c_check import check_filter_c_equivalence
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
@@ -80,7 +80,14 @@ def tmp_path() -> Path:
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_build(tmp_path: Path, target: str) -> None:
-    settings = SettingsFilter(1000.0, 4, [50.0], "fir", "butter", "allpass")
+    settings = SettingsFilter(
+        method=TargetsFilter("fir"),
+        sampling_rate=1000.0,
+        n_order=4,
+        f_filt=[50.0],
+        f_type="butter",
+        b_type="allpass"
+    )
 
     backup = tmp_path / f"build_{target}"
     backup.mkdir(parents=True, exist_ok=True)
@@ -99,7 +106,14 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(1000.0, 1, [1000.0 / 21], "fir", "butter", "allpass")
+    settings = SettingsFilter(
+        method=TargetsFilter("fir"),
+        sampling_rate=1000.0,
+        n_order=1,
+        f_filt=[1000.0 / 21],
+        f_type="butter",
+        b_type="allpass"
+    )
     check_filter_c_equivalence(
         settings,
         tmp_path,

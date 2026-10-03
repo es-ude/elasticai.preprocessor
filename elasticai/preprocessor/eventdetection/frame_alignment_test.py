@@ -134,41 +134,41 @@ class TestFrameGenerator(unittest.TestCase):
         self.assertTrue("max" in rslt)
 
     def test_get_align_frame_none(self):
-        self.set0.type = "none"
+        self.set0.method = "none"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap[0])
         assert rslt == [self.set0.length_offset_int] * 1
 
     def test_get_align_frames_none(self):
-        self.set0.type = "none"
+        self.set0.method = "none"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_max(self):
-        self.set0.type = "max"
+        self.set0.method = "max"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [17 - self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_min(self):
-        self.set0.type = "min"
+        self.set0.method = "min"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [9 - self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_ntp(self):
-        self.set0.type = "ntp"
+        self.set0.method = "ntp"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [7 - self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_ptp(self):
-        self.set0.type = "ptp"
+        self.set0.method = "ptp"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [12 - self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_absmax(self):
-        self.set0.type = "absmax"
+        self.set0.method = "absmax"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [9 - self.set0.length_offset_int] * self.frames_eap.shape[0]
 
     def test_get_align_frames_absmin(self):
-        self.set0.type = "absmin"
+        self.set0.method = "absmin"
         rslt = FrameAligner(self.set0).get_aligned_position(frame_in=self.frames_eap)
         assert rslt == [31 - self.set0.length_offset_int] * self.frames_eap.shape[0]
