@@ -33,6 +33,7 @@ uv sync (--refresh --upgrade)
 For providing a smoothless development, we encourage to use the `devenv` environment. 
 It manages all external tools and provides scripts to run tests and fix linting problems. 
 If you do not want to install `devenv` locally, you have to install the `iverilog` package, please use the following lines in your terminal:
+
 (Linux)
 ```
 sudo apt-get update
