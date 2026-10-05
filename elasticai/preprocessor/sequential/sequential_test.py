@@ -115,6 +115,23 @@ def test_sequential_stages_build(num_stages: int, check: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "take_stage, check",
+    [
+        (0, "Offset"),
+        (1, "Amplifier"),
+    ],
+)
+def test_sequential_getitem(take_stage: int, check: str) -> None:
+    pipeline = PreprocessingSequential(
+        Offset(settings=SettingsAdderOffset(offset=1.0)),
+        Amplifier(settings=SettingsAmplifier(gain=1.0)),
+    )
+
+    assert len(pipeline) == 2
+    assert type(pipeline[take_stage]).__name__ == check
+
+
+@pytest.mark.parametrize(
     "num_stages, gain",
     [
         (1, [2.0]),

@@ -234,6 +234,42 @@ class TestWindowSequencer(TestCase):
                 file = path2save / filename
                 assert file.exists()
 
+    def test_create_design_c_mcu(self):
+        set0 = deepcopy(self.sets)
+        set0.sampling_rate = 100
+        set0.window_sec = 0.32
+        set0.overlap_sec = 0.28
+
+        with pytest.raises(NotImplementedError):
+            with TemporaryDirectory() as directory:
+                path2save = Path(directory)
+                path2save.mkdir(parents=True, exist_ok=True)
+
+                WindowSequencer(set0).create_design("mcu", 8, "0", path2save)
+                files_available = []
+
+                for filename in files_available:
+                    file = path2save / filename
+                    assert file.exists()
+
+    def test_create_design_c_pc(self):
+        set0 = deepcopy(self.sets)
+        set0.sampling_rate = 100
+        set0.window_sec = 0.32
+        set0.overlap_sec = 0.28
+
+        with pytest.raises(NotImplementedError):
+            with TemporaryDirectory() as directory:
+                path2save = Path(directory)
+                path2save.mkdir(parents=True, exist_ok=True)
+
+                WindowSequencer(set0).create_design("pc", 8, "0", path2save)
+                files_available = []
+
+                for filename in files_available:
+                    file = path2save / filename
+                    assert file.exists()
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import TestCase, main
+from unittest import TestCase
 
 import numpy as np
 import pytest
@@ -111,7 +111,7 @@ def test_list_methods():
         peak_mode=0,
     )
     test_func = DataNormalization(settings=sets)
-    key = test_func.list_normalization_methods()
+    key = test_func._list_normalization_methods()
     assert len(key) == 6
 
 
@@ -260,6 +260,38 @@ def test_create_c_zscore():
         }
 
 
-if __name__ == "__main__":
-    main()
-    pytest.main([__file__])
+DATA = np.array([[1.0, -5.0, 3.0], [-2.0, 2.0, 0.5]])
+
+
+@pytest.mark.parametrize(
+    "peak_mode, expected",
+    [
+        (0, [3.0, 2.0]),
+        (1, [5.0, 2.0]),
+        (2, [5.0, 2.0]),
+    ],
+)
+def test_numpy_peak(peak_mode, expected):
+    sets = NormalizationSettings(
+        method=NormalizationTargets("zscore"),
+        peak_mode=peak_mode,
+    )
+    results = DataNormalization(sets)._get_data_peak_value_numpy(DATA)
+    np.testing.assert_allclose(results, expected)
+
+
+@pytest.mark.parametrize(
+    "peak_mode, expected",
+    [
+        (0, [3.0, 2.0]),
+        (1, [5.0, 2.0]),
+        (2, [5.0, 2.0]),
+    ],
+)
+def test_tensor_peak(peak_mode, expected):
+    sets = NormalizationSettings(
+        method=NormalizationTargets("zscore"),
+        peak_mode=peak_mode,
+    )
+    result = DataNormalization(sets)._get_data_peak_value_tensor(torch.tensor(DATA))
+    torch.testing.assert_close(result, torch.tensor(expected, dtype=torch.float64))
