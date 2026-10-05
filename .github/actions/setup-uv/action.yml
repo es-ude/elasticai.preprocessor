@@ -4,6 +4,12 @@ description: "Set up Python and uv for CI"
 runs:
   using: "composite"
   steps:
+    - name: Installing iverilog
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y iverilog
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
