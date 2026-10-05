@@ -90,6 +90,7 @@ exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py"]
 [tool.pytest]
 markers = [
   "simulation: a slow simulation test",
+  "hardware: a hardware test to validate func"
 ]
 minversion = "9.0"
 norecursedirs = ["plugins_c"]
