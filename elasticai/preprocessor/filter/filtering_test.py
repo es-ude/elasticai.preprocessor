@@ -6,11 +6,13 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase, main, skipUnless
 
 import numpy as np
+import pytest
 from scipy.signal import find_peaks
 
+from elasticai.preprocessor.sequential import SequentialSignal
 from elasticai.preprocessor.transformation import do_fft
 
-from .filtering import Filtering, FilterSettings
+from .filtering import Filtering, FilterSettings, FilterTargets
 
 test_settings = FilterSettings(
     sampling_rate=1e3,
@@ -69,10 +71,12 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = "lowpass"
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result0 = Filtering(sets).filt(signal)
+        result1 = Filtering(sets)(SequentialSignal(data=signal, sample_rate=test_settings.sampling_rate))
 
+        assert result0.tolist() == result1.data.tolist()
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
-        freq1, peak1 = do_fft(result, sets.sampling_rate)
+        freq1, peak1 = do_fft(result0, sets.sampling_rate)
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.98, 0.93, 0.71, 0.44, 0.21], decimal=1)
@@ -183,6 +187,112 @@ class TestDigitalFilters(TestCase):
         assert freq0.tolist() == freq1[pos].tolist()
         gain = np.array(peak1[pos]) / np.array(peak0)
         np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.99, 0.99, 0.99], decimal=1)
+
+    def test_allpass_iir_second_order_wrong_ffilt(self):
+        signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
+        sets = deepcopy(test_settings)
+        sets.method = "iir"
+        sets.n_order = 2
+        sets.b_type = "allpass"
+        sets.f_filt = [50.0]
+
+        with pytest.raises(AssertionError):
+            Filtering(sets).filt(signal)
+
+    def test_allpass_iir_second_order(self):
+        signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
+        sets = deepcopy(test_settings)
+        sets.method = "iir"
+        sets.n_order = 2
+        sets.b_type = "allpass"
+        sets.f_filt = [50.0, 100.0]
+        result = Filtering(sets).filt(signal)
+
+        freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
+        freq1, peak1 = do_fft(result, sets.sampling_rate)
+        assert freq0.tolist() == freq1[pos].tolist()
+        gain = np.array(peak1[pos]) / np.array(peak0)
+        np.testing.assert_almost_equal(gain, [0.99, 0.99, 0.99, 0.99, 0.99], decimal=1)
+
+    def test_allpass_iir_second_order_freq_behaviour(self):
+        sets = deepcopy(test_settings)
+        sets.method = FilterTargets.IIR
+        sets.n_order = 2
+        sets.b_type = "bandpass"
+        sets.f_filt = [50.0, 100.0]
+        result = Filtering(sets)._get_frequency_behaviour(num_points=11)
+
+        np.testing.assert_almost_equal(
+            result[0],
+            np.asarray(
+                [
+                    1.00000000e-02,
+                    3.16227766e-02,
+                    1.00000000e-01,
+                    3.16227766e-01,
+                    1.00000000e00,
+                    3.16227766e00,
+                    1.00000000e01,
+                    3.16227766e01,
+                    1.00000000e02,
+                    3.16227766e02,
+                    1.00000000e03,
+                ]
+            ),
+            decimal=2,
+        )
+        np.testing.assert_almost_equal(
+            np.abs(result[1]),
+            np.asarray(
+                [
+                    1.00e-08,
+                    1.00e-07,
+                    1.00e-06,
+                    1.00e-05,
+                    1.00e-04,
+                    1.00e-03,
+                    1.04e-02,
+                    1.54e-01,
+                    7.07e-01,
+                    2.77e-02,
+                    2.53e-03,
+                ]
+            ),
+            decimal=2,
+        )
+
+    def test_allpass_fir_second_order_freq_behaviour(self):
+        sets: FilterSettings = deepcopy(test_settings)
+        sets.method = FilterTargets.FIR
+        sets.n_order = 11
+        sets.b_type = "lowpass"
+        sets.f_filt = [50.0]
+        result = Filtering(sets)._get_frequency_behaviour(num_points=11)
+
+        np.testing.assert_almost_equal(
+            result[0],
+            np.asarray(
+                [
+                    1.00000000e-01,
+                    3.16227766e-01,
+                    1.00000000e-00,
+                    3.16227766e-00,
+                    1.00000000e01,
+                    3.16227766e01,
+                    1.00000000e02,
+                    3.16227766e02,
+                    1.00000000e03,
+                    3.16227766e03,
+                    1.00000000e04,
+                ]
+            ),
+            decimal=2,
+        )
+        np.testing.assert_almost_equal(
+            np.abs(result[1][0:3]),
+            np.asarray([9.61e-03, 6.63e-03, 4.35e-03]),
+            decimal=4,
+        )
 
     def test_lowpass_fir_taps21(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
