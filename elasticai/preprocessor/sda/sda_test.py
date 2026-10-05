@@ -247,9 +247,9 @@ class TestSpikeDetection(TestCase):
         self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
 
-    def test_spike_transient_spb(self):
+    def test_spike_transient_sbp(self):
         self.set0.dx_sda = [2]
-        self.set0.method = TargetsEventPreprocessors("spb")
+        self.set0.method = TargetsEventPreprocessors("sbp")
         self.set0.mode_thr = TargetsThreshold("constant")
         self.set0.mode_align = TargetsFrameAlignment("min")
         self.set0.f_filt = [200.0, 2000.0]

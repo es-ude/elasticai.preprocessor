@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from logging import Logger, getLogger
+from pathlib import Path
 
 import numpy as np
 from scipy.signal import iirfilter, lfilter
@@ -14,7 +15,7 @@ class TargetsEventPreprocessors(Enum):
     ADO = "ado"
     ASO = "aso"
     EED = "eed"
-    SPB = "spb"
+    SBP = "sbp"
 
 
 @dataclass
@@ -103,7 +104,7 @@ class EventPreprocessor:
         )
         return np.square(np.array(lfilter(filter[0], filter[1], xin)))
 
-    def _sda_spb(self, xin: np.ndarray) -> np.ndarray:
+    def _sda_sbp(self, xin: np.ndarray) -> np.ndarray:
         filter = iirfilter(
             N=2,
             Wn=2 * np.array(self._settings.f_filt) / self._settings.sampling_rate,
@@ -130,5 +131,67 @@ class EventPreprocessor:
             )
         return getattr(self, f"_sda_{self._settings.method.value}")(xraw)
 
-    def create_design(self) -> None:
-        raise NotImplementedError
+    def create_design(
+        self,
+        id: str,
+        target: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+    ) -> None:
+        """Generate hardware design files for SDA-Preprocessing.
+        :param id:        ID appended to generated function names.
+        :param target:    Target platform ["mcu", "pc"].
+        :param bitwidth:  Bitwidth of each sample.
+        :param signed:    True if the data type is signed.
+        :param path2save: Path to save the generated files.
+        """
+        supported_targets = ["mcu", "pc"]
+        if target.lower() not in supported_targets:
+            raise ValueError(f"Target '{target}' is not supported: only {supported_targets}")
+
+        self._create_design_c(
+            id=id,
+            bitwidth=bitwidth,
+            signed=signed,
+            path2save=path2save,
+        )
+
+    def _create_design_c(
+        self,
+        id: str,
+        bitwidth: int,
+        signed: bool,
+        path2save: Path,
+    ) -> None:
+        from elasticai.creator_plugins.eventdetection.src import c_compile
+
+        match self._settings.method:
+            case TargetsEventPreprocessors.Normal:
+                c_compile.build_preprocessor_normal(
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    preprocessor_id=id,
+                    define_path=".",
+                )
+            case TargetsEventPreprocessors.Absolute:
+                c_compile.build_preprocessor_abs(
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    preprocessor_id=id,
+                    define_path=".",
+                )
+            case TargetsEventPreprocessors.NEO:
+                c_compile.build_preprocessor_neo(
+                    bitwidth=bitwidth,
+                    signed=signed,
+                    path2save=path2save,
+                    preprocessor_id=id,
+                    define_path=".",
+                )
+            case _:
+                raise NotImplementedError(
+                    f"C desing for preprocessor_type={self._settings.method.value}, is not implemented yet."
+                )
