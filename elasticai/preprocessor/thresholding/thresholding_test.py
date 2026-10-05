@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import TestCase, main
+from unittest import TestCase
 
 import numpy as np
 import pytest
@@ -242,43 +242,37 @@ class ThresholdingTest(TestCase):
                 assert file.name in files_available
 
 
-class TestCreateHardwareDesign:
-    @pytest.mark.parametrize("target", ["mcu", "pc"])
-    @pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
-    @pytest.mark.parametrize("sampling_rate,window_sec,method,c_name", THRESHOLDING_CONFIGS)
-    def test_create_desing_generates_thresholding_c_files(
-        self,
-        target: str,
-        sampling_rate: float,
-        window_sec: float,
-        method: ThresholdTargets,
-        c_name: str,
-        bitwidth: int,
-        numpy_dtype,
-        c_type: str,
-    ) -> None:
-        thresholder = Thresholding(
-            ThresholdSettings(
-                method=method,
-                sampling_rate=sampling_rate,
-                window_sec=window_sec,
-                thr_val=5,
-                do_quant=True,
-            )
+@pytest.mark.parametrize("target", ["mcu", "pc"])
+@pytest.mark.parametrize("bitwidth,numpy_dtype,c_type", INTEGER_CONFIGS)
+@pytest.mark.parametrize("sampling_rate,window_sec,method,c_name", THRESHOLDING_CONFIGS)
+def test_create_design_c(
+    target: str,
+    sampling_rate: float,
+    window_sec: float,
+    method: ThresholdTargets,
+    c_name: str,
+    bitwidth: int,
+    numpy_dtype,
+    c_type: str,
+) -> None:
+    thresholder = Thresholding(
+        ThresholdSettings(
+            method=method,
+            sampling_rate=sampling_rate,
+            window_sec=window_sec,
+            thr_val=5,
+            do_quant=True,
         )
-        backup = get_path_to_project("build_test") / f"{method}"
-        with temporary_directory(backup) as tmpdir:
-            thresholder.create_design(
-                id="0",
-                target=target,
-                bitwidth=bitwidth,
-                signed=True,
-                path2save=tmpdir,
-            )
-            assert (tmpdir / f"{c_name}_0.c").exists()
-            assert (tmpdir / f"{c_name}_0.h").exists()
-            assert (tmpdir / f"{c_name}_template.h").exists()
-
-
-if __name__ == "__main__":
-    main()
+    )
+    backup = get_path_to_project("build_test") / f"{method}"
+    with temporary_directory(backup) as tmpdir:
+        thresholder.create_design(
+            id="0",
+            target=target,
+            bitwidth=bitwidth,
+            signed=True,
+            path2save=tmpdir,
+        )
+        assert (tmpdir / f"{c_name}_0.c").exists()
+        assert (tmpdir / f"{c_name}_0.h").exists()
+        assert (tmpdir / f"{c_name}_template.h").exists()

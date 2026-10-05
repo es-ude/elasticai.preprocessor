@@ -16,7 +16,7 @@ from elasticai.preprocessor.thresholding import (
     ThresholdTargets,
 )
 
-from .sda import SDASettings, SpikeDetection
+from .sda import FrameWaveform, SDASettings, SpikeDetection
 
 TestSettings = SDASettings(
     method=EventPreprocessorsTargets("normal"),
@@ -81,6 +81,38 @@ class TestSettingsSDA(TestCase):
 
         check = [0, 2, 4, 6, 8, 10]
         np.testing.assert_array_equal(result, check)
+
+
+class TestFrameWaveform(TestCase):
+    @staticmethod
+    def make_frame(waveform=None, xpos=None, label=None, sampling_rate=1.0):
+        if waveform is None:
+            waveform = np.zeros((2, 5))
+        if xpos is None:
+            xpos = np.arange(5)
+        if label is None:
+            label = np.array([0, 1, 2, 3, 4])
+        return FrameWaveform(waveform, xpos, label, sampling_rate)
+
+    def test_length_returns_second_dimension(self):
+        frame = self.make_frame(waveform=np.zeros((3, 7)))
+        assert frame.length == 7
+
+    def test_num_samples_counts_xpos_elements(self):
+        frame = self.make_frame(xpos=np.arange(4))
+        assert frame.num_samples == 4
+
+    def test_is_data_labeled_true_without_255(self):
+        frame = self.make_frame(label=np.array([0, 1, 2]))
+        assert frame.is_data_labeled is True
+
+    def test_is_data_labeled_false_with_255(self):
+        frame = self.make_frame(label=np.array([0, 255, 2]))
+        assert frame.is_data_labeled is False
+
+    def test_is_data_labeled_false_for_empty_label(self):
+        frame = self.make_frame(label=np.array([]))
+        assert frame.is_data_labeled is False
 
 
 class TestSpikeDetection(TestCase):

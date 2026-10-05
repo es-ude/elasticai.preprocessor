@@ -256,10 +256,7 @@ class Thresholding:
         :return:            Numpy array with thresholding value from applied method
         """
         xthr = self.get_threshold(xin=xin)
-        if xthr.min() < 0:
-            pos = np.argwhere(xin < xthr).flatten()
-        else:
-            pos = np.argwhere(xin >= xthr).flatten()
+        pos = np.argwhere(xin >= xthr).flatten()
         pos_pre = int(self._settings.sampling_rate * pre_time)
         return np.array(self._get_values_non_incremented_change(pos)) - pos_pre
 

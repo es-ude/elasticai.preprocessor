@@ -70,17 +70,9 @@ class DataNormalization:
             NormalizationTargets("meanmad"): self._normalize_meanmad,
         }
 
-    def list_normalization_methods(self) -> list:
+    def _list_normalization_methods(self) -> list:
         """Return list with all available methods for normalization"""
         return [key for key in self.__list_norm_methods.keys()]
-
-    def get_peak_amplitude_values(self) -> np.ndarray | torch.Tensor:
-        """Getting the peak amplitude of rawdata as array"""
-        key_search = "scale_used"
-        if key_search in self.__params.keys():
-            return self.__params[key_search]
-        else:
-            raise NotImplementedError("Key scale_local is not available!")
 
     def normalize(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         """Apply normalization methods on input data
@@ -114,7 +106,7 @@ class DataNormalization:
         target = target.lower()
         if target not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if self._settings.method not in self.list_normalization_methods():
+        if self._settings.method not in self._list_normalization_methods():
             raise ValueError(f"Method {self._settings.method} is not available!")
 
         if target.lower() in ["mcu", "pc"]:
