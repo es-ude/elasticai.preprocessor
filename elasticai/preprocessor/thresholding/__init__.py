@@ -1,12 +1,12 @@
 from .thresholding import (
-    DefaultSettingsThreshold as DefaultSettingsThreshold,
-)
-from .thresholding import (
-    SettingsThreshold as SettingsThreshold,
-)
-from .thresholding import (
-    TargetsThreshold as TargetsThreshold,
+    DefaultThresholdSettings as DefaultThresholdSettings,
 )
 from .thresholding import (
     Thresholding as Thresholding,
+)
+from .thresholding import (
+    ThresholdSettings as ThresholdSettings,
+)
+from .thresholding import (
+    ThresholdTargets as ThresholdTargets,
 )

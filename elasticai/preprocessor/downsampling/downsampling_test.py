@@ -6,15 +6,15 @@ from unittest import TestCase, main
 import numpy as np
 
 from .downsampling import (
-    DefaultSettingsDownSampling,
+    DefaultDownSamplingSettings,
     DownSampling,
+    DownSamplingSettings,
+    DownSamplingTargets,
     SequentialSignal,
-    SettingsDownSampling,
-    TargetsDownSampling,
 )
 
-test_settings = SettingsDownSampling(
-    method=TargetsDownSampling.Simple,
+test_settings = DownSamplingSettings(
+    method=DownSamplingTargets.Simple,
     sampling_rate=1000.0,
     num_stages=5,
     dsr=10,
@@ -31,7 +31,7 @@ def inp_samp(time: np.ndarray) -> np.ndarray:
 
 class TestDownSampling(TestCase):
     def setUp(self):
-        self.sets: SettingsDownSampling = deepcopy(DefaultSettingsDownSampling)
+        self.sets: DownSamplingSettings = deepcopy(DefaultDownSamplingSettings)
         self.sets.sampling_rate = 2e3
         time = np.linspace(0, 1, int(self.sets.sampling_rate) + 1, endpoint=True, dtype=float)
         self.input = 0.75 * inp_samp(time)
@@ -77,7 +77,7 @@ class TestDownSampling(TestCase):
 
     def test_do_subsampling_without_augmentation_returns_offset_zero_only(self):
         self.sets.dsr = 3
-        self.sets.method = TargetsDownSampling.Subsampling
+        self.sets.method = DownSamplingTargets.Subsampling
         data = np.array(
             [
                 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -181,9 +181,9 @@ class TestDownSampling(TestCase):
             DownSampling(self.sets).do_subsampling(data)
 
     def test_create_cic_verilog(self):
-        sets: SettingsDownSampling = deepcopy(test_settings)
+        sets: DownSamplingSettings = deepcopy(test_settings)
         sets.num_stages = 2
-        sets.method = TargetsDownSampling.CIC
+        sets.method = DownSamplingTargets.CIC
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
@@ -202,8 +202,8 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_subsampling_verilog(self):
-        sets: SettingsDownSampling = deepcopy(test_settings)
-        sets.method = TargetsDownSampling.Subsampling
+        sets: DownSamplingSettings = deepcopy(test_settings)
+        sets.method = DownSamplingTargets.Subsampling
         sets.num_stages = 2
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
@@ -223,8 +223,8 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_simple_verilog(self):
-        sets: SettingsDownSampling = deepcopy(test_settings)
-        sets.method = TargetsDownSampling.Simple
+        sets: DownSamplingSettings = deepcopy(test_settings)
+        sets.method = DownSamplingTargets.Simple
         sets.num_stages = 2
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
@@ -244,8 +244,8 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_polydec_fpga_verilog(self):
-        sets: SettingsDownSampling = deepcopy(test_settings)
-        sets.method = TargetsDownSampling.Polyphase
+        sets: DownSamplingSettings = deepcopy(test_settings)
+        sets.method = DownSamplingTargets.Polyphase
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
@@ -265,8 +265,8 @@ class TestDownSampling(TestCase):
                 assert file.name in files_available
 
     def test_create_polydec_asic_verilog(self):
-        sets: SettingsDownSampling = deepcopy(test_settings)
-        sets.method = TargetsDownSampling.Polyphase
+        sets: DownSamplingSettings = deepcopy(test_settings)
+        sets.method = DownSamplingTargets.Polyphase
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)

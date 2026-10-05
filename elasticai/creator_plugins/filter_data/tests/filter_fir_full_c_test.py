@@ -6,7 +6,7 @@ import pytest
 
 from elasticai.creator_plugins.filter_data.tests._filter_c_check import check_filter_c_equivalence
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings, FilterTargets
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -55,8 +55,8 @@ def tmp_path() -> Path:
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_build(tmp_path: Path, target: str) -> None:
-    settings = SettingsFilter(
-        method=TargetsFilter("fir"),
+    settings = FilterSettings(
+        method=FilterTargets("fir"),
         sampling_rate=1000.0,
         n_order=6,
         f_filt=[100.0],
@@ -77,8 +77,8 @@ def test_build_equal(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsFilter(
-        method=TargetsFilter("fir"),
+    settings = FilterSettings(
+        method=FilterTargets("fir"),
         sampling_rate=1000.0,
         n_order=50,
         f_filt=[100.0],

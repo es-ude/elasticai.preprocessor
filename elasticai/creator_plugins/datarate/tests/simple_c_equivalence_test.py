@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -19,11 +19,11 @@ INTEGER_CONFIGS = [
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_simple_c_files(tmp_path: Path, target: str) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
+        DownSamplingSettings(
             sampling_rate=1000.0,
             dsr=3,
             num_stages=1,
-            method=TargetsDownSampling.Simple,
+            method=DownSamplingTargets.Simple,
         )
     )
 
@@ -46,8 +46,8 @@ def test_generated_simple_c_matches_python_frame(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(
-        sampling_rate=1000.0, dsr=3, method=TargetsDownSampling.Simple, num_stages=1
+    settings = DownSamplingSettings(
+        sampling_rate=1000.0, dsr=3, method=DownSamplingTargets.Simple, num_stages=1
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
@@ -91,8 +91,8 @@ def test_generated_simple_c_matches_python_sinewave(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(
-        sampling_rate=1000.0, dsr=3, method=TargetsDownSampling.Simple, num_stages=1
+    settings = DownSamplingSettings(
+        sampling_rate=1000.0, dsr=3, method=DownSamplingTargets.Simple, num_stages=1
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"

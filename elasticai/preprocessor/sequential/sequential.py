@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 
-class TargetsBuildPlatform(Enum):
+class BuildPlatformTargets(Enum):
     Workstation = "pc"
     MCU = "mcu"
     FPGA = "fpga"
@@ -14,7 +14,7 @@ class TargetsBuildPlatform(Enum):
 
 
 @dataclass
-class SettingsCreateSequential:
+class CreateSequentialSettings:
     """Settings for building the pipeline segments for hardware platform
 
     Attributes:
@@ -25,7 +25,7 @@ class SettingsCreateSequential:
         path2build:     Path to build output directory
     """
 
-    target: TargetsBuildPlatform
+    target: BuildPlatformTargets
     total_bitwidth: int
     frac_bitwidth: int
     do_signed: bool
@@ -92,7 +92,7 @@ class PreprocessingSequential:
             case _:
                 return f"{class_name}(\n\t{inner}\n)"
 
-    def create_design(self, settings: SettingsCreateSequential) -> None:
+    def create_design(self, settings: CreateSequentialSettings) -> None:
         """Create the pipeline design for deploying on hardware
         :param settings:    Dataclass SettingsCreateSequential for building the hardware designs
         :return:            None

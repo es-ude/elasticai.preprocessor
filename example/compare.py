@@ -6,9 +6,9 @@ from pyxdf import load_xdf
 from matplotlib import pyplot as plt
 
 from elasticai.preprocessor import get_path_to_project, PreprocessingSequential
-from elasticai.preprocessor.sequential import SequentialSignal, SettingsCreateSequential
-from elasticai.preprocessor.downsampling import SettingsDownSampling, DownSampling, TargetsDownSampling
-from elasticai.preprocessor.filter import SettingsFilter, Filtering, TargetsFilter
+from elasticai.preprocessor.sequential import SequentialSignal, CreateSequentialSettings
+from elasticai.preprocessor.downsampling import DownSamplingSettings, DownSampling, DownSamplingTargets
+from elasticai.preprocessor.filter import FilterSettings, Filtering, FilterTargets
 
 
 @dataclass
@@ -43,8 +43,8 @@ def load_smatable_data(path2data: Path) -> Data:
 
 
 def process_data(data: Data) -> Data:
-    sets_filt = SettingsFilter(
-        method=TargetsFilter.IIR,
+    sets_filt = FilterSettings(
+        method=FilterTargets.IIR,
         gain=1.0,
         fs=data.sampling_rate,
         n_order=1,
@@ -52,8 +52,8 @@ def process_data(data: Data) -> Data:
         f_type="butter",
         b_type="bandpass"
     )
-    sets_down = SettingsDownSampling(
-        method=TargetsDownSampling.Polyphase,
+    sets_down = DownSamplingSettings(
+        method=DownSamplingTargets.Polyphase,
         num_stages=5,
         sampling_rate=data.sampling_rate,
         dsr=8
@@ -68,7 +68,7 @@ def process_data(data: Data) -> Data:
         fs=data.sampling_rate,
     )
     dut.create_design(
-        settings=SettingsCreateSequential(
+        settings=CreateSequentialSettings(
             target="fpga",
             total_bitwidth=8,
             frac_bitwidth=5,

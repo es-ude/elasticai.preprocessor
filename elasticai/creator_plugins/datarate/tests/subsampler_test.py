@@ -7,7 +7,7 @@ from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -143,8 +143,8 @@ def test_build_equal(
     ).tolist()
 
     dut = DownSampling(
-        SettingsDownSampling(
-            method=TargetsDownSampling.Subsampling,
+        DownSamplingSettings(
+            method=DownSamplingTargets.Subsampling,
             num_stages=5,
             sampling_rate=1000.0,
             dsr=num_dsr,

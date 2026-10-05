@@ -7,9 +7,9 @@ from elasticai.equichecker import CompileLoader, compare_values
 
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.thresholding import (
-    SettingsThreshold,
-    TargetsThreshold,
     Thresholding,
+    ThresholdSettings,
+    ThresholdTargets,
 )
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
@@ -21,23 +21,23 @@ INTEGER_CONFIGS = [
 ]
 
 THRESHOLDING_CONFIGS = [
-    pytest.param(1000.0, 10e-3, TargetsThreshold.Constant, "thresholding_constant", id="method_constant"),
-    pytest.param(1000.0, 10e-3, TargetsThreshold.Welford, "thresholding_welford", id="method_welford"),
-    pytest.param(1000.0, 10e-3, TargetsThreshold.MovingAverage, "thresholding_mavg", id="method_mavg"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.Constant, "thresholding_constant", id="method_constant"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.Welford, "thresholding_welford", id="method_welford"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.MovingAverage, "thresholding_mavg", id="method_mavg"),
     pytest.param(
         1000.0,
         10e-3,
-        TargetsThreshold.MovingAverageAbsolute,
+        ThresholdTargets.MovingAverageAbsolute,
         "thresholding_mavg_abs",
         id="method_mavg_abs",
     ),
     pytest.param(
-        512.0, 0.015625, TargetsThreshold.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"
+        512.0, 0.015625, ThresholdTargets.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"
     ),
     pytest.param(
         512.0,
         0.015625,
-        TargetsThreshold.MovingAverageAbsolute,
+        ThresholdTargets.MovingAverageAbsolute,
         "thresholding_mavg_pow2_abs",
         id="method_mavg_pow2_abs",
     ),  # window_steps = 8
@@ -55,13 +55,13 @@ def test_generated_thresholding_c_matches_python_frame(
     is_signed: bool,
     numpy_dtype: type(np.generic),
     c_type: str,
-    method: TargetsThreshold,
+    method: ThresholdTargets,
     sampling_rate: float,
     window_sec: float,
     c_name: str,
 ) -> None:
 
-    settings = SettingsThreshold(
+    settings = ThresholdSettings(
         method=method,
         sampling_rate=sampling_rate,
         window_sec=window_sec,

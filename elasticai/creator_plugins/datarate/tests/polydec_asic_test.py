@@ -7,7 +7,7 @@ from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -156,8 +156,8 @@ def test_build_second_order(cocotb_test_fixture: CocotbTestFixture, poly_order: 
 @pytest.mark.parametrize("bitwidth, poly_order", [(3, 1)])
 def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
-        SettingsDownSampling(
-            sampling_rate=1000.0, dsr=poly_order, method=TargetsDownSampling.Polyphase, num_stages=1
+        DownSamplingSettings(
+            sampling_rate=1000.0, dsr=poly_order, method=DownSamplingTargets.Polyphase, num_stages=1
         )
     )
     data_in = build_test_signal(
@@ -191,8 +191,8 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
 @pytest.mark.parametrize("bitwidth, poly_order", [(3, 2)])
 def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, poly_order: int):
     dut = DownSampling(
-        SettingsDownSampling(
-            sampling_rate=1000.0, dsr=poly_order, method=TargetsDownSampling.Polyphase, num_stages=1
+        DownSamplingSettings(
+            sampling_rate=1000.0, dsr=poly_order, method=DownSamplingTargets.Polyphase, num_stages=1
         )
     )
     data_in = build_test_signal(

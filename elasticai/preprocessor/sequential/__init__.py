@@ -1,4 +1,10 @@
 from .sequential import (
+    BuildPlatformTargets as BuildPlatformTargets,
+)
+from .sequential import (
+    CreateSequentialSettings as CreateSequentialSettings,
+)
+from .sequential import (
     PreprocessingModule as PreprocessingModule,
 )
 from .sequential import (
@@ -6,10 +12,4 @@ from .sequential import (
 )
 from .sequential import (
     SequentialSignal as SequentialSignal,
-)
-from .sequential import (
-    SettingsCreateSequential as SettingsCreateSequential,
-)
-from .sequential import (
-    TargetsBuildPlatform as TargetsBuildPlatform,
 )

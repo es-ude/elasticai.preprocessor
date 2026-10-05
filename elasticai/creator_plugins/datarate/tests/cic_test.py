@@ -8,7 +8,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.datarate.utils import load_and_plugin
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -127,8 +127,8 @@ def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: 
 @pytest.mark.parametrize("n_dec", [2])
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_rate: int, n_dec: int):
     dut = DownSampling(
-        SettingsDownSampling(
-            sampling_rate=1000.0, dsr=dec_rate, method=TargetsDownSampling.CIC, num_stages=n_dec
+        DownSamplingSettings(
+            sampling_rate=1000.0, dsr=dec_rate, method=DownSamplingTargets.CIC, num_stages=n_dec
         )
     )
     data_in = build_test_signal(

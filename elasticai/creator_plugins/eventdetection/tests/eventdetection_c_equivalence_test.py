@@ -11,8 +11,8 @@ from elasticai.equichecker import CompileLoader, compare_values
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
-    SettingsEventDetection,
-    TargetsEventDetection,
+    EventDetectionSettings,
+    EventDetectionTargets,
 )
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
@@ -58,9 +58,9 @@ HYSTERESIS_TYPE_CONFIGS = [
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: str) -> None:
     eventdetector = EventDetection(
-        SettingsEventDetection(
+        EventDetectionSettings(
             window_size=10,
-            method=TargetsEventDetection.DoubleHyst,
+            method=EventDetectionTargets.DoubleHyst,
             out_invert=False,
         )
     )
@@ -91,8 +91,8 @@ def test_generated_eventdetection_c_matches_python_frame(
     out_invert: bool,
 ) -> None:
     block_plot = False
-    settings = SettingsEventDetection(
-        window_size=10, method=TargetsEventDetection(c_hysteresis), out_invert=out_invert
+    settings = EventDetectionSettings(
+        window_size=10, method=EventDetectionTargets(c_hysteresis), out_invert=out_invert
     )
     eventdetector = EventDetection(settings)
 

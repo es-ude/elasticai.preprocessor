@@ -3,7 +3,7 @@ from pathlib import Path
 
 import elasticai.creator_plugins.filter_data as design_plugin
 from elasticai.preprocessor import get_path_to_project
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings
 from elasticai.preprocessor.translation.ir2c import (
     generate_c_files,
     get_embedded_datatype,
@@ -12,7 +12,7 @@ from elasticai.preprocessor.translation.ir2c import (
 
 
 def build_filter_iir(
-    settings: SettingsFilter,
+    settings: FilterSettings,
     bitwidth: int,
     signed: bool,
     filter_id: str = "",

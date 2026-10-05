@@ -8,7 +8,7 @@ from scipy.signal.windows import gaussian
 
 import elasticai.creator_plugins.windower as hw_windower
 from elasticai.preprocessor._check_funcs import check_key_elements
-from elasticai.preprocessor.thresholding import SettingsThreshold, TargetsThreshold, Thresholding
+from elasticai.preprocessor.thresholding import Thresholding, ThresholdSettings, ThresholdTargets
 
 
 def transformation_window_method(window_size: int, method: str = "hamming") -> np.ndarray:
@@ -31,14 +31,14 @@ def transformation_window_method(window_size: int, method: str = "hamming") -> n
     return methods_avai[[key for key in methods_check if key == method.lower()][0]]
 
 
-class TargetsWindower(Enum):
+class WindowerTargets(Enum):
     Sequence = "sequence"
     Sliding = "sliding"
     Event = "event"
 
 
 @dataclass
-class SettingsWindow:
+class WindowSettings:
     """Class for defining the properties for applying a window on transient signals
     Attributes:
         sampling_rate:  Floating value with sampling rate of the transient signal [Hz]
@@ -46,9 +46,9 @@ class SettingsWindow:
         overlap_sec:    Floating value with overlapping the sequences [s]
     """
 
-    # method_window: TargetsWindower
-    # method_thr: TargetsThreshold
-    # method_input: TargetsEventPreprocessor
+    # method_window: WindowerTargets
+    # method_thr: ThresholdTargets
+    # method_input: EventPreprocessorTargets
     sampling_rate: float
     window_sec: float
     overlap_sec: float
@@ -66,21 +66,21 @@ class SettingsWindow:
         return int(abs(self.overlap_sec * self.sampling_rate))
 
 
-DefaultSettingsWindow = SettingsWindow(sampling_rate=2e3, window_sec=0.1, overlap_sec=0.0)
+DefaultWindowSettings = WindowSettings(sampling_rate=2e3, window_sec=0.1, overlap_sec=0.0)
 
 
 class WindowSequencer:
-    _settings: SettingsWindow
+    _settings: WindowSettings
     _window_normalization: np.ndarray
 
-    def __init__(self, settings: SettingsWindow) -> None:
+    def __init__(self, settings: WindowSettings) -> None:
         """Class for applying a window on transient signals
         :param settings:    Class SettingsWindow with definitions for the window
         :return:            None
         """
         self._settings = settings
-        self._settings_thr = SettingsThreshold(
-            method=TargetsThreshold.Constant,
+        self._settings_thr = ThresholdSettings(
+            method=ThresholdTargets.Constant,
             sampling_rate=self._settings.sampling_rate,
             window_sec=self._settings.window_length / 2,
             thr_val=10,

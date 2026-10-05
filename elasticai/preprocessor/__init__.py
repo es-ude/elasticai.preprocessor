@@ -1,14 +1,14 @@
 from elasticai.preprocessor.sequential.sequential import (
+    BuildPlatformTargets as BuildPlatformTargets,
+)
+from elasticai.preprocessor.sequential.sequential import (
+    CreateSequentialSettings as CreateSequentialSettings,
+)
+from elasticai.preprocessor.sequential.sequential import (
     PreprocessingModule as PreprocessingModule,
 )
 from elasticai.preprocessor.sequential.sequential import (
     PreprocessingSequential as PreprocessingSequential,
-)
-from elasticai.preprocessor.sequential.sequential import (
-    SettingsCreateSequential as SettingsCreateSequential,
-)
-from elasticai.preprocessor.sequential.sequential import (
-    TargetsBuildPlatform as TargetsBuildPlatform,
 )
 
 from ._basics import get_path_to_project as get_path_to_project

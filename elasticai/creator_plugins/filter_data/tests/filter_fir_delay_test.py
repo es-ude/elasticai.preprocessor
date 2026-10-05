@@ -9,7 +9,7 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 import elasticai.creator_plugins.windower as windower
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
-from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings, FilterTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -163,8 +163,8 @@ def test_build(
 @pytest.mark.parametrize("length", [11, 20, 40])
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
-        SettingsFilter(
-            method=TargetsFilter("fir"),
+        FilterSettings(
+            method=FilterTargets("fir"),
             sampling_rate=2e3,
             n_order=1,
             f_filt=[2e3 / length],

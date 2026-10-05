@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from .window import (
-    SettingsWindow,
     WindowSequencer,
+    WindowSettings,
     transformation_window_method,
 )
 
@@ -28,7 +28,7 @@ class TestWindowMethod(TestCase):
 
 
 class TestSettingsWindowSequencer(TestCase):
-    sets = SettingsWindow(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = WindowSettings(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
 
     def test_settings_length(self):
         self.assertEqual(self.sets.window_length, 100)
@@ -38,7 +38,7 @@ class TestSettingsWindowSequencer(TestCase):
 
 
 class TestWindowSequencer(TestCase):
-    sets = SettingsWindow(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = WindowSettings(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
 
     def test_window_sequence_match_full(self):
         set0 = deepcopy(self.sets)

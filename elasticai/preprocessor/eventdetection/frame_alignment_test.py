@@ -6,9 +6,9 @@ import numpy as np
 from elasticai.preprocessor.waveform import WaveformGenerator
 
 from .frame_alignment import (
-    DefaultSettingsFrameAlignment,
+    DefaultFrameAlignmentSettings,
     FrameAligner,
-    SettingsFrameAlignment,
+    FrameAlignmentSettings,
 )
 
 
@@ -96,7 +96,7 @@ class TestBuildEAP(unittest.TestCase):
 
 class TestSettingsFrameGenerator(unittest.TestCase):
     def setUp(self):
-        self.set0: SettingsFrameAlignment = deepcopy(DefaultSettingsFrameAlignment)
+        self.set0: FrameAlignmentSettings = deepcopy(DefaultFrameAlignmentSettings)
 
     def test_integer_offset_length(self):
         self.set0.sampling_rate = 20e3
@@ -121,7 +121,7 @@ class TestSettingsFrameGenerator(unittest.TestCase):
 
 class TestFrameGenerator(unittest.TestCase):
     def setUp(self):
-        self.set0: SettingsFrameAlignment = deepcopy(DefaultSettingsFrameAlignment)
+        self.set0: FrameAlignmentSettings = deepcopy(DefaultFrameAlignmentSettings)
         self.set0.window_sec = 1.6e-3
         self.frames_eap = np.array(
             [_build_spike_waveform(sampling_rate=self.set0.sampling_rate) for _ in range(10)]

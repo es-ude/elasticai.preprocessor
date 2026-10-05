@@ -6,7 +6,7 @@ from scipy.signal import convolve2d
 
 
 @dataclass
-class SettingsReferencing:
+class ReferencingSettings:
     """Class for defining the properties of the common referencing methods
     Attributes:
         kernel_size:    Kernel size for convolution (must be odd-numbered)
@@ -15,7 +15,7 @@ class SettingsReferencing:
     kernel_size: int
 
 
-DefaultSettingsReferencing = SettingsReferencing(
+DefaultReferencingSettings = ReferencingSettings(
     kernel_size=3,
 )
 
@@ -23,7 +23,7 @@ DefaultSettingsReferencing = SettingsReferencing(
 class CommonReferencing:
     _logger: Logger
 
-    def __init__(self, settings: SettingsReferencing) -> None:
+    def __init__(self, settings: ReferencingSettings) -> None:
         self._logger = getLogger(__name__)
         self._settings = settings
 

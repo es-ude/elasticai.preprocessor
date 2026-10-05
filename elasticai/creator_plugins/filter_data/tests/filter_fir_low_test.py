@@ -8,7 +8,7 @@ from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.filter_data.utils import load_and_plugin
-from elasticai.preprocessor.filter import Filtering, SettingsFilter, TargetsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings, FilterTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -177,8 +177,8 @@ def test_build(
 @pytest.mark.parametrize("bitwidth, fracwidth", [(12, 10), (6, 2), (8, 7)])
 def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int):
     dut = Filtering(
-        SettingsFilter(
-            method=TargetsFilter("fir"),
+        FilterSettings(
+            method=FilterTargets("fir"),
             sampling_rate=2e3,
             n_order=1,
             f_filt=[1e3],

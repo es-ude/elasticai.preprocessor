@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -19,8 +19,8 @@ INTEGER_CONFIGS = [
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
-            method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+        DownSamplingSettings(
+            method=DownSamplingTargets.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
         )
     )
 
@@ -39,8 +39,8 @@ def test_create_design_generates_subsampling_c_files(tmp_path: Path, target: str
 
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
-            method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=0
+        DownSamplingSettings(
+            method=DownSamplingTargets.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=0
         )
     )
 
@@ -63,8 +63,8 @@ def test_generated_subsampling_c_matches_python_frame(
     c_type: str,
     augment: bool,
 ) -> None:
-    settings = SettingsDownSampling(
-        method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+    settings = DownSamplingSettings(
+        method=DownSamplingTargets.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
@@ -115,8 +115,8 @@ def test_generated_subsampling_c_matches_python_sinewave(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    settings = SettingsDownSampling(
-        method=TargetsDownSampling.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
+    settings = DownSamplingSettings(
+        method=DownSamplingTargets.Subsampling, num_stages=5, sampling_rate=1000.0, dsr=3
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"

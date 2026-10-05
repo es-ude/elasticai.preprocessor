@@ -10,9 +10,9 @@ from scipy.signal import find_peaks
 
 from elasticai.preprocessor.transformation import do_fft
 
-from .filtering import Filtering, SettingsFilter
+from .filtering import Filtering, FilterSettings
 
-test_settings = SettingsFilter(
+test_settings = FilterSettings(
     sampling_rate=1e3,
     n_order=2,
     f_filt=[250],
@@ -276,7 +276,7 @@ class TestDigitalFilters(TestCase):
 
     def test_allpass_fir_taps51(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
-        sets: SettingsFilter = deepcopy(test_settings)
+        sets: FilterSettings = deepcopy(test_settings)
         sets.method = "fir"
         sets.n_order = 1
         sets.b_type = "allpass"
@@ -641,7 +641,7 @@ class TestDigitalFilters(TestCase):
             }
 
     def test_create_c_filter_iir(self):
-        sets: SettingsFilter = deepcopy(test_settings)
+        sets: FilterSettings = deepcopy(test_settings)
         sets.method = "iir"
         sets.b_type = "lowpass"
         sets.n_order = 2
@@ -658,7 +658,7 @@ class TestDigitalFilters(TestCase):
 
     @skipUnless(which("cc"), "requires a C compiler")
     def test_create_c_filter_fir_compiles(self):
-        sets: SettingsFilter = deepcopy(test_settings)
+        sets: FilterSettings = deepcopy(test_settings)
         sets.method = "fir"
         sets.b_type = "lowpass"
         sets.n_order = 21

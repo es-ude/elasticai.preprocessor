@@ -9,7 +9,7 @@ from elasticai.creator_plugins.eventdetection.src import c_compile
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
-class TargetsEventDetection(Enum):
+class EventDetectionTargets(Enum):
     Normal = "normal"
     PosHyst = "pos_hyst"
     NegHyst = "neg_hyst"
@@ -17,7 +17,7 @@ class TargetsEventDetection(Enum):
 
 
 @dataclass
-class SettingsEventDetection:
+class EventDetectionSettings:
     """Settings class for configuring the properties of the event detection module
     Attributes:
         method:           Applied types of hysteresis [
@@ -29,23 +29,23 @@ class SettingsEventDetection:
         out_invert:     Is event low [True] or event high [False]
     """
 
-    method: TargetsEventDetection
+    method: EventDetectionTargets
     window_size: int
     out_invert: bool
 
 
-DefaultSettingsEventDetection = SettingsEventDetection(
-    method=TargetsEventDetection.Normal,
+DefaultEventDetectionSettings = EventDetectionSettings(
+    method=EventDetectionTargets.Normal,
     window_size=10,
     out_invert=False,
 )
 
 
 class EventDetection:
-    _settings: SettingsEventDetection
+    _settings: EventDetectionSettings
     _int_state: bool
 
-    def __init__(self, settings: SettingsEventDetection) -> None:
+    def __init__(self, settings: EventDetectionSettings) -> None:
         """Class for detecting events in a transient input signal
         :param settings:    Class SettingsEventDetection for configuring the properties
         :return:            None
@@ -53,7 +53,7 @@ class EventDetection:
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = TargetsEventDetection(settings.method)
+            self._settings.method = EventDetectionTargets(settings.method)
 
     def _type_hysteresis(self, threshold: int) -> list:
         thr_zero = threshold
@@ -61,13 +61,13 @@ class EventDetection:
         thr_neg = thr_zero - self._settings.window_size
 
         match self._settings.method:
-            case TargetsEventDetection.Normal:
+            case EventDetectionTargets.Normal:
                 list_out = [thr_zero, thr_zero]
-            case TargetsEventDetection.PosHyst:
+            case EventDetectionTargets.PosHyst:
                 list_out = [thr_pos, thr_zero]
-            case TargetsEventDetection.NegHyst:
+            case EventDetectionTargets.NegHyst:
                 list_out = [thr_zero, thr_neg]
-            case TargetsEventDetection.DoubleHyst:
+            case EventDetectionTargets.DoubleHyst:
                 list_out = [thr_pos, thr_neg]
             case _:
                 raise NotImplementedError(f"Hysteresis_method '{self._settings.method}' does not exist.")
@@ -178,7 +178,7 @@ class EventDetection:
         module_appendix = "un" if not signed else ""
         thr_on, thr_off = self._type_hysteresis(0)
         match self._settings.method:
-            case TargetsEventDetection.Normal:
+            case EventDetectionTargets.Normal:
                 load_and_plugin(
                     type=f"eventdetector_sub_{module_appendix}signed",
                     id=id,

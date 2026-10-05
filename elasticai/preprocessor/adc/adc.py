@@ -13,8 +13,8 @@ from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
 @dataclass
-class SettingsResampler:
-    """Settings for defining the properties of the Analog-Digital Converter (ADC).
+class ResamplerSettings:
+    """Settings for defining Settingsthe properties of the Analog-Digital Converter (ADC).
     Attributes:
         total_bits:     Integer with total number of bits
         frac_bits:      Integer with fractional number of bits (0= only integer)
@@ -48,9 +48,9 @@ class TransientResampler:
     _logger: Logger
     _funcs = CommonDigitalFunctions
     _arith = FxpArithmetic
-    _settings: SettingsResampler
+    _settings: ResamplerSettings
 
-    def __init__(self, settings: SettingsResampler) -> None:
+    def __init__(self, settings: ResamplerSettings) -> None:
         """Class for resampling pre-recorded transient data to get a new data stream output with adapted characteristics
         :param settings:    Settings for defining the properties of the Analog-Digital Converter
         :return:            None

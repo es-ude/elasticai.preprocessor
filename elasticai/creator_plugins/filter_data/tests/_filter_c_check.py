@@ -4,12 +4,12 @@ from uuid import uuid4
 import numpy as np
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.filter import Filtering, SettingsFilter
+from elasticai.preprocessor.filter import Filtering, FilterSettings
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 def check_filter_c_equivalence(
-    settings: SettingsFilter,
+    settings: FilterSettings,
     tmp_path: Path,
     source_name: str,
     function_name: str,

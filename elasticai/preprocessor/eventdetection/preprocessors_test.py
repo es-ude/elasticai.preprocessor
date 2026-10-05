@@ -7,22 +7,22 @@ from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 from .preprocessors import (
-    DefaultSettingsEventPreprocessor,
+    DefaultEventPreprocessorSettings,
     EventPreprocessor,
-    SettingsEventPreprocessor,
-    TargetsEventPreprocessors,
+    EventPreprocessorSettings,
+    EventPreprocessorsTargets,
 )
 
 PREPROCESSOR_TYPE_CONFIGS = {
-    pytest.param(TargetsEventPreprocessors.Normal, "preprocessing_normal", id="type_normal"),
-    pytest.param(TargetsEventPreprocessors.Absolute, "preprocessing_abs", id="type_absolute"),
-    pytest.param(TargetsEventPreprocessors.NEO, "preprocessing_neo", id="type_neo"),
+    pytest.param(EventPreprocessorsTargets.Normal, "preprocessing_normal", id="type_normal"),
+    pytest.param(EventPreprocessorsTargets.Absolute, "preprocessing_abs", id="type_absolute"),
+    pytest.param(EventPreprocessorsTargets.NEO, "preprocessing_neo", id="type_neo"),
 }
 
 
 @pytest.fixture()
-def settings() -> SettingsEventPreprocessor:
-    sets = deepcopy(DefaultSettingsEventPreprocessor)
+def settings() -> EventPreprocessorSettings:
+    sets = deepcopy(DefaultEventPreprocessorSettings)
     return sets
 
 
@@ -31,7 +31,7 @@ def signal() -> np.ndarray:
     return np.sin(np.linspace(start=0, stop=4 * np.pi, num=51))
 
 
-def test_methods_overview(settings: SettingsEventPreprocessor):
+def test_methods_overview(settings: EventPreprocessorSettings):
     rslt = EventPreprocessor(settings=settings)._get_methods()
     assert len(rslt) == 8
 
@@ -39,7 +39,7 @@ def test_methods_overview(settings: SettingsEventPreprocessor):
         assert method in rslt
 
 
-def test_invalid_methods_raises(settings: SettingsEventPreprocessor):
+def test_invalid_methods_raises(settings: EventPreprocessorSettings):
     settings.method = "none"
     try:
         EventPreprocessor(settings=settings)
@@ -49,7 +49,7 @@ def test_invalid_methods_raises(settings: SettingsEventPreprocessor):
         assert False
 
 
-def test_sda_normal(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_normal(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "normal"
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = signal
@@ -58,7 +58,7 @@ def test_sda_normal(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_equal(rslt, check)
 
 
-def test_sda_absolute(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_absolute(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "absolute"
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
     check = np.abs(signal)
@@ -67,7 +67,7 @@ def test_sda_absolute(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_equal(rslt, check)
 
 
-def test_sda_neo_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_neo_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "neo"
     settings.window_size = [1]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -77,7 +77,7 @@ def test_sda_neo_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_almost_equal(rslt, check, decimal=6)
 
 
-def test_sda_neo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_neo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "neo"
     settings.window_size = [2]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -87,7 +87,7 @@ def test_sda_neo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_almost_equal(rslt, check, decimal=6)
 
 
-def test_sda_mteo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_mteo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "mteo"
     settings.window_size = [1, 2, 3]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -97,7 +97,7 @@ def test_sda_mteo_two(settings: SettingsEventPreprocessor, signal: np.ndarray):
     np.testing.assert_array_almost_equal(rslt, check, decimal=6)
 
 
-def test_sda_ado_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_ado_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "ado"
     settings.window_size = [1]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -109,7 +109,7 @@ def test_sda_ado_ones(settings: SettingsEventPreprocessor, signal: np.ndarray):
     assert rslt.max() < 0.255
 
 
-def test_sda_ado_threes(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_ado_threes(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "ado"
     settings.window_size = [3]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -121,7 +121,7 @@ def test_sda_ado_threes(settings: SettingsEventPreprocessor, signal: np.ndarray)
     assert rslt.max() < 0.75
 
 
-def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_eed(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "eed"
     settings.f_filt = [150.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -133,7 +133,7 @@ def test_sda_eed(settings: SettingsEventPreprocessor, signal: np.ndarray):
     assert rslt.max() < 0.92
 
 
-def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_spb_none(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "spb"
     try:
         EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -143,7 +143,7 @@ def test_sda_spb_none(settings: SettingsEventPreprocessor, signal: np.ndarray):
         assert False
 
 
-def test_sda_sbp(settings: SettingsEventPreprocessor, signal: np.ndarray):
+def test_sda_sbp(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "sbp"
     settings.f_filt = [100.0, 1000.0]
     rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
@@ -159,10 +159,10 @@ class TestCreateDesign:
     @pytest.mark.parametrize("target", ["mcu", "pc"])
     @pytest.mark.parametrize("method,c_name", PREPROCESSOR_TYPE_CONFIGS)
     def test_create_design_generates_sda_preprocessor_c_files(
-        self, target: str, method: TargetsEventPreprocessors, c_name: str
+        self, target: str, method: EventPreprocessorsTargets, c_name: str
     ) -> None:
         event_preproc = EventPreprocessor(
-            SettingsEventPreprocessor(
+            EventPreprocessorSettings(
                 method=method,
                 sampling_rate=10e3,
                 window_size=[1],

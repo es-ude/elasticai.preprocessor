@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -29,10 +29,10 @@ def test_create_design_generates_poly_c_files(
     tmp_path: Path, target: str, take_first_order: bool
 ) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
+        DownSamplingSettings(
             sampling_rate=1000.0,
             dsr=4,
-            method=TargetsDownSampling.Polyphase,
+            method=DownSamplingTargets.Polyphase,
             num_stages=1 if take_first_order else 2,
         )
     )
@@ -52,10 +52,10 @@ def test_create_design_generates_poly_c_files(
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_first_order: bool) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
+        DownSamplingSettings(
             sampling_rate=1000.0,
             dsr=0,
-            method=TargetsDownSampling.Polyphase,
+            method=DownSamplingTargets.Polyphase,
             num_stages=1 if take_first_order else 2,
         )
     )
@@ -71,10 +71,10 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_f
 @pytest.mark.parametrize("take_first_order", [True, False], ids=["order_one", "order_two"])
 def test_create_design_rejects_downsampling_ratio_not_bin(tmp_path: Path, take_first_order: bool) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(
+        DownSamplingSettings(
             sampling_rate=1000.0,
             dsr=3,
-            method=TargetsDownSampling.Polyphase,
+            method=DownSamplingTargets.Polyphase,
             num_stages=1 if take_first_order else 2,
         )
     )
@@ -97,10 +97,10 @@ def test_generated_poly_c_matches_python_frame(
     c_type: str,
     take_first_order: bool,
 ) -> None:
-    settings = SettingsDownSampling(
+    settings = DownSamplingSettings(
         sampling_rate=1000.0,
         dsr=4,
-        method=TargetsDownSampling.Polyphase,
+        method=DownSamplingTargets.Polyphase,
         num_stages=1 if take_first_order else 2,
     )
     downsampler = DownSampling(settings)
@@ -151,10 +151,10 @@ def test_generated_poly_c_matches_python_sinewave(
     c_type: str,
     take_first_order: bool,
 ) -> None:
-    settings = SettingsDownSampling(
+    settings = DownSamplingSettings(
         sampling_rate=1000.0,
         dsr=4,
-        method=TargetsDownSampling.Polyphase,
+        method=DownSamplingTargets.Polyphase,
         num_stages=1 if take_first_order else 2,
     )
     downsampler = DownSampling(settings)
