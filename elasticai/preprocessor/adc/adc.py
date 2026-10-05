@@ -90,7 +90,7 @@ class TransientResampler:
             raise AttributeError(f"Unknown datatype for total_bits = {total_bits}")
 
         if is_int_output:
-            xout = [self._arith.round_to_integer(val) for val in data]
+            xout = list(map(self._arith.round_to_integer, data))
             shape = _get_dtype(total_bits=self._settings.total_bits, is_signed=self._settings.is_signed)
         else:
             xout = [self._arith.round_to_rational(val) for val in data]

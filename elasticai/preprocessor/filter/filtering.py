@@ -126,13 +126,10 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         if self._settings.method == FilterTargets.FIR:
             quant_a = [1.0]
         else:
-            quant_a = arith.cut_as_integer(self._coeff_a.tolist())
-            quant_a = [arith._config.minimum_step_as_rational * val for val in quant_a]
+            quant_a = list(map(arith.cut_as_rational, self._coeff_a.tolist()))  # type: ignore
         error_a = self._coeff_a - np.asarray(quant_a)
 
-        quant_b = list()
-        quant_b.extend(arith.cut_as_integer(self._coeff_b.tolist()))
-        quant_b = [arith._config.minimum_step_as_rational * val for val in quant_b]
+        quant_b = list(map(arith.cut_as_rational, self._coeff_b.tolist()))  # type: ignore
         error_b = self._coeff_b - np.asarray(quant_b)
         return FilterCoeffs(
             b=quant_b,

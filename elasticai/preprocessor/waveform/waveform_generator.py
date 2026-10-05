@@ -258,7 +258,7 @@ class WaveformGenerator:
         offset = 0.0 if signed else 0.5
         val_in = (wvf_norm.signal * scale + offset) if not do_opt else wvf_norm.signal
         arith = FxpArithmetic(fxp_params=FxpParams(total_bits=bitwidth, frac_bits=bitfrac, signed=signed))
-        wvf_fxp = arith.round_to_rational(val_in.tolist())
+        wvf_fxp = list(map(arith.round_to_rational, val_in.tolist()))
         wvf_fxp = np.asarray(wvf_fxp)
 
         if do_opt:
