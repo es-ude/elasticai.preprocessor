@@ -43,23 +43,34 @@ class TestDownSampling(TestCase):
         self.assertEqual(results, 2.5e3)
 
     def test_do_simple(self):
+        self.sets.method = DownSamplingTargets.Simple
+        results = DownSampling(self.sets).decimate(self.input)
+        self.assertEqual(results.size, self.sets.sampling_rate / self.sets.dsr)
+
+    def test_do_simple_with_str(self):
+        self.sets.method = "simple"
+        self.sets.method = "simple"
         results = DownSampling(self.sets)._do_simple(self.input)
         self.assertEqual(results.size, self.sets.sampling_rate / self.sets.dsr)
 
     def test_cic_size(self):
+        self.sets.method = DownSamplingTargets.CIC
         self.sets.num_stages = 5
         check = int(1 + (self.input.size - 1) / self.sets.dsr)
-        results = DownSampling(self.sets)._do_cic(self.input)
+        results = DownSampling(self.sets).decimate(self.input)
         self.assertEqual(results.size, check)
 
-    def test_cic_type(self):  #
+    def test_cic_type(self):
         self.sets.num_stages = 5
         results = DownSampling(self.sets)._do_cic(self.input)
         self.assertEqual(type(results), np.ndarray)
 
     def test_polyphase_one_size(self):
+        self.sets.method = DownSamplingTargets.Polyphase
+        self.sets.num_stages = 1
+        self.sets.dsr = 2
         check = int((self.input.size - 1) / 2)
-        results = DownSampling(self.sets)._do_decimation_polyphase_order_one(self.input)
+        results = DownSampling(self.sets).decimate(self.input)
         self.assertEqual(results.size, check)
 
     def test_polyphase_one_type(self):
