@@ -18,10 +18,9 @@ def build_test_signal(bitwidth: int, frac: int = 0, num_periods: int = 2, n_samp
     sig_in = mid_cm + (mid_cm - 2) * np.sin(
         np.linspace(0, num_periods * 2 * np.pi, n_samples, dtype=float)
     )
-    return [arith_data.cut_as_integer(float(v)) for v in sig_in]
+    return list(map(arith_data.cut_as_integer, sig_in))
 
 
-# Feste Werte für den Template-Test
 FIXED_SIG_IN = [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]
 FIXED_CHECK = {
     1: [1, 5, 1, 5, 1, 5],  # y_k = x[2k+1] + x[2k]

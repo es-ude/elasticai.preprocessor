@@ -88,10 +88,7 @@ packages = ["elasticai"]
 exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py"]
 
 [tool.pytest]
-markers = [
-  "simulation: a slow simulation test",
-  "hardware: a hardware test to validate func"
-]
+markers = ["hardware: a hardware test to validate func", "simulation: a slow simulation test"]
 minversion = "9.0"
 norecursedirs = ["plugins_c"]
 python_files = ["*_test.py"]
