@@ -44,7 +44,7 @@ class DownSampling(PreprocessingModule):
     def __init__(self, settings: DownSamplingSettings):
         super().__init__()
         self._settings = settings
-        if isinstance(settings.method, int):
+        if isinstance(settings.method, str):
             self._settings.method = DownSamplingTargets(settings.method)
 
     def __call__(self, x: SequentialSignal) -> SequentialSignal:
@@ -224,9 +224,7 @@ class DownSampling(PreprocessingModule):
             case DownSamplingTargets.Simple:
                 raise NotImplementedError
             case DownSamplingTargets.CIC:
-                params = self._create_cic_verilog(
-                    id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=self._settings.num_stages
-                )
+                raise NotImplementedError
             case DownSamplingTargets.Polyphase:
                 params = self._create_polydec_asic_verilog(
                     id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
