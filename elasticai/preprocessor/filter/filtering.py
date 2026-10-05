@@ -59,7 +59,7 @@ class FilterSettings:
         return int(self.sampling_rate / self.f_filt[0])
 
 
-DefaultFilterSettings = FilterSettings(
+FilterSettingsDefault = FilterSettings(
     sampling_rate=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
@@ -77,10 +77,9 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
     _coeff_b: np.ndarray
     _settings: FilterSettings
 
-    def __init__(self, settings: FilterSettings, use_filtfilt: bool = False):
+    def __init__(self, settings: FilterSettings):
         """Class for Emulating Digital Signal Processing on FPGA
         :param settings:        Class for handling the filter stage (using SettingsFilter)
-        :param use_filtfilt:    Boolean for applying zero-phase filtering
         :return:                None
         """
         super().__init__()
@@ -88,7 +87,6 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         self._settings = settings
         if isinstance(settings.method, str):
             self._settings.method = FilterTargets(settings.method.lower())
-        self.__use_filtfilt = use_filtfilt
         self.__process_filter()
 
     def __call__(self, x: SequentialSignal) -> SequentialSignal:
@@ -257,10 +255,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         :param xin:     Numpy array with transient input data
         :return:        Numpy array with filtered data
         """
-        if not self.__use_filtfilt:
-            return scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
-        else:
-            return scft.filtfilt(b=self._coeff_b, a=self._coeff_a, x=xin)
+        return scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
 
     def filt_quantized(
         self,
@@ -303,7 +298,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         ) * 2**-fraction_width
         return x - offset
 
-    def __get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
+    def _get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
         if self._settings.method == FilterTargets.IIR:
             frange = np.array(self._settings.f_filt)
             filter = scft.iirfilter(
@@ -316,7 +311,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             )
             return scft.freqs(b=filter[0], a=filter[1], worN=num_points)
         else:
-            return scft.freqs(b=self._coeff_b, a=1, worN=num_points)
+            return scft.freqs(b=self._coeff_b, a=[1], worN=num_points)
 
     def plot_freq_response(
         self, num_points: int = 1001, show_plot: bool = True, path2save: str = ""
@@ -326,7 +321,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         :param show_plot:   Boolean for showing plot
         :param path2save:   Path to save figure
         """
-        w, h = self.__get_frequency_behaviour(num_points=num_points)
+        w, h = self._get_frequency_behaviour(num_points=num_points)
         f = w / (2 * np.pi) if self._settings.f_filt == "fir" else w
 
         fig1, ax11 = plt.subplots()
@@ -358,7 +353,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         :param show_plot:   Boolean for showing plot
         :return:            None
         """
-        w, h = self.__get_frequency_behaviour(num_points=num_points)
+        w, h = self._get_frequency_behaviour(num_points=num_points)
         f = w / (2 * np.pi)
         phase = np.unwrap(np.angle(h)) / np.pi * 180
         grp_dly = -np.diff(phase) / np.diff(w)
