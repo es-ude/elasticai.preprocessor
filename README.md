@@ -16,6 +16,7 @@ For building the whole digital AI hardware, we recommend to use the following fr
 ## Installation guide
 For using this framework, the following software tools are necessary / recommended.
 - `uv` package manager ([Link](https://docs.astral.sh/uv/), [Using](https://www.saaspegasus.com/guides/uv-deep-dive/))
+- `iverilog` as Verilog Simulator used in the cocotb Tests ([Link](https://steveicarus.github.io/iverilog/)) 
 - Git ([Link](https://git-scm.com/downloads))
 
 It is recommended that each new feature will be edited in a new branch. If the integration is done and all tests are runned successful, please create a pull request for merging it back into the main branch. Further information about using this software framework are described in the paper at the end of the readme file.
@@ -28,5 +29,22 @@ Afterwards you can create the virtual environment (venv) and installing all pack
 ````
 uv sync (--refresh --upgrade)
 ````
+
+For providing a smoothless development, we encourage to use the `devenv` environment. 
+It manages all external tools and provides scripts to run tests and fix linting problems. 
+If you do not want to install `devenv` locally, you have to install the `iverilog` package, please use the following lines in your terminal:
+(Linux)
+```
+sudo apt-get update
+sudo apt-get install -y iverilog
+```
+(MacOS)
+```
+brew install icarus-verilog
+```
+(Windows)
+```
+winget install IcarusVerilog.IcarusVerilog
+```
 ## Citation / Documentation
 If you want to understand what is the idea behind elasticAI ecosystem, please have a look on the corresponding [paper](https://doi.org/10.1515/cdbme-2023-1118) regarding end-to-end signal processing.
