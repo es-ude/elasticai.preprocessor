@@ -1,36 +1,36 @@
 from .eventdetection import (
-    DefaultSettingsEventDetection as DefaultSettingsEventDetection,
+    DefaultEventDetectionSettings as DefaultEventDetectionSettings,
 )
 from .eventdetection import (
     EventDetection as EventDetection,
 )
 from .eventdetection import (
-    SettingsEventDetection as SettingsEventDetection,
+    EventDetectionSettings as EventDetectionSettings,
 )
 from .eventdetection import (
-    TargetsEventDetection as TargetsEventDetection,
+    EventDetectionTargets as EventDetectionTargets,
 )
 from .frame_alignment import (
-    DefaultSettingsFrameAlignment as DefaultSettingsFrameAlignment,
+    DefaultFrameAlignmentSettings as DefaultFrameAlignmentSettings,
 )
 from .frame_alignment import (
     FrameAligner as FrameAligner,
 )
 from .frame_alignment import (
-    SettingsFrameAlignment as SettingsFrameAlignment,
+    FrameAlignmentSettings as FrameAlignmentSettings,
 )
 from .frame_alignment import (
-    TargetsFrameAlignment as TargetsFrameAlignment,
+    FrameAlignmentTargets as FrameAlignmentTargets,
 )
 from .preprocessors import (
-    DefaultSettingsEventPreprocessor as DefaultSettingsEventPreprocessor,
+    DefaultEventPreprocessorSettings as DefaultEventPreprocessorSettings,
 )
 from .preprocessors import (
     EventPreprocessor as EventPreprocessor,
 )
 from .preprocessors import (
-    SettingsEventPreprocessor as SettingsEventPreprocessor,
+    EventPreprocessorSettings as EventPreprocessorSettings,
 )
 from .preprocessors import (
-    TargetsEventPreprocessors as TargetsEventPreprocessors,
+    EventPreprocessorsTargets as EventPreprocessorsTargets,
 )

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from .normalization import DataNormalization, SettingsNormalization, TargetsNormalization
+from .normalization import DataNormalization, NormalizationSettings, NormalizationTargets
 
 
 def generate_test_data(
@@ -106,7 +106,7 @@ class TestHelper(TestCase):
 
 
 def test_list_methods():
-    sets = SettingsNormalization(
+    sets = NormalizationSettings(
         method="minmax",
         peak_mode=0,
     )
@@ -116,7 +116,7 @@ def test_list_methods():
 
 
 def test_error_wrong_input():
-    sets = SettingsNormalization(
+    sets = NormalizationSettings(
         method="bimax",
         peak_mode=0,
     )
@@ -132,76 +132,76 @@ def test_error_wrong_input():
 @pytest.mark.parametrize(
     "method, mode, expected_numpy, expected_torch",
     [
-        (TargetsNormalization("zeroone"), 2, (0.0, 1.0), (0.0, 1.0)),
-        (TargetsNormalization("minmax"), 2, (-1.0, 1.0), (-1.0, 1.0)),
+        (NormalizationTargets("zeroone"), 2, (0.0, 1.0), (0.0, 1.0)),
+        (NormalizationTargets("minmax"), 2, (-1.0, 1.0), (-1.0, 1.0)),
         (
-            TargetsNormalization("norm"),
+            NormalizationTargets("norm"),
             0,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            TargetsNormalization("norm"),
+            NormalizationTargets("norm"),
             1,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            TargetsNormalization("norm"),
+            NormalizationTargets("norm"),
             2,
             (-0.2537967223202087, 0.2539491764105914),
             (-0.2537967562675476, 0.25394919514656067),
         ),
         (
-            TargetsNormalization("zscore"),
+            NormalizationTargets("zscore"),
             0,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            TargetsNormalization("zscore"),
+            NormalizationTargets("zscore"),
             1,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            TargetsNormalization("zscore"),
+            NormalizationTargets("zscore"),
             2,
             (-1.4349982392766611, 1.4477661687200503),
             (-1.4349982738494873, 1.4477663040161133),
         ),
         (
-            TargetsNormalization("medianmad"),
+            NormalizationTargets("medianmad"),
             0,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
         (
-            TargetsNormalization("medianmad"),
+            NormalizationTargets("medianmad"),
             1,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
         (
-            TargetsNormalization("medianmad"),
+            NormalizationTargets("medianmad"),
             2,
             (-1.451448498197262, 1.5791120924283681),
             (-1.4514487981796265, 1.5791120529174805),
         ),
         (
-            TargetsNormalization("meanmad"),
+            NormalizationTargets("meanmad"),
             0,
             (-1.620773402838807, 1.620773402838807),
             (-1.620773434638977, 1.6207733154296875),
         ),
         (
-            TargetsNormalization("meanmad"),
+            NormalizationTargets("meanmad"),
             1,
             (-1.620773402838807, 1.620773402838807),
             (-1.620773434638977, 1.6207733154296875),
         ),
         (
-            TargetsNormalization("meanmad"),
+            NormalizationTargets("meanmad"),
             2,
             (-1.620773402838807, 1.620773402838807),
             (-1.620773434638977, 1.6207733154296875),
@@ -209,9 +209,9 @@ def test_error_wrong_input():
     ],
 )
 def test_normalization_method(
-    method: TargetsNormalization, mode: int, expected_numpy: tuple[float], expected_torch: tuple[float]
+    method: NormalizationTargets, mode: int, expected_numpy: tuple[float], expected_torch: tuple[float]
 ):
-    sets = SettingsNormalization(
+    sets = NormalizationSettings(
         method=method,
         peak_mode=mode,
     )
@@ -227,8 +227,8 @@ def test_normalization_method(
 
 
 def test_create_c_minmax_absmax():
-    sets = SettingsNormalization(
-        method=TargetsNormalization("minmax"),
+    sets = NormalizationSettings(
+        method=NormalizationTargets("minmax"),
         peak_mode=2,
     )
 
@@ -244,8 +244,8 @@ def test_create_c_minmax_absmax():
 
 
 def test_create_c_zscore():
-    sets = SettingsNormalization(
-        method=TargetsNormalization("zscore"),
+    sets = NormalizationSettings(
+        method=NormalizationTargets("zscore"),
         peak_mode=0,
     )
 

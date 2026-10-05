@@ -7,7 +7,7 @@ import numpy as np
 from scipy.signal import iirfilter, lfilter
 
 
-class TargetsEventPreprocessors(Enum):
+class EventPreprocessorsTargets(Enum):
     Normal = "normal"
     Absolute = "absolute"
     NEO = "neo"
@@ -19,7 +19,7 @@ class TargetsEventPreprocessors(Enum):
 
 
 @dataclass
-class SettingsEventPreprocessor:
+class EventPreprocessorSettings:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
         method:         TargetsEventPreprocessors: Applied comparator preprocessing method for transient signals [
@@ -36,29 +36,29 @@ class SettingsEventPreprocessor:
         f_filt:         List with filter frequencies for the methods (ASO, SBP)
     """
 
-    method: TargetsEventPreprocessors
+    method: EventPreprocessorsTargets
     sampling_rate: float
     window_size: list[int]
     f_filt: list[float]
 
 
-DefaultSettingsEventPreprocessor = SettingsEventPreprocessor(
-    method=TargetsEventPreprocessors.Normal, sampling_rate=10e3, window_size=[5], f_filt=[150.0]
+DefaultEventPreprocessorSettings = EventPreprocessorSettings(
+    method=EventPreprocessorsTargets.Normal, sampling_rate=10e3, window_size=[5], f_filt=[150.0]
 )
 
 
 class EventPreprocessor:
     _logger: Logger
-    _settings: SettingsEventPreprocessor
+    _settings: EventPreprocessorSettings
 
-    def __init__(self, settings: SettingsEventPreprocessor) -> None:
+    def __init__(self, settings: EventPreprocessorSettings) -> None:
         """Class for performing the comparator preprocessing for transient signals
         :param settings:    Settings object for defining the preprocessor
         :return:            None"""
         self._logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = TargetsEventPreprocessors(settings.method)
+            self._settings.method = EventPreprocessorsTargets(settings.method)
 
     def _get_methods(self) -> list:
         split_key = "_sda_"
@@ -167,7 +167,7 @@ class EventPreprocessor:
         from elasticai.creator_plugins.eventdetection.src import c_compile
 
         match self._settings.method:
-            case TargetsEventPreprocessors.Normal:
+            case EventPreprocessorsTargets.Normal:
                 c_compile.build_preprocessor_normal(
                     bitwidth=bitwidth,
                     signed=signed,
@@ -175,7 +175,7 @@ class EventPreprocessor:
                     preprocessor_id=id,
                     define_path=".",
                 )
-            case TargetsEventPreprocessors.Absolute:
+            case EventPreprocessorsTargets.Absolute:
                 c_compile.build_preprocessor_abs(
                     bitwidth=bitwidth,
                     signed=signed,
@@ -183,7 +183,7 @@ class EventPreprocessor:
                     preprocessor_id=id,
                     define_path=".",
                 )
-            case TargetsEventPreprocessors.NEO:
+            case EventPreprocessorsTargets.NEO:
                 c_compile.build_preprocessor_neo(
                     bitwidth=bitwidth,
                     signed=signed,

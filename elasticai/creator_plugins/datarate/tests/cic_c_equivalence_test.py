@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.preprocessor.downsampling import DownSampling, SettingsDownSampling, TargetsDownSampling
+from elasticai.preprocessor.downsampling import DownSampling, DownSamplingSettings, DownSamplingTargets
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -18,7 +18,7 @@ INTEGER_CONFIGS = [
 
 def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> None:
     downsampler = DownSampling(
-        SettingsDownSampling(sampling_rate=1000.0, dsr=0, method=TargetsDownSampling.CIC, num_stages=5)
+        DownSamplingSettings(sampling_rate=1000.0, dsr=0, method=DownSamplingTargets.CIC, num_stages=5)
     )
 
     with pytest.raises(ValueError, match="dsr must be >= 1"):
@@ -39,8 +39,8 @@ def test_generated_cic_c_matches_python_frame(
     c_type: str,
 ) -> None:
     num_stages = 3
-    settings = SettingsDownSampling(
-        sampling_rate=1000.0, dsr=4, method=TargetsDownSampling.CIC, num_stages=num_stages
+    settings = DownSamplingSettings(
+        sampling_rate=1000.0, dsr=4, method=DownSamplingTargets.CIC, num_stages=num_stages
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"
@@ -86,8 +86,8 @@ def test_generated_cic_c_matches_python_sinewave(
     c_type: str,
 ) -> None:
     num_stages = 3
-    settings = SettingsDownSampling(
-        sampling_rate=1000.0, dsr=4, method=TargetsDownSampling.CIC, num_stages=num_stages
+    settings = DownSamplingSettings(
+        sampling_rate=1000.0, dsr=4, method=DownSamplingTargets.CIC, num_stages=num_stages
     )
     downsampler = DownSampling(settings)
     output_dir = tmp_path / "src"

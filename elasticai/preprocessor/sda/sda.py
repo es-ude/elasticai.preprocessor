@@ -5,19 +5,19 @@ import numpy as np
 
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
+    EventDetectionSettings,
+    EventDetectionTargets,
     EventPreprocessor,
+    EventPreprocessorSettings,
+    EventPreprocessorsTargets,
     FrameAligner,
-    SettingsEventDetection,
-    SettingsEventPreprocessor,
-    SettingsFrameAlignment,
-    TargetsEventDetection,
-    TargetsEventPreprocessors,
-    TargetsFrameAlignment,
+    FrameAlignmentSettings,
+    FrameAlignmentTargets,
 )
 from elasticai.preprocessor.thresholding import (
-    SettingsThreshold,
-    TargetsThreshold,
     Thresholding,
+    ThresholdSettings,
+    ThresholdTargets,
 )
 
 
@@ -42,7 +42,7 @@ class FrameWaveform:
 
 
 @dataclass
-class SettingsSDA:
+class SDASettings:
     """Configuration class for defining the Spike Detection Algorithm (SDA)
     Attributes:
         method:         TargetsEventPreprocessors: Applied spike detection algorithm (SDA) on transient signal [
@@ -79,9 +79,9 @@ class SettingsSDA:
         f_filt:         List with floating of the filter frequencies [Hz]
     """
 
-    method: TargetsEventPreprocessors
-    mode_thr: TargetsThreshold
-    mode_align: TargetsFrameAlignment
+    method: EventPreprocessorsTargets
+    mode_thr: ThresholdTargets
+    mode_align: FrameAlignmentTargets
     dx_sda: list
     sampling_rate: float
     t_frame_length: float
@@ -110,12 +110,12 @@ class SettingsSDA:
         return self.get_integer_spike_frame + 2 * self.get_integer_offset
 
 
-DefaultSettingsSDA = SettingsSDA(
+DefaultSDASettings = SDASettings(
     sampling_rate=20e3,
     dx_sda=[1],
-    method=TargetsEventPreprocessors("eed"),
-    mode_thr=TargetsThreshold("constant"),
-    mode_align=TargetsFrameAlignment("min"),
+    method=EventPreprocessorsTargets("eed"),
+    mode_thr=ThresholdTargets("constant"),
+    mode_align=FrameAlignmentTargets("min"),
     t_frame_length=1.6e-3,
     t_frame_start=0.4e-3,
     dt_offset=0.1e-3,
@@ -124,14 +124,14 @@ DefaultSettingsSDA = SettingsSDA(
 
 
 class SpikeDetection:
-    _settings: SettingsSDA
+    _settings: SDASettings
     _threshold: Thresholding
     _events: EventDetection
     _event_pre: EventPreprocessor
     _aligner: FrameAligner
     _logger: Logger
 
-    def __init__(self, settings: SettingsSDA) -> None:
+    def __init__(self, settings: SDASettings) -> None:
         """Class SpikeDetection for extracting Spike Waveforms from neural transient input
         :param settings:    Class SettingsSDA for configuring the accelerator
         :return:            None
@@ -140,7 +140,7 @@ class SpikeDetection:
         self._settings = settings
 
         self._threshold = Thresholding(
-            settings=SettingsThreshold(
+            settings=ThresholdSettings(
                 method=self._settings.mode_thr,
                 sampling_rate=self._settings.sampling_rate,
                 window_sec=self._settings.t_frame_length,
@@ -149,7 +149,7 @@ class SpikeDetection:
             )
         )
         self._event_pre = EventPreprocessor(
-            settings=SettingsEventPreprocessor(
+            settings=EventPreprocessorSettings(
                 method=self._settings.method,
                 sampling_rate=self._settings.sampling_rate,
                 window_size=self._settings.dx_sda,
@@ -157,14 +157,14 @@ class SpikeDetection:
             )
         )
         self._events = EventDetection(
-            settings=SettingsEventDetection(
-                method=TargetsEventDetection("normal"),
+            settings=EventDetectionSettings(
+                method=EventDetectionTargets("normal"),
                 window_size=1,
                 out_invert=False,
             )
         )
         self._aligner = FrameAligner(
-            settings=SettingsFrameAlignment(
+            settings=FrameAlignmentSettings(
                 method=self._settings.mode_align,
                 sampling_rate=self._settings.sampling_rate,
                 align_sec=self._settings.t_frame_start,

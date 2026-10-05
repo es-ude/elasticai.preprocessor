@@ -1,4 +1,4 @@
 from .normalization import DataNormalization as DataNormalization
-from .normalization import DefaultSettingsNormalization as DefaultSettingsNormalization
-from .normalization import SettingsNormalization as SettingsNormalization
-from .normalization import TargetsNormalization as TargetsNormalization
+from .normalization import DefaultNormalizationSettings as DefaultNormalizationSettings
+from .normalization import NormalizationSettings as NormalizationSettings
+from .normalization import NormalizationTargets as NormalizationTargets

@@ -9,7 +9,7 @@ from elasticai.creator_plugins.datarate.src import c_compile
 from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
 
 
-class TargetsDownSampling(Enum):
+class DownSamplingTargets(Enum):
     Subsampling = "subsampling"
     Simple = "simple"
     CIC = "cic"
@@ -17,7 +17,7 @@ class TargetsDownSampling(Enum):
 
 
 @dataclass
-class SettingsDownSampling:
+class DownSamplingSettings:
     """Settings class for configuring the properties of the downsampling module
     Attributes:
         method:         Used method for downsampling (TargetsDownSampling)
@@ -26,14 +26,14 @@ class SettingsDownSampling:
         dsr:            Integer with downsampling ratio for reducing the input sampling rate (SR_out = SR_in / OSR)
     """
 
-    method: TargetsDownSampling
+    method: DownSamplingTargets
     sampling_rate: float
     num_stages: int
     dsr: int
 
 
-DefaultSettingsDownSampling = SettingsDownSampling(
-    method=TargetsDownSampling.Simple,
+DefaultDownSamplingSettings = DownSamplingSettings(
+    method=DownSamplingTargets.Simple,
     sampling_rate=1000.0,
     num_stages=5,
     dsr=10,
@@ -41,11 +41,11 @@ DefaultSettingsDownSampling = SettingsDownSampling(
 
 
 class DownSampling(PreprocessingModule):
-    def __init__(self, settings: SettingsDownSampling):
+    def __init__(self, settings: DownSamplingSettings):
         super().__init__()
         self._settings = settings
         if isinstance(settings.method, int):
-            self._settings.method = TargetsDownSampling(settings.method)
+            self._settings.method = DownSamplingTargets(settings.method)
 
     def __call__(self, x: SequentialSignal) -> SequentialSignal:
         return SequentialSignal(
@@ -119,7 +119,7 @@ class DownSampling(PreprocessingModule):
         path2save: Path,
     ) -> None:
         match self._settings.method:
-            case TargetsDownSampling.Subsampling:
+            case DownSamplingTargets.Subsampling:
                 c_compile.build_downsampling_subsampling(
                     downsampling_ratio=self._settings.dsr,
                     bitwidth=bitwidth,
@@ -128,7 +128,7 @@ class DownSampling(PreprocessingModule):
                     downsampling_id=id,
                     define_path=".",
                 )
-            case TargetsDownSampling.Simple:
+            case DownSamplingTargets.Simple:
                 c_compile.build_downsampling_simple(
                     downsampling_ratio=self._settings.dsr,
                     bitwidth=bitwidth,
@@ -137,7 +137,7 @@ class DownSampling(PreprocessingModule):
                     downsampling_id=id,
                     define_path=".",
                 )
-            case TargetsDownSampling.CIC:
+            case DownSamplingTargets.CIC:
                 c_compile.build_downsampling_cic(
                     downsampling_ratio=self._settings.dsr,
                     num_stages=self._settings.num_stages,
@@ -147,7 +147,7 @@ class DownSampling(PreprocessingModule):
                     downsampling_id=id,
                     define_path=".",
                 )
-            case TargetsDownSampling.Polyphase:
+            case DownSamplingTargets.Polyphase:
                 c_compile.build_downsampling_polyphase(
                     downsampling_ratio=self._settings.dsr,
                     take_first_order=self._settings.num_stages % 2 == 1,
@@ -197,19 +197,19 @@ class DownSampling(PreprocessingModule):
 
     def _create_design_fpga_verilog(self, id: str, bitwidth: int, path2save: Path) -> None:
         match self._settings.method:
-            case TargetsDownSampling.Subsampling:
+            case DownSamplingTargets.Subsampling:
                 params = self._create_subsampler_verilog(
                     id=id, bitwidth=bitwidth, order=self._settings.dsr
                 )
-            case TargetsDownSampling.Simple:
+            case DownSamplingTargets.Simple:
                 params = self._create_downsampler_mean_verilog(
                     id=id, bitwidth=bitwidth, order=self._settings.dsr
                 )
-            case TargetsDownSampling.CIC:
+            case DownSamplingTargets.CIC:
                 params = self._create_cic_verilog(
                     id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=self._settings.num_stages
                 )
-            case TargetsDownSampling.Polyphase:
+            case DownSamplingTargets.Polyphase:
                 params = self._create_polydec_fpga_verilog(
                     id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
                 )
@@ -219,15 +219,15 @@ class DownSampling(PreprocessingModule):
 
     def _create_design_asic_verilog(self, id: str, bitwidth: int, path2save: Path) -> None:
         match self._settings.method:
-            case TargetsDownSampling.Subsampling:
+            case DownSamplingTargets.Subsampling:
                 raise NotImplementedError
-            case TargetsDownSampling.Simple:
+            case DownSamplingTargets.Simple:
                 raise NotImplementedError
-            case TargetsDownSampling.CIC:
+            case DownSamplingTargets.CIC:
                 params = self._create_cic_verilog(
                     id=id, bitwidth=bitwidth, dec_rate=self._settings.dsr, n_dec=self._settings.num_stages
                 )
-            case TargetsDownSampling.Polyphase:
+            case DownSamplingTargets.Polyphase:
                 params = self._create_polydec_asic_verilog(
                     id=id, bitwidth=bitwidth, poly_order=self._settings.dsr
                 )
@@ -345,13 +345,13 @@ class DownSampling(PreprocessingModule):
         return:             Numpy array with transient signal output (low sampling rate)
         """
         match self._settings.method:
-            case TargetsDownSampling.Simple:
+            case DownSamplingTargets.Simple:
                 return self._do_simple(uin)
-            case TargetsDownSampling.Subsampling:
+            case DownSamplingTargets.Subsampling:
                 return self.do_subsampling(data=uin, augment=False, take_sample=0)
-            case TargetsDownSampling.CIC:
+            case DownSamplingTargets.CIC:
                 return self._do_cic(uin)
-            case TargetsDownSampling.Polyphase:
+            case DownSamplingTargets.Polyphase:
                 return self._do_decimation_polyphase(uin, take_first_order=False)
             case _:
                 raise AttributeError("Not right selected decimation method")

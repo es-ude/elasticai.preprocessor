@@ -7,13 +7,13 @@ import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
 from elasticai.creator_plugins.adc.src.c_compile import build_adc_quant
-from elasticai.preprocessor.adc import SettingsResampler
+from elasticai.preprocessor.adc import ResamplerSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
 ADC_CONFIGS = [
     pytest.param(
-        SettingsResampler(
+        ResamplerSettings(
             total_bits=8,
             frac_bits=0,
             is_signed=True,
@@ -26,7 +26,7 @@ ADC_CONFIGS = [
         id="int8_signed",
     ),
     pytest.param(
-        SettingsResampler(
+        ResamplerSettings(
             total_bits=8,
             frac_bits=0,
             is_signed=False,
@@ -39,7 +39,7 @@ ADC_CONFIGS = [
         id="uint8_unsigned",
     ),
     pytest.param(
-        SettingsResampler(
+        ResamplerSettings(
             total_bits=12,
             frac_bits=0,
             is_signed=True,
@@ -52,7 +52,7 @@ ADC_CONFIGS = [
         id="int16_12bit",
     ),
     pytest.param(
-        SettingsResampler(
+        ResamplerSettings(
             total_bits=16,
             frac_bits=0,
             is_signed=False,
@@ -67,7 +67,7 @@ ADC_CONFIGS = [
 ]
 
 
-def _py_adc(voltage: float, settings: SettingsResampler) -> int:
+def _py_adc(voltage: float, settings: ResamplerSettings) -> int:
     """Python-Referenz: spiegelt die C-Formel aus adc_template.h exakt wider."""
     lsb = (settings.vpos - settings.vneg) / (2**settings.total_bits)
     if settings.is_signed:
@@ -82,7 +82,7 @@ def _py_adc(voltage: float, settings: SettingsResampler) -> int:
     return max(min_int, min(max_int, ival))
 
 
-def _make_test_voltages(settings: SettingsResampler) -> np.ndarray:
+def _make_test_voltages(settings: ResamplerSettings) -> np.ndarray:
     """Erzeugt Testeingangsspannungen: in-range, Grenzen und clamping-Fälle."""
     v_range = settings.vpos - settings.vneg
     fractions = np.array([-0.15, 0.0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1.0, 1.15])
@@ -90,7 +90,7 @@ def _make_test_voltages(settings: SettingsResampler) -> np.ndarray:
 
 
 def test_build_adc_quant_generates_c_files(tmp_path: Path) -> None:
-    settings = SettingsResampler(
+    settings = ResamplerSettings(
         total_bits=12,
         frac_bits=0,
         is_signed=True,
@@ -109,7 +109,7 @@ def test_build_adc_quant_generates_c_files(tmp_path: Path) -> None:
 @pytest.mark.parametrize("settings,c_type", ADC_CONFIGS)
 def test_adc_c_matches_python(
     tmp_path: Path,
-    settings: SettingsResampler,
+    settings: ResamplerSettings,
     c_type: str,
 ) -> None:
     output_dir = tmp_path / "src"

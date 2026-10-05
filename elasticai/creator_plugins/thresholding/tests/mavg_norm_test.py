@@ -7,7 +7,7 @@ from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.mac import load_and_plugin
 
-from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+from elasticai.preprocessor.thresholding import Thresholding, ThresholdSettings
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -178,7 +178,7 @@ def test_build_equal(
         [np.random.randint(cnv.minimum_as_integer, cnv.maximum_as_integer) for _ in range(8 * length)]
     )
 
-    settings = SettingsThreshold(
+    settings = ThresholdSettings(
         method="mavg",
         sampling_rate=1.0,
         window_sec=float(length),

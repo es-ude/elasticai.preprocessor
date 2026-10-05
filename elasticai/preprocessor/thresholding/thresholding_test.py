@@ -10,10 +10,10 @@ from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 from .thresholding import (
-    DefaultSettingsThreshold,
-    SettingsThreshold,
-    TargetsThreshold,
+    DefaultThresholdSettings,
     Thresholding,
+    ThresholdSettings,
+    ThresholdTargets,
 )
 
 INTEGER_CONFIGS = [
@@ -22,23 +22,23 @@ INTEGER_CONFIGS = [
 ]
 
 THRESHOLDING_CONFIGS = [
-    pytest.param(1000.0, 10e-3, TargetsThreshold.Constant, "thresholding_constant", id="method_constant"),
-    pytest.param(1000.0, 10e-3, TargetsThreshold.Welford, "thresholding_welford", id="method_welford"),
-    pytest.param(1000.0, 10e-3, TargetsThreshold.MovingAverage, "thresholding_mavg", id="method_mavg"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.Constant, "thresholding_constant", id="method_constant"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.Welford, "thresholding_welford", id="method_welford"),
+    pytest.param(1000.0, 10e-3, ThresholdTargets.MovingAverage, "thresholding_mavg", id="method_mavg"),
     pytest.param(
-        512.0, 0.015625, TargetsThreshold.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"
+        512.0, 0.015625, ThresholdTargets.MovingAverage, "thresholding_mavg_pow2", id="method_mavg_pow2"
     ),  # window_length = int(0.015625 * 512) = 8 = 2^3
     pytest.param(
         1000.0,
         10e-3,
-        TargetsThreshold.MovingAverageAbsolute,
+        ThresholdTargets.MovingAverageAbsolute,
         "thresholding_mavg_abs",
         id="method_mavg_abs",
     ),
     pytest.param(
         512.0,
         0.015625,
-        TargetsThreshold.MovingAverageAbsolute,
+        ThresholdTargets.MovingAverageAbsolute,
         "thresholding_mavg_pow2_abs",
         id="method_mavg_pow2_abs",
     ),  # window_length = 8 = 2^3
@@ -46,7 +46,7 @@ THRESHOLDING_CONFIGS = [
 
 
 class SettingsThresholdingTest(TestCase):
-    set0: SettingsThreshold = deepcopy(DefaultSettingsThreshold)
+    set0: ThresholdSettings = deepcopy(DefaultThresholdSettings)
 
     def test_window_length(self):
         self.set0.sampling_rate = 1e3
@@ -56,7 +56,7 @@ class SettingsThresholdingTest(TestCase):
 
 class ThresholdingTest(TestCase):
     def setUp(self):
-        self.set0: SettingsThreshold = deepcopy(DefaultSettingsThreshold)
+        self.set0: ThresholdSettings = deepcopy(DefaultThresholdSettings)
         t_end = 1.0
         time = np.linspace(start=0, stop=t_end, num=int(t_end * self.set0.sampling_rate), endpoint=True)
         self.signal_in = np.sin(2 * np.pi * time * 10.0)
@@ -71,10 +71,10 @@ class ThresholdingTest(TestCase):
         dut = Thresholding(settings=self.set0)
         rslt = dut._get_methods()
         assert len(rslt) == 8
-        self.assertTrue(TargetsThreshold.Constant.value in rslt)
+        self.assertTrue(ThresholdTargets.Constant.value in rslt)
 
     def test_constant(self):
-        self.set0.method = TargetsThreshold.Constant
+        self.set0.method = ThresholdTargets.Constant
         self.set0.thr_val = 0.5
 
         dut = Thresholding(settings=self.set0)
@@ -84,7 +84,7 @@ class ThresholdingTest(TestCase):
         self.assertEqual(np.mean(rslt), self.set0.thr_val)
 
     def test_abs_mean(self):
-        self.set0.method = TargetsThreshold.AbsoluteMean
+        self.set0.method = ThresholdTargets.AbsoluteMean
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -93,7 +93,7 @@ class ThresholdingTest(TestCase):
         self.assertLess(np.abs(np.mean(rslt) - chck), 6e-4)
 
     def test_median_absolute_derivation(self):
-        self.set0.method = TargetsThreshold.MedianAbsoluteDeviation
+        self.set0.method = ThresholdTargets.MedianAbsoluteDeviation
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -102,7 +102,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_moving_average(self):
-        self.set0.method = TargetsThreshold.MovingAverage
+        self.set0.method = ThresholdTargets.MovingAverage
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -112,7 +112,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=2)
 
     def test_moving_absolute_average(self):
-        self.set0.method = TargetsThreshold.MovingAverageAbsolute
+        self.set0.method = ThresholdTargets.MovingAverageAbsolute
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
@@ -122,7 +122,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[300:], chck[300:], decimal=3)
 
     def test_root_mean_squared_normal(self):
-        self.set0.method = TargetsThreshold.RmsNorm
+        self.set0.method = ThresholdTargets.RmsNorm
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -131,7 +131,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=3)
 
     def test_root_mean_squared_blackrock(self):
-        self.set0.method = TargetsThreshold.RmsBlackrock
+        self.set0.method = ThresholdTargets.RmsBlackrock
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -140,7 +140,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt, chck, decimal=2)
 
     def test_welford(self):
-        self.set0.method = TargetsThreshold.Welford
+        self.set0.method = ThresholdTargets.Welford
         dut = Thresholding(settings=self.set0)
         rslt = dut.get_threshold(self.signal_in)
 
@@ -149,7 +149,7 @@ class ThresholdingTest(TestCase):
         np.testing.assert_almost_equal(rslt[500:], chck[500:], decimal=1)
 
     def test_create_design_fpga_const(self):
-        self.set0.method = TargetsThreshold.Constant
+        self.set0.method = ThresholdTargets.Constant
         self.set0.thr_val = 2
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
@@ -170,7 +170,7 @@ class ThresholdingTest(TestCase):
                 assert file.name in files_available
 
     def test_create_design_fpga_mavg_norm(self):
-        self.set0.method = TargetsThreshold.MovingAverage
+        self.set0.method = ThresholdTargets.MovingAverage
         self.set0.window_sec = 0.1
         self.set0.sampling_rate = 1e3
 
@@ -188,7 +188,7 @@ class ThresholdingTest(TestCase):
                 assert file.name in files_available
 
     def test_create_design_fpga_mavg_shift(self):
-        self.set0.method = TargetsThreshold.MovingAverage
+        self.set0.method = ThresholdTargets.MovingAverage
         self.set0.window_sec = 0.1
         self.set0.sampling_rate = 1.28e3
 
@@ -206,7 +206,7 @@ class ThresholdingTest(TestCase):
                 assert file.name in files_available
 
     def test_create_design_fpga_mavg_abs_norm(self):
-        self.set0.method = TargetsThreshold.MovingAverageAbsolute
+        self.set0.method = ThresholdTargets.MovingAverageAbsolute
         self.set0.window_sec = 0.1
         self.set0.sampling_rate = 1e3
 
@@ -224,7 +224,7 @@ class ThresholdingTest(TestCase):
                 assert file.name in files_available
 
     def test_create_design_fpga_mavg_abs_shit(self):
-        self.set0.method = TargetsThreshold.MovingAverageAbsolute
+        self.set0.method = ThresholdTargets.MovingAverageAbsolute
         self.set0.window_sec = 0.1
         self.set0.sampling_rate = 1.28e3
 
@@ -251,14 +251,14 @@ class TestCreateHardwareDesign:
         target: str,
         sampling_rate: float,
         window_sec: float,
-        method: TargetsThreshold,
+        method: ThresholdTargets,
         c_name: str,
         bitwidth: int,
         numpy_dtype,
         c_type: str,
     ) -> None:
         thresholder = Thresholding(
-            SettingsThreshold(
+            ThresholdSettings(
                 method=method,
                 sampling_rate=sampling_rate,
                 window_sec=window_sec,

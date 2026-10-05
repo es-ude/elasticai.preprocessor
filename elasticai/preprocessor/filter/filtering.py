@@ -18,7 +18,7 @@ from elasticai.preprocessor._plot_helper import (
 from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
 
 
-class TargetsFilter(Enum):
+class FilterTargets(Enum):
     IIR = "iir"
     FIR = "fir"
 
@@ -36,7 +36,7 @@ class FilterCoeffs:
 
 
 @dataclass
-class SettingsFilter:
+class FilterSettings:
     """Configuration class for defining the filter processor
     Attributes:
         method:         TargetsFiler selected filter algorithm [IIR, FIR]
@@ -47,7 +47,7 @@ class SettingsFilter:
         b_type:         String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
     """
 
-    method: TargetsFilter
+    method: FilterTargets
     sampling_rate: float
     n_order: int
     f_filt: list
@@ -59,11 +59,11 @@ class SettingsFilter:
         return int(self.sampling_rate / self.f_filt[0])
 
 
-DefaultSettingsFilter = SettingsFilter(
+DefaultFilterSettings = FilterSettings(
     sampling_rate=0.3e3,
     n_order=2,
     f_filt=[0.1, 100],
-    method=TargetsFilter.IIR,
+    method=FilterTargets.IIR,
     f_type="butter",
     b_type="bandpass",
 )
@@ -75,9 +75,9 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
     _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
     _coeff_b: np.ndarray
-    _settings: SettingsFilter
+    _settings: FilterSettings
 
-    def __init__(self, settings: SettingsFilter, use_filtfilt: bool = False):
+    def __init__(self, settings: FilterSettings, use_filtfilt: bool = False):
         """Class for Emulating Digital Signal Processing on FPGA
         :param settings:        Class for handling the filter stage (using SettingsFilter)
         :param use_filtfilt:    Boolean for applying zero-phase filtering
@@ -87,7 +87,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         self.__logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = TargetsFilter(settings.method.lower())
+            self._settings.method = FilterTargets(settings.method.lower())
         self.__use_filtfilt = use_filtfilt
         self.__process_filter()
 
@@ -113,17 +113,17 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         """
         self.define_limits(
             total_bitwidth=bit_size,
-            frac_bitwidth=bit_size - (1 if self._settings.method == TargetsFilter.IIR else 2),
+            frac_bitwidth=bit_size - (1 if self._settings.method == FilterTargets.IIR else 2),
             bit_signed=True,
         )
         arith = FxpArithmetic(
             FxpParams(
                 total_bits=bit_size,
-                frac_bits=bit_size - (1 if self._settings.method == TargetsFilter.FIR else 2),
+                frac_bits=bit_size - (1 if self._settings.method == FilterTargets.FIR else 2),
                 signed=True,
             )
         )
-        if self._settings.method == TargetsFilter.FIR:
+        if self._settings.method == FilterTargets.FIR:
             quant_a = [1.0]
         else:
             quant_a = arith.cut_as_integer(self._coeff_a.tolist())
@@ -141,7 +141,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
 
     def get_coeffs_verilog_string(self, bitwidth: int, only_half_fir: bool = False) -> str:
         params: FilterCoeffs = self.get_coeffs_quantized(bit_size=bitwidth)[0]
-        if self._settings.method == TargetsFilter.FIR:
+        if self._settings.method == FilterTargets.FIR:
             conv = FxpConverter(FxpParams(total_bits=bitwidth, frac_bits=bitwidth - 1, signed=True))
             used_params = params.b[: int(len(params.b) / 2 + 1)] if only_half_fir else params.b.copy()
             return conv.rational_to_hex_string_array_verilog(used_params)
@@ -248,9 +248,9 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         )
 
         match self._settings.method.value:
-            case TargetsFilter.IIR.value:
+            case FilterTargets.IIR.value:
                 self.__extract_filter_coeffs_iir()
-            case TargetsFilter.FIR.value:
+            case FilterTargets.FIR.value:
                 self.__extract_filter_coeffs_fir()
             case _:
                 raise AttributeError("Wrong method selection")
@@ -285,7 +285,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             frac_bitwidth=fraction_width,
         )
 
-        if self._settings.method == TargetsFilter.FIR and self._settings.b_type == "allpass":
+        if self._settings.method == FilterTargets.FIR and self._settings.b_type == "allpass":
             params = self.get_coeffs()
             self._coeff_b = np.asarray(params.b)
             self._coeff_a = np.asarray(params.a)
@@ -299,7 +299,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         x = self._quantize_fxp(x)
         offset = (
             3
-            if self._settings.method == TargetsFilter.IIR
+            if self._settings.method == FilterTargets.IIR
             else (x < 0)
             if not self._settings.b_type == "allpass"
             else 0
@@ -307,7 +307,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         return x - offset
 
     def __get_frequency_behaviour(self, num_points: int = 1001) -> tuple[np.ndarray, np.ndarray]:
-        if self._settings.method == TargetsFilter.IIR:
+        if self._settings.method == FilterTargets.IIR:
             frange = np.array(self._settings.f_filt)
             filter = scft.iirfilter(
                 N=self._settings.n_order,
@@ -477,7 +477,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         }
 
     def _create_design_verilog(self, id: str, bitwidth: int, path2save: Path, num_mult: int = 1) -> None:
-        if self._settings.method == TargetsFilter.IIR:
+        if self._settings.method == FilterTargets.IIR:
             if self._settings.n_order not in [2]:
                 raise ValueError(
                     f"IIR filter order {self._settings.n_order} is not supported for biquad filter"
@@ -489,7 +489,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             params = self._create_iir_biquad_verilog(
                 id=id, bitwidth=bitwidth, use_dsp_mult=True, num_mult=num_mult
             )
-        elif self._settings.method == TargetsFilter.FIR:
+        elif self._settings.method == FilterTargets.FIR:
             if self._settings.b_type.lower() not in ["allpass"]:
                 if self._settings.f_filt[0] / self._settings.sampling_rate == 0.5:
                     params = self._create_fir_simple_lowpass_verilog(id, bitwidth)

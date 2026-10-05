@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import elasticai.creator_plugins.adc as design_plugin
-from elasticai.preprocessor.adc import SettingsResampler
+from elasticai.preprocessor.adc import ResamplerSettings
 from elasticai.preprocessor.translation.ir2c import (
     generate_c_files,
     get_embedded_datatype,
@@ -18,7 +18,7 @@ def _c_float(v: float) -> str:
 
 
 def build_adc_quant(
-    settings: SettingsResampler,
+    settings: ResamplerSettings,
     path2save: Path,
     adc_id: str = "0",
     define_path: str = "src",

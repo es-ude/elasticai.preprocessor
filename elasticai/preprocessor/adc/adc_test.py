@@ -5,19 +5,19 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 
-from .adc import SettingsResampler, TransientResampler
+from .adc import ResamplerSettings, TransientResampler
 
 
 @pytest.fixture(scope="module", autouse=True)
 def adc_sets():
-    sets = SettingsResampler(
+    sets = ResamplerSettings(
         total_bits=8, frac_bits=4, is_signed=False, srate_orig=100.0, srate_new=100.0, vpos=0.0, vneg=0.0
     )
     yield sets
 
 
 @pytest.mark.parametrize("vss, vdd, expected", [(0.0, 1.0, 0.5), (-3.3, +3.3, 0.0)])
-def test_adc_settings_vcm(adc_sets: SettingsResampler, vss: float, vdd: float, expected: float) -> None:
+def test_adc_settings_vcm(adc_sets: ResamplerSettings, vss: float, vdd: float, expected: float) -> None:
     sets = deepcopy(adc_sets)
     sets.vpos = vdd
     sets.vneg = vss
@@ -28,7 +28,7 @@ def test_adc_settings_vcm(adc_sets: SettingsResampler, vss: float, vdd: float, e
     "bitwidth, vss, vdd, expected", [(4, 0.0, 1.0, 0.0625), (8, -3.3, +3.3, 0.02578125)]
 )
 def test_adc_settings_lsb(
-    adc_sets: SettingsResampler, bitwidth: int, vss: float, vdd: float, expected: float
+    adc_sets: ResamplerSettings, bitwidth: int, vss: float, vdd: float, expected: float
 ) -> None:
     sets = deepcopy(adc_sets)
     sets.total_bits = bitwidth
@@ -45,7 +45,7 @@ def test_adc_settings_lsb(
     ],
 )
 def test_adc_clamp_integer(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -70,7 +70,7 @@ def test_adc_clamp_integer(
     ],
 )
 def test_adc_clamp_voltage(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     vpos: float,
     vneg: float,
     input: list,
@@ -95,7 +95,7 @@ def test_adc_clamp_voltage(
     ],
 )
 def test_adc_clamp_fxp(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -139,7 +139,7 @@ def test_adc_clamp_fxp(
     ],
 )
 def test_adc_resampling(
-    adc_sets: SettingsResampler, srate_orig: float, srate_new: float, input: list, expected: list
+    adc_sets: ResamplerSettings, srate_orig: float, srate_new: float, input: list, expected: list
 ):
     sets = deepcopy(adc_sets)
     sets.srate_new = srate_new
@@ -166,7 +166,7 @@ def test_adc_resampling(
     ],
 )
 def test_int_dtype_quantize_output(
-    adc_sets: SettingsResampler, bitwidth: int, is_signed: bool, expected: np.dtype
+    adc_sets: ResamplerSettings, bitwidth: int, is_signed: bool, expected: np.dtype
 ) -> None:
     sets = deepcopy(adc_sets)
     sets.total_bits = bitwidth
@@ -187,7 +187,7 @@ def test_int_dtype_quantize_output(
     ],
 )
 def test_adc_quantize_float(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -217,7 +217,7 @@ def test_adc_quantize_float(
     ],
 )
 def test_adc_quantize_integer(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -270,7 +270,7 @@ def test_adc_quantize_integer(
     ],
 )
 def test_adc_rescaling_voltage_fxp(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     signed: bool,
@@ -301,7 +301,7 @@ def test_adc_rescaling_voltage_fxp(
     ],
 )
 def test_adc_cutting_input_data_orig(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -329,7 +329,7 @@ def test_adc_cutting_input_data_orig(
     ],
 )
 def test_adc_cutting_input_data_new(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -357,7 +357,7 @@ def test_adc_cutting_input_data_new(
     ],
 )
 def test_adc_cutting_input_labels_orig(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -388,7 +388,7 @@ def test_adc_cutting_input_labels_orig(
     ],
 )
 def test_adc_cutting_input_labels_new(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -419,7 +419,7 @@ def test_adc_cutting_input_labels_new(
     ],
 )
 def test_adc_quantize_from_int_to_int(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -445,7 +445,7 @@ def test_adc_quantize_from_int_to_int(
     ],
 )
 def test_adc_quantize_from_int_to_fxp(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -473,7 +473,7 @@ def test_adc_quantize_from_int_to_fxp(
     ],
 )
 def test_adc_quantize_from_fxp_to_int(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -499,7 +499,7 @@ def test_adc_quantize_from_fxp_to_int(
     ],
 )
 def test_adc_quantize_from_fxp_to_fxp(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -541,7 +541,7 @@ def test_adc_quantize_from_fxp_to_fxp(
     ],
 )
 def test_adc_quantize_from_voltage_to_fxp(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     vpos: float,
     vneg: float,
     bitwidth: int,
@@ -587,7 +587,7 @@ def test_adc_quantize_from_voltage_to_fxp(
     ],
 )
 def test_adc_quantize_from_voltage_to_int(
-    adc_sets: SettingsResampler,
+    adc_sets: ResamplerSettings,
     vpos: float,
     vneg: float,
     bitwidth: int,
@@ -609,7 +609,7 @@ def test_adc_quantize_from_voltage_to_int(
     assert data_out.tolist() == expected
 
 
-def test_create_replayer_verilog_only_data(adc_sets: SettingsResampler):
+def test_create_replayer_verilog_only_data(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
 
@@ -630,7 +630,7 @@ def test_create_replayer_verilog_only_data(adc_sets: SettingsResampler):
         assert files_check == files_avai
 
 
-def test_create_replayer_verilog_trgg_data(adc_sets: SettingsResampler):
+def test_create_replayer_verilog_trgg_data(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
@@ -652,7 +652,7 @@ def test_create_replayer_verilog_trgg_data(adc_sets: SettingsResampler):
         assert files_check == files_avai
 
 
-def test_create_replayer_c_only_data(adc_sets: SettingsResampler):
+def test_create_replayer_c_only_data(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
 
@@ -673,7 +673,7 @@ def test_create_replayer_c_only_data(adc_sets: SettingsResampler):
         assert files_check == files_avai
 
 
-def test_create_replayer_c_trgg_data(adc_sets: SettingsResampler):
+def test_create_replayer_c_trgg_data(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
@@ -695,7 +695,7 @@ def test_create_replayer_c_trgg_data(adc_sets: SettingsResampler):
         assert files_check == files_avai
 
 
-def test_create_stream_verilog(adc_sets: SettingsResampler):
+def test_create_stream_verilog(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     with TemporaryDirectory() as directory:
         path2save = Path(directory)
@@ -711,7 +711,7 @@ def test_create_stream_verilog(adc_sets: SettingsResampler):
             assert False
 
 
-def test_create_stream_c(adc_sets: SettingsResampler):
+def test_create_stream_c(adc_sets: ResamplerSettings):
     sets = deepcopy(adc_sets)
     with TemporaryDirectory() as directory:
         path2save = Path(directory)

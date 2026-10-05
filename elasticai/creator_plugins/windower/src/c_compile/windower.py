@@ -7,11 +7,11 @@ from elasticai.preprocessor.translation.ir2c import (
     get_embedded_datatype,
     replace_variables_with_parameters,
 )
-from elasticai.preprocessor.windower.window import SettingsWindow
+from elasticai.preprocessor.windower.window import WindowSettings
 
 
 def build_windower(
-    settings: SettingsWindow,
+    settings: WindowSettings,
     bitwidth: int,
     signed: bool,
     path2save: Path,

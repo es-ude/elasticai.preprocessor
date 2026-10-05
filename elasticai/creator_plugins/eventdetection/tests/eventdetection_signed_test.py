@@ -9,8 +9,8 @@ from elasticai.creator_plugins.mac import load_and_plugin
 
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
-    SettingsEventDetection,
-    TargetsEventDetection,
+    EventDetectionSettings,
+    EventDetectionTargets,
 )
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
@@ -147,7 +147,7 @@ def test_eventdetection_signed_sub_codesign(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
 ) -> None:
-    sets = SettingsEventDetection(window_size=10, method=TargetsEventDetection.Normal, out_invert=True)
+    sets = EventDetectionSettings(window_size=10, method=EventDetectionTargets.Normal, out_invert=True)
     dut = EventDetection(settings=sets)
 
     arith = int_arithmetic(total_bits=bitwidth, signed=True)

@@ -5,7 +5,7 @@ from logging import Logger, getLogger
 import numpy as np
 
 
-class TargetsFrameAlignment(Enum):
+class FrameAlignmentTargets(Enum):
     Normal = "none"
     Max = "max"
     Min = "min"
@@ -16,7 +16,7 @@ class TargetsFrameAlignment(Enum):
 
 
 @dataclass
-class SettingsFrameAlignment:
+class FrameAlignmentSettings:
     """Class with settings for the FrameGenerator to configure his properties
     Attributes:
         method:         Aligning mode of the detected spike frames [none, max, min,
@@ -26,7 +26,7 @@ class SettingsFrameAlignment:
         offset_sec:     Offset for aligning the frame waveform [s]
     """
 
-    method: TargetsFrameAlignment
+    method: FrameAlignmentTargets
     sampling_rate: float
     offset_sec: float
     align_sec: float
@@ -40,8 +40,8 @@ class SettingsFrameAlignment:
         return int(self.offset_sec * self.sampling_rate)
 
 
-DefaultSettingsFrameAlignment = SettingsFrameAlignment(
-    method=TargetsFrameAlignment.Max,
+DefaultFrameAlignmentSettings = FrameAlignmentSettings(
+    method=FrameAlignmentTargets.Max,
     sampling_rate=20e3,
     align_sec=0.4e-3,
     offset_sec=0.4e-3,
@@ -49,14 +49,14 @@ DefaultSettingsFrameAlignment = SettingsFrameAlignment(
 
 
 class FrameAligner:
-    def __init__(self, settings: SettingsFrameAlignment) -> None:
+    def __init__(self, settings: FrameAlignmentSettings) -> None:
         """Class for aligning frame waveforms after event detection
         :param settings: Class SettingsFrameAlignment for defining the properties
         """
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = TargetsFrameAlignment(settings.method)
+            self._settings.method = FrameAlignmentTargets(settings.method)
 
     def _frame_align_none(self, frame_in: np.ndarray) -> int:
         return self._settings.length_offset_int

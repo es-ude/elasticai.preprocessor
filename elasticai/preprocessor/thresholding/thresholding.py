@@ -9,7 +9,7 @@ import elasticai.creator_plugins.thresholding.utils as hw_utils
 from elasticai.creator_plugins.thresholding.src import c_compile
 
 
-class TargetsThreshold(Enum):
+class ThresholdTargets(Enum):
     Constant = "constant"
     AbsoluteMean = "median_abs"
     MedianAbsoluteDeviation = "mad"
@@ -21,7 +21,7 @@ class TargetsThreshold(Enum):
 
 
 @dataclass
-class SettingsThreshold:
+class ThresholdSettings:
     """Dataclass for defining the funcs for determining properties to calculate thresholding
     Attributes:
         method:         Applied method for thresholding from TargetsThreshold
@@ -31,7 +31,7 @@ class SettingsThreshold:
         do_quant:       Boolean for performing quantized operations
     """
 
-    method: TargetsThreshold
+    method: ThresholdTargets
     sampling_rate: float
     window_sec: float
     thr_val: float | int
@@ -44,30 +44,30 @@ class SettingsThreshold:
         return int(abs(self.window_sec * self.sampling_rate))
 
 
-DefaultSettingsThreshold = SettingsThreshold(
-    method=TargetsThreshold.Constant, sampling_rate=1000.0, window_sec=10e-3, thr_val=0.1, do_quant=False
+DefaultThresholdSettings = ThresholdSettings(
+    method=ThresholdTargets.Constant, sampling_rate=1000.0, window_sec=10e-3, thr_val=0.1, do_quant=False
 )
 
 
 class Thresholding:
-    def __init__(self, settings: SettingsThreshold) -> None:
+    def __init__(self, settings: ThresholdSettings) -> None:
         """Class for calculating the thresholding values based on the transient input signal
         :param settings:    Class SettingsThreshold for configuring the properties
         :return:            None
         """
         self._logger: Logger = getLogger(__name__)
-        self._settings: SettingsThreshold = settings
+        self._settings: ThresholdSettings = settings
         if isinstance(settings.method, str):
-            self._settings.method = TargetsThreshold(settings.method)
+            self._settings.method = ThresholdTargets(settings.method)
         self._map_hardware = {
-            TargetsThreshold.Constant: "const",
-            TargetsThreshold.AbsoluteMean: "const",
-            TargetsThreshold.MedianAbsoluteDeviation: "const",
-            TargetsThreshold.MovingAverage: "mov_avg_norm",
-            TargetsThreshold.MovingAverageAbsolute: "mov_avg_abs_norm",
-            TargetsThreshold.RmsNorm: "const",
-            TargetsThreshold.RmsBlackrock: "const",
-            TargetsThreshold.Welford: "welford",
+            ThresholdTargets.Constant: "const",
+            ThresholdTargets.AbsoluteMean: "const",
+            ThresholdTargets.MedianAbsoluteDeviation: "const",
+            ThresholdTargets.MovingAverage: "mov_avg_norm",
+            ThresholdTargets.MovingAverageAbsolute: "mov_avg_abs_norm",
+            ThresholdTargets.RmsNorm: "const",
+            ThresholdTargets.RmsBlackrock: "const",
+            ThresholdTargets.Welford: "welford",
         }
 
     def _map_method_to_hardware(self) -> str:
@@ -207,15 +207,15 @@ class Thresholding:
             },
         }
         match self._settings.method:
-            case TargetsThreshold.Constant:
+            case ThresholdTargets.Constant:
                 params["params"].update({"CONST_THR": thr_val})
-            case TargetsThreshold.MovingAverage:
+            case ThresholdTargets.MovingAverage:
                 if self._is_power_of_two(self._settings.window_length):
                     params["type"] = "mov_avg_pow2"
                 else:
                     params["type"] = "mov_avg_norm"
                 params["params"].update({"LENGTH": self._settings.window_length})
-            case TargetsThreshold.MovingAverageAbsolute:
+            case ThresholdTargets.MovingAverageAbsolute:
                 if self._is_power_of_two(self._settings.window_length):
                     params["type"] = "mov_avg_abs_pow2"
                 else:

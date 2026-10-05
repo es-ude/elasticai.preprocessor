@@ -5,7 +5,7 @@ from cocotb.triggers import Timer
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.thresholding import load_and_plugin
-from elasticai.preprocessor.thresholding import SettingsThreshold, Thresholding
+from elasticai.preprocessor.thresholding import Thresholding, ThresholdSettings
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -90,7 +90,7 @@ def test_build_equal(
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
-        sets = SettingsThreshold(
+        sets = ThresholdSettings(
             method="constant", sampling_rate=100.0, window_sec=1.0, do_quant=False, thr_val=const
         )
         Thresholding(settings=sets).create_design(

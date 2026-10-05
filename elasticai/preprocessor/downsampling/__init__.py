@@ -1,5 +1,5 @@
 from .augmentation import augmentation_downsampling as augmentation_downsampling
-from .downsampling import DefaultSettingsDownSampling as DefaultSettingsDownSampling
+from .downsampling import DefaultDownSamplingSettings as DefaultDownSamplingSettings
 from .downsampling import DownSampling as DownSampling
-from .downsampling import SettingsDownSampling as SettingsDownSampling
-from .downsampling import TargetsDownSampling as TargetsDownSampling
+from .downsampling import DownSamplingSettings as DownSamplingSettings
+from .downsampling import DownSamplingTargets as DownSamplingTargets

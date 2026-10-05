@@ -9,7 +9,7 @@ from elasticai.creator.arithmetic import FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
-from elasticai.preprocessor.windower import SettingsWindow, WindowSequencer
+from elasticai.preprocessor.windower import WindowSequencer, WindowSettings
 
 
 def build_testdata(bitwidth: int, is_signed: bool, samples: int, repeats: int = 8) -> list[int]:
@@ -155,7 +155,7 @@ def test_build(
 ):
     sampling_rate = 100
     dut = WindowSequencer(
-        SettingsWindow(
+        WindowSettings(
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,
@@ -197,7 +197,7 @@ def test_sliding_build_equal(
 ):
     sampling_rate = 100
     dut = WindowSequencer(
-        SettingsWindow(
+        WindowSettings(
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,
@@ -239,7 +239,7 @@ def test_sequence_build_equal(
 ):
     sampling_rate = 100
     dut = WindowSequencer(
-        SettingsWindow(
+        WindowSettings(
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,

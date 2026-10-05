@@ -6,11 +6,11 @@ import numpy as np
 import pytest
 
 from elasticai.preprocessor.sequential import (
+    BuildPlatformTargets,
+    CreateSequentialSettings,
     PreprocessingModule,
     PreprocessingSequential,
     SequentialSignal,
-    SettingsCreateSequential,
-    TargetsBuildPlatform,
 )
 
 
@@ -31,7 +31,7 @@ class Amplifier(PreprocessingModule):
             sample_rate=x.sample_rate,
         )
 
-    def create_design(self, id: str, settings: SettingsCreateSequential):
+    def create_design(self, id: str, settings: CreateSequentialSettings):
         with open(settings.path2build / f"amplifier_{id}.txt", "w") as f:
             f.write("Hallo Welt!\n")
 
@@ -53,7 +53,7 @@ class Offset(PreprocessingModule):
             sample_rate=x.sample_rate,
         )
 
-    def create_design(self, id: str, settings: SettingsCreateSequential):
+    def create_design(self, id: str, settings: CreateSequentialSettings):
         with open(settings.path2build / f"adder_off_{id}.txt", "w") as f:
             f.write("Hallo Welt!\n")
 
@@ -87,8 +87,8 @@ def test_sequential_create_design_empty():
     pipeline = PreprocessingSequential()
     with TemporaryDirectory() as tmpdir:
         path2build = Path(tmpdir).absolute()
-        sets = SettingsCreateSequential(
-            target=TargetsBuildPlatform.Workstation,
+        sets = CreateSequentialSettings(
+            target=BuildPlatformTargets.Workstation,
             total_bitwidth=16,
             frac_bitwidth=0,
             do_signed=False,
@@ -140,8 +140,8 @@ def test_sequential_stages_run_and_create(
 
     with TemporaryDirectory() as tmpdir:
         path2build = Path(tmpdir).absolute()
-        sets1 = SettingsCreateSequential(
-            target=TargetsBuildPlatform.Workstation,
+        sets1 = CreateSequentialSettings(
+            target=BuildPlatformTargets.Workstation,
             total_bitwidth=16,
             frac_bitwidth=0,
             do_signed=False,
@@ -175,8 +175,8 @@ def test_sequential_stages_mixed_run_and_create(data_in: np.ndarray, fs: float) 
 
     with TemporaryDirectory() as tmpdir:
         path2build = Path(tmpdir).absolute()
-        sets1 = SettingsCreateSequential(
-            target=TargetsBuildPlatform.Workstation,
+        sets1 = CreateSequentialSettings(
+            target=BuildPlatformTargets.Workstation,
             total_bitwidth=16,
             frac_bitwidth=0,
             do_signed=False,

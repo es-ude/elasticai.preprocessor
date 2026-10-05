@@ -3,11 +3,11 @@ from copy import deepcopy
 
 import numpy as np
 
-from .common_referencing import CommonReferencing, DefaultSettingsReferencing
+from .common_referencing import CommonReferencing, DefaultReferencingSettings
 
 
 class CommonReferencingTest(unittest.TestCase):
-    set = deepcopy(DefaultSettingsReferencing)
+    set = deepcopy(DefaultReferencingSettings)
     dut = CommonReferencing(set)
 
     num_samples = 1000

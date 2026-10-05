@@ -7,8 +7,8 @@ from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
-    SettingsEventDetection,
-    TargetsEventDetection,
+    EventDetectionSettings,
+    EventDetectionTargets,
 )
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
@@ -162,9 +162,9 @@ def test_build(
         window_size=window_size,
     )
     dut = EventDetection(
-        SettingsEventDetection(
+        EventDetectionSettings(
             window_size=window_size,
-            method=TargetsEventDetection.DoubleHyst,
+            method=EventDetectionTargets.DoubleHyst,
             out_invert=False,
         )
     )
@@ -206,9 +206,9 @@ def test_equal(
     threshold = 0
     window_size = 10
 
-    for vmethod in [TargetsEventDetection.PosHyst]:
+    for vmethod in [EventDetectionTargets.PosHyst]:
         dut = EventDetection(
-            SettingsEventDetection(
+            EventDetectionSettings(
                 window_size=window_size,
                 method=vmethod,
                 out_invert=True,
