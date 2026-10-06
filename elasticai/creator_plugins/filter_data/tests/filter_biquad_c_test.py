@@ -100,3 +100,31 @@ def test_build_equal(
         c_type,
         INPUT_DATA,
     )
+
+
+@pytest.mark.parametrize("bitwidth, numpy_dtype, c_type", INTEGER_CONFIGS)
+def test_bandpass_build_equal(
+    tmp_path: Path,
+    bitwidth: int,
+    numpy_dtype: type[np.generic],
+    c_type: str,
+) -> None:
+    settings = FilterSettings(
+        sampling_rate=1000.0,
+        n_order=2,
+        f_filt=[225.0, 375.0],
+        method="iir",
+        f_type="butter",
+        b_type="bandpass"
+    )
+
+    check_filter_c_equivalence(
+        settings,
+        tmp_path,
+        "filter_iir_band_0.c",
+        "filt_iir_band_0",
+        bitwidth,
+        numpy_dtype,
+        c_type,
+        INPUT_DATA,
+    )
