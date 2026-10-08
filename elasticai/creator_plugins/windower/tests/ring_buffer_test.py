@@ -2,7 +2,7 @@ import cocotb
 import numpy as np
 import pytest
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.creator_plugins.windower.utils import load_and_plugin
@@ -17,12 +17,9 @@ async def ring_register_tb(
     samples: int,
 ):
     period_clk = 5
-    period_data = 100
 
-    print(dir(dut))
     used_bitwidth = int(dut.BITWIDTH.value)
     used_adrwidth = int(dut.SAMPLES.value)
-    # data_in_array = [np.random.randint(low=0, high=2**used_bitwidth-1) for _ in range(used_adrwidth)]
     data_in_array = [
         int(2 ** (used_bitwidth - 1) * (1 + np.cos(2 * np.pi * idx / used_adrwidth)))
         for idx in range(used_adrwidth)
@@ -31,7 +28,6 @@ async def ring_register_tb(
     data_in_array = [
         2**used_bitwidth - 1 if val >= 2**used_bitwidth - 1 else val for val in data_in_array
     ]
-    print(data_in_array)
 
     dut.CLK_SYS.value = 0
     dut.RSTN.value = 0
@@ -56,19 +52,19 @@ async def ring_register_tb(
     dut.EN.value = 1
     for _ in range(4):
         await RisingEdge(dut.CLK_SYS)
-    cocotb.start_soon(Clock(dut.DO_SHIFT, period_data, unit="ns").start())
     await FallingEdge(dut.CLK_SYS)
     assert dut.DVALID.value == 0
 
     ite = 0
     for _ in range(3):
         for val in data_in_array:
-            await RisingEdge(dut.DO_SHIFT)
+            dut.DO_SHIFT.value = 1
             dut.DATA_IN.value = val
-            await FallingEdge(dut.CLK_SYS)
-            assert dut.DVALID.value == 0
+            await RisingEdge(dut.CLK_SYS)
+            dut.DO_SHIFT.value = 0
 
             await RisingEdge(dut.DVALID)
+            await ClockCycles(dut.CLK_SYS, 2)
             if ite < used_adrwidth:
                 assert dut.DATA_OUT.value == 0
             else:
@@ -130,9 +126,3 @@ def test_build(
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.set_top_module_name("RING_BUFFER")
         cocotb_test_fixture.run(params={}, defines={})
-
-
-@pytest.mark.simulation
-@pytest.mark.skip("No Python func available")
-def test_build_equal(cocotb_test_fixture: CocotbTestFixture):
-    pass

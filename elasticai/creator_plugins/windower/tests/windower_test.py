@@ -126,7 +126,7 @@ def test_template(
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_package(
             "windower",
-            "verilog/ring_buffer.v",
+            "verilog/shift_register.v",
         )
         cocotb_test_fixture.add_srcs_from_package(
             "windower",

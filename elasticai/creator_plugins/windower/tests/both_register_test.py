@@ -18,7 +18,6 @@ async def both_register_tb(dut, bitwidth: int, samples: int):
     ]
     data_in_array = [val if val >= 0 else 0 for val in data_in_array]
     data_in_array = [2**bitwidth - 1 if val >= 2**bitwidth - 1 else val for val in data_in_array]
-    print(data_in_array)
 
     dut.CLK_SYS.value = 0
     dut.RSTN.value = 0
@@ -49,10 +48,9 @@ async def both_register_tb(dut, bitwidth: int, samples: int):
         dut.DO_SHIFT.value = 1
         dut.DATA_IN.value = data_in_array[idx % samples]
         await RisingEdge(dut.CLK_SYS)
-        assert dut.DVALID.value == 0
         dut.DO_SHIFT.value = 0
-        for _ in range(2):
-            await RisingEdge(dut.CLK_SYS)
+
+        await RisingEdge(dut.DVALID)
         assert dut.DATA_BUF0.value == dut.DATA_BUF1.value
         assert dut.DATA_OUT0.value == dut.DATA_OUT1.value
         assert dut.DVALID.value == 1

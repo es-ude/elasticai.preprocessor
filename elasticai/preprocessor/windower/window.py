@@ -215,7 +215,7 @@ class WindowSequencer:
                 "SAMPLES": window_length,
                 "NUM_SHIFT": num_shift,
             },
-            "add_ringbuffer": True,
+            "add_ringbuffer": False,
         }
 
         hw_windower.load_and_plugin(

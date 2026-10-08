@@ -6,6 +6,9 @@ from unittest import TestCase, main
 import numpy as np
 import pytest
 
+from elasticai.preprocessor import get_path_to_project
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
+
 from .window import (
     WindowSequencer,
     WindowSettings,
@@ -220,18 +223,16 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
-        with TemporaryDirectory() as directory:
-            path2save = Path(directory)
-            path2save.mkdir(parents=True, exist_ok=True)
-
-            WindowSequencer(set0).create_design("fpga", 8, "0", path2save)
+        backup = get_path_to_project() / "build_test" / "build_windower_verilog"
+        with temporary_directory(backup) as tmpdir:
+            WindowSequencer(set0).create_design("fpga", 8, "0", tmpdir)
             files_available = [
                 "windower_0.v",
-                "ring_buffer.v",
+                "shift_register.v",
             ]
 
             for filename in files_available:
-                file = path2save / filename
+                file = tmpdir / filename
                 assert file.exists()
 
     def test_create_design_c_mcu(self):

@@ -28,14 +28,13 @@ def load_and_plugin(
             (build_dir / name).write_text("".join(content))
 
     _load_and_plugin_design(type, id, params, packages, path2save)
-    if add_ringbuffer:
-        _load_and_plugin_design(
-            type="ring_buffer",
-            id="",
-            params={"BITWIDTH": params["BITWIDTH"], "SAMPLES": params["SAMPLES"]},
-            packages=["windower"],
-            path2save=path2save,
-        )
+    _load_and_plugin_design(
+        type="ring_buffer" if add_ringbuffer else "shift_register",
+        id="",
+        params={"BITWIDTH": params["BITWIDTH"], "SAMPLES": params["SAMPLES"]},
+        packages=["windower"],
+        path2save=path2save,
+    )
 
 
 def _build_verilog_implementation(type: str, id: str, params: dict[str, Any]) -> ir.DataGraph:

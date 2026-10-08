@@ -17,7 +17,6 @@ async def shifting_data(dut, bitwidth: int, elements: int):
     data_in_array = [np.random.randint(low=0, high=2**bitwidth - 1) for _ in range(elements)]
     data_in_array = [val if val >= 0 else 0 for val in data_in_array]
     data_in_array = [2**bitwidth - 1 if val >= 2**bitwidth - 1 else val for val in data_in_array]
-    print(data_in_array)
 
     dut.CLK_SYS.value = 0
     dut.RSTN.value = 0
@@ -48,10 +47,9 @@ async def shifting_data(dut, bitwidth: int, elements: int):
         dut.DO_SHIFT.value = 1
         dut.DATA_IN.value = data_in_array[idx % elements]
         await RisingEdge(dut.CLK_SYS)
-        assert dut.DVALID.value == 0
         dut.DO_SHIFT.value = 0
-        for _ in range(2):
-            await RisingEdge(dut.CLK_SYS)
+
+        await RisingEdge(dut.DVALID)
         if ite <= elements:
             assert dut.DATA_OUT.value == 0
         else:
@@ -99,9 +97,3 @@ def test_build(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, elements: 
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.set_top_module_name("SHIFT_REGISTER_0")
         cocotb_test_fixture.run(params={}, defines={})
-
-
-@pytest.mark.simulation
-@pytest.mark.skip("No Python func available")
-def test_build_equal(cocotb_test_fixture: CocotbTestFixture):
-    pass

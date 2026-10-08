@@ -19,57 +19,55 @@
 
 
 module SHIFT_REGISTER#(
-    parameter BITWIDTH = 6'd12,
-    parameter SAMPLES = 6'd2
+    parameter integer BITWIDTH = 12,
+    parameter integer SAMPLES = 2
 )(
     input wire CLK_SYS,
     input wire RSTN,
     input wire EN,
     input wire DO_SHIFT,
-    input wire [BITWIDTH-'d1:0] DATA_IN,
-    output reg [BITWIDTH-'d1:0] DATA_OUT,
-    output wire [BITWIDTH* SAMPLES-'d1:0] DATA_BUF,
-    output wire DVALID
+    input wire [BITWIDTH-1:0] DATA_IN,
+    output reg [BITWIDTH-1:0] DATA_OUT,
+    output wire [BITWIDTH* SAMPLES-1:0] DATA_BUF,
+    output reg DVALID
 );
     reg first_run_done;
-    reg [1:0] do_shift_dly;
-    reg [BITWIDTH-'d1:0] buffer [SAMPLES-'d1:0];
+    reg do_shift_dly;
+    reg [BITWIDTH-1:0] buffer [SAMPLES-1:0];
 
     // Slicing buffer array output vector
     genvar i0;
-    for(i0 = 'd0; i0 < SAMPLES; i0 = i0 + 'd1) begin
+    for(i0 = 0; i0 < SAMPLES; i0 = i0 + 1) begin
         assign DATA_BUF[i0 * BITWIDTH+:BITWIDTH] = buffer[i0];
     end
-    assign DVALID = first_run_done && !DO_SHIFT;
-
-    // Trigger rising edge
-    wire do_sampling;
-    assign do_sampling = (DO_SHIFT && ~do_shift_dly[0]);
 
     integer i1;
     always@(posedge CLK_SYS) begin
-        if(~RSTN && ~EN) begin
+        if(~RSTN) begin
             first_run_done <= 1'd0;
-            do_shift_dly <= 2'd0;
-            for(i1 = 'd0; i1 < SAMPLES; i1 = i1 + 'd1) begin
+            do_shift_dly <= 1'd0;
+            for(i1 = 0; i1 < SAMPLES; i1 = i1 + 1) begin
                 buffer[i1] <= 'd0;
             end
             DATA_OUT <= 'd0;
+            DVALID <= 1'd0;
         end else begin
-            do_shift_dly <= {do_shift_dly[0], DO_SHIFT};
-            if(do_sampling) begin
+            do_shift_dly <= DO_SHIFT && EN;
+            if(DO_SHIFT && ~do_shift_dly) begin
                 first_run_done <= 1'd1;
                 buffer[0] <= DATA_IN;
-                for(i1 = 'd1; i1 < SAMPLES; i1 = i1 + 'd1) begin
-                    buffer[i1] <= buffer[i1-'d1];
+                for(i1 = 1; i1 < SAMPLES; i1 = i1 + 1) begin
+                    buffer[i1] <= buffer[i1-1];
                 end
-                DATA_OUT <= buffer[SAMPLES-'d1];
+                DATA_OUT <= buffer[SAMPLES-1];
+                DVALID <= 1'd0;
             end else begin
                 first_run_done <= first_run_done;
-                for(i1 = 'd0; i1 < SAMPLES; i1 = i1 + 'd1) begin
+                for(i1 = 0; i1 < SAMPLES; i1 = i1 + 1) begin
                     buffer[i1] <= buffer[i1];
                 end
                 DATA_OUT <= DATA_OUT;
+                DVALID <= first_run_done;
             end
         end
     end

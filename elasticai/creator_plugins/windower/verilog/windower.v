@@ -36,8 +36,8 @@ module WINDOWER#(
     reg buffer_valid_dly;
     wire buffer_valid;
 
-    //SHIFT_REGISTER#(BITWIDTH, SAMPLES) DATA(
-    RING_BUFFER#(BITWIDTH, SAMPLES) DATA(
+    // RING_BUFFER#(BITWIDTH, SAMPLES) DATA(
+    SHIFT_REGISTER#(BITWIDTH, SAMPLES) DATA(
         .CLK_SYS(CLK_SYS),
         .RSTN(RSTN),
         .EN(EN),
