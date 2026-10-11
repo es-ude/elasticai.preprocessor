@@ -22,21 +22,21 @@
 //`define TRGG_EXTERNAL
 
 // --- CODE FOR READING DATA FROM EXTERNAL
-// wire [LUTWIDTH* (BITWIDTH-'d1)-'d1:0] LUT_DATA_EXT;
+// wire [LUTWIDTH* (BITWIDTH-1)-1:0] LUT_DATA_EXT;
 // assign LUT_DATA_EXT = §{LUT_DATA};
 
 // --- CODE FOR SETTING WAIT CYCLES FROM EXTERNAL
 // wire WAIT_CYC;
-// assign [WAIT_WIDTH-'d1:0] WAIT_CYC = 'd4;
+// assign [WAIT_WIDTH-1:0] WAIT_CYC = 'd4;
 
 
 module LUT_WAVEFORM_OPT#(
-	parameter integer BITWIDTH = 6'd6,
-	parameter integer LUTWIDTH = 10'd9,
+	parameter integer BITWIDTH = 6,
+	parameter integer LUTWIDTH = 9,
     `ifndef TRGG_EXTERNAL
-        parameter integer WAIT_WIDTH = 6'd6,
+        parameter integer WAIT_WIDTH = 6,
     `endif
-    parameter integer SIGNED_OUT = 1'b0
+    parameter integer SIGNED_OUT = 0
 )(
 	input wire CLK_SYS,
 	input wire RSTN,
@@ -44,13 +44,13 @@ module LUT_WAVEFORM_OPT#(
 	`ifdef TRGG_EXTERNAL
 	    input wire TRGG_CNT,
     `else
-        input wire [WAIT_WIDTH-'d1:0] WAIT_CYC,
+        input wire [WAIT_WIDTH-1:0] WAIT_CYC,
     `endif
     output reg TRGG_NEW_SAMPLE,
     `ifdef ACCESS_EXTERNAL
-        input wire [(BITWIDTH-'d1)* LUTWIDTH - 'd1:0] LUT_DATA_EXT,
+        input wire [(BITWIDTH-1)* LUTWIDTH-1:0] LUT_DATA_EXT,
     `endif
-	output wire [BITWIDTH-'d1:0] LUT_OUT,
+	output reg [BITWIDTH-1:0] LUT_OUT,
 	output wire LUT_END
 );
     // --- Data definition
@@ -60,14 +60,14 @@ module LUT_WAVEFORM_OPT#(
 
     // --- Registers for counting and controlling
     wire inc_cnt_pos;
-    wire [$clog2(LUTWIDTH)-'d1:0] sel_adr;
-    wire [BITWIDTH-'d2:0] lut_data_int [LUTWIDTH-'d1:0];
+    wire [$clog2(LUTWIDTH)-1:0] sel_adr;
+    wire [BITWIDTH-2:0] lut_data_int;
 
     reg state;
     reg [1:0] cnt_phase;
-    reg [$clog2(LUTWIDTH)-'d1:0] cnt_wvf_pos;
+    reg [$clog2(LUTWIDTH)-1:0] cnt_wvf_pos;
     `ifndef TRGG_EXTERNAL
-        reg [WAIT_WIDTH-'d1:0] cnt_wait;
+        reg [WAIT_WIDTH-1:0] cnt_wait;
         // --- Counter for Downsampling System Clock
         always@(posedge CLK_SYS) begin
             if(!RSTN) begin
@@ -76,7 +76,7 @@ module LUT_WAVEFORM_OPT#(
                 cnt_wait <= (!state || cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
             end
         end
-        assign inc_cnt_pos = (cnt_wait == WAIT_CYC-'d1);
+        assign inc_cnt_pos = (cnt_wait == WAIT_CYC-1);
     `else
         reg trgg_cnt_dly;
         always@(posedge CLK_SYS or negedge RSTN) begin
@@ -86,19 +86,13 @@ module LUT_WAVEFORM_OPT#(
     `endif
 
     // --- Processing LUT data
+    `ifdef ACCESS_EXTERNAL
+        assign lut_data_int = LUT_DATA_EXT[sel_adr*(BITWIDTH-1)+:(BITWIDTH-1)];
+    `else
+        assign lut_data_int = LUT_DATA[sel_adr*(BITWIDTH-1)+:(BITWIDTH-1)];
+    `endif
     assign LUT_END = (cnt_wvf_pos == (LUTWIDTH-'d1)) && (cnt_phase == 2'd3);
     assign sel_adr = (cnt_phase == 2'd0 || cnt_phase == 2'd2) ? cnt_wvf_pos : LUTWIDTH - cnt_wvf_pos - 'd1;
-    assign LUT_OUT = (SIGNED_OUT) ? ((cnt_phase == 2'd0) ? {1'd0, lut_data_int[sel_adr]} : ((cnt_phase == 2'd1) ? {1'd0, lut_data_int[sel_adr]} : ((cnt_phase == 2'd2) ? {1'd1, - lut_data_int[sel_adr]}                            : ((LUT_END) ? {1'd0, lut_data_int[sel_adr]} : {1'd1, - lut_data_int[sel_adr]})))) :
-                                    ((cnt_phase == 2'd0) ? {1'd1, lut_data_int[sel_adr]} : ((cnt_phase == 2'd1) ? {1'd1, lut_data_int[sel_adr]} : ((cnt_phase == 2'd2) ? {1'd0, ({(BITWIDTH-'d1){1'd0}} - lut_data_int[sel_adr])}   : ((LUT_END) ? {1'd1, lut_data_int[sel_adr]} : {1'd0, ({(BITWIDTH-'d1){1'd0}} - lut_data_int[sel_adr])}))));
-
-    genvar i0;
-    for(i0 = 'd0; i0 < LUTWIDTH; i0 = i0 + 'd1) begin
-        `ifdef ACCESS_EXTERNAL
-            assign lut_data_int[i0] = LUT_DATA_EXT[i0*(BITWIDTH-'d1)+:(BITWIDTH-'d1)];
-        `else
-            assign lut_data_int[i0] = LUT_DATA[i0*(BITWIDTH-'d1)+:(BITWIDTH-'d1)];
-        `endif
-    end
 
     //--- Counter for Quarter Wave Reading (Symmetric)
     always@(posedge CLK_SYS) begin
@@ -106,20 +100,24 @@ module LUT_WAVEFORM_OPT#(
             cnt_phase <= 2'd0;
             cnt_wvf_pos <= 'd0;
             state <= 1'd0;
+            LUT_OUT <= 'd0;
         end else begin
             state <= (EN_FLAG) ? 1'd1 :
                     ((cnt_wvf_pos == LUTWIDTH-'d1 && cnt_phase == 2'd3 && inc_cnt_pos) ? 1'd0 :
                     state);
             TRGG_NEW_SAMPLE <= inc_cnt_pos;
             if(inc_cnt_pos && state) begin
-                cnt_phase   <= cnt_phase + ((cnt_wvf_pos == LUTWIDTH-'d1) ? 2'd1 : 2'd0);
-                cnt_wvf_pos <= (cnt_wvf_pos == (LUTWIDTH-'d1)) ?
+                cnt_phase   <= cnt_phase + ((cnt_wvf_pos == LUTWIDTH-1) ? 2'd1 : 2'd0);
+                cnt_wvf_pos <= (cnt_wvf_pos == (LUTWIDTH-1)) ?
                                     ((cnt_phase == 2'd3) ? ((EN_FLAG) ? 'd1 : 'd0) : 'd1) :
                                     cnt_wvf_pos + 'd1;
             end else begin
                 cnt_phase <= cnt_phase;
                 cnt_wvf_pos <= cnt_wvf_pos;
             end
+            LUT_OUT <= (SIGNED_OUT) ?   ((cnt_phase == 2'd0) ? {1'd0, lut_data_int} : ((cnt_phase == 2'd1) ? {1'd0, lut_data_int} : ((cnt_phase == 2'd2) ? {1'd1, - lut_data_int}                            : ((LUT_END) ? {1'd0, lut_data_int} : {1'd1, - lut_data_int})))) :
+                                        ((cnt_phase == 2'd0) ? {1'd1, lut_data_int} : ((cnt_phase == 2'd1) ? {1'd1, lut_data_int} : ((cnt_phase == 2'd2) ? {1'd0, ({(BITWIDTH-'d1){1'd0}} - lut_data_int)}   : ((LUT_END) ? {1'd1, lut_data_int} : {1'd0, ({(BITWIDTH-'d1){1'd0}} - lut_data_int)}))));
+
         end
     end
 endmodule

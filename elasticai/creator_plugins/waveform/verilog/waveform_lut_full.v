@@ -20,12 +20,12 @@
 //`define TRGG_EXTERNAL
 
 // --- CODE FOR READING DATA FROM EXTERNAL
-// wire [LUTWIDTH* (BITWIDTH-'d1)-'d1:0] LUT_DATA_EXT;
+// wire [LUTWIDTH* (BITWIDTH-1)-1:0] LUT_DATA_EXT;
 // assign LUT_DATA_EXT = §{LUT_DATA};
 
 // --- CODE FOR SETTING WAIT CYCLES FROM EXTERNAL
 // wire WAIT_CYC;
-// assign [WAIT_WIDTH-'d1:0] WAIT_CYC = 4;
+// assign [WAIT_WIDTH-1:0] WAIT_CYC = 4;
 
 
 module LUT_WAVEFORM_FULL#(
@@ -41,13 +41,13 @@ module LUT_WAVEFORM_FULL#(
 	`ifdef TRGG_EXTERNAL
 	    input wire TRGG_CNT,
     `else
-        input wire [WAIT_WIDTH-'d1:0] WAIT_CYC,
+        input wire [WAIT_WIDTH-1:0] WAIT_CYC,
     `endif
     output reg  TRGG_NEW_SAMPLE,
     `ifdef ACCESS_EXTERNAL
-        input wire [BITWIDTH* LUTWIDTH - 'd1:0] LUT_DATA_EXT,
+        input wire [BITWIDTH* LUTWIDTH-1:0] LUT_DATA_EXT,
     `endif
-    output wire [BITWIDTH-'d1:0] LUT_OUT,
+    output reg [BITWIDTH-1:0] LUT_OUT,
 	output wire LUT_END
 );
     // --- Data definition
@@ -58,18 +58,18 @@ module LUT_WAVEFORM_FULL#(
     reg state;
     // --- Registers for counting and controlling
     wire inc_cnt_pos;
-    reg [$clog2(LUTWIDTH)-'d1:0] cnt_wvf_pos;
+    reg [$clog2(LUTWIDTH)-1:0] cnt_wvf_pos;
     `ifndef TRGG_EXTERNAL
-        reg [WAIT_WIDTH-'d1:0] cnt_wait;
+        reg [WAIT_WIDTH-1:0] cnt_wait;
         // --- Counter for Downsampling System Clock
         always@(posedge CLK_SYS) begin
             if(!RSTN) begin
                 cnt_wait <= 'd0;
             end else begin
-                cnt_wait <= (!state || cnt_wait == WAIT_CYC-'d1) ? 'd0 : cnt_wait + 'd1;
+                cnt_wait <= (!state || cnt_wait == WAIT_CYC-1) ? 'd0 : cnt_wait + 'd1;
             end
         end
-        assign inc_cnt_pos = (cnt_wait == WAIT_CYC-'d1);
+        assign inc_cnt_pos = (cnt_wait == WAIT_CYC-1);
     `else
         reg trgg_cnt_dly;
         always@(posedge CLK_SYS) begin
@@ -79,16 +79,12 @@ module LUT_WAVEFORM_FULL#(
     `endif
 
     // --- Processing LUT data
-    assign LUT_END = (cnt_wvf_pos == (LUTWIDTH-'d1));
-    wire [BITWIDTH-'d1:0] lut_data_int [LUTWIDTH-'d1:0];
-    assign LUT_OUT = lut_data_int[cnt_wvf_pos];
-
-    genvar i0;
-    for(i0 = 'd0; i0 < LUTWIDTH; i0 = i0 + 'd1) begin
+    assign LUT_END = (cnt_wvf_pos == (LUTWIDTH-1));
+    always@(*) begin
         `ifdef ACCESS_EXTERNAL
-            assign lut_data_int[i0] = LUT_DATA_EXT[i0*BITWIDTH+:BITWIDTH];
+            LUT_OUT = LUT_DATA_EXT[cnt_wvf_pos*BITWIDTH+:BITWIDTH];
         `else
-            assign lut_data_int[i0] = LUT_DATA[i0*BITWIDTH+:BITWIDTH];
+            LUT_OUT = LUT_DATA[cnt_wvf_pos*BITWIDTH+:BITWIDTH];
         `endif
     end
 
@@ -100,10 +96,10 @@ module LUT_WAVEFORM_FULL#(
             cnt_wvf_pos <= 'd0;
 
         end else begin
-            state <= (EN_FLAG) ? 1'd1 : ((cnt_wvf_pos == LUTWIDTH-'d1 && inc_cnt_pos) ? 1'd0 : state);
+            state <= (EN_FLAG) ? 1'd1 : ((cnt_wvf_pos == LUTWIDTH-1 && inc_cnt_pos) ? 1'd0 : state);
             TRGG_NEW_SAMPLE <= inc_cnt_pos;
             if(inc_cnt_pos && state) begin
-                cnt_wvf_pos <= (cnt_wvf_pos == LUTWIDTH-'d1) ? ((EN_FLAG) ? 'd1 : 'd0) : cnt_wvf_pos + 'd1;
+                cnt_wvf_pos <= (cnt_wvf_pos == LUTWIDTH-1) ? ((EN_FLAG) ? 'd1 : 'd0) : cnt_wvf_pos + 'd1;
             end else begin
                 cnt_wvf_pos <= (state) ? cnt_wvf_pos : 'd0;
             end
