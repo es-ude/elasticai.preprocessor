@@ -14,7 +14,7 @@
 
 #ifndef DEF_NEW_PREPROCESSING_NORMAL_PROTO
     #define DEF_NEW_PREPROCESSING_NORMAL_PROTO(id, input_type) \
-        bool calc_preprocessing_normal_ ## id(input_tpye data, input_type *out);
+        bool calc_preprocessing_normal_ ## id(input_type data, input_type *out);
 #endif
 
 #endif//PREPROCESSING_NORMAL_TEMPLATE_H

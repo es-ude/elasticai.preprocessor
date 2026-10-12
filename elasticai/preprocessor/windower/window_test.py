@@ -8,7 +8,7 @@ import pytest
 
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.thresholding import (
-    TargetsThreshold,
+    ThresholdTargets,
 )
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
@@ -19,11 +19,24 @@ from .window import (
     transformation_window_method,
 )
 
-WIN_METHOD_CONFIGS = {
-    pytest.param(WindowerTargets.Sequence, "sequence", id="Sequence"),
-    pytest.param(WindowerTargets.Sliding, "sliding", id="Sliding"),
-    pytest.param(WindowerTargets.Event, "event", id="Event"),
-}
+# (method, expected_c_file, expected_h_file, expected_template)
+WIN_METHOD_CONFIGS = [
+    pytest.param(
+        WindowerTargets.Sliding,
+        "windower_sliding_0.c", "windower_sliding_0.h", "windower_sliding_template.h",
+        id="Sliding",
+    ),
+    pytest.param(
+        WindowerTargets.Event,
+        "windower_event_pipeline_0.c", "windower_event_pipeline_0.h", "preprocessing_normal_template.h",
+        id="Event",
+    ),
+    pytest.param(
+        WindowerTargets.Sequence,
+        "windower_sequence_0.c", "windower_sequence_0.h", "windower_sequence_template.h",
+        id="Sequence",
+    ),
+]
 
 
 class TestWindowMethod(TestCase):
@@ -40,7 +53,7 @@ class TestWindowMethod(TestCase):
         np.testing.assert_array_equal(window, np.ones_like(self.vsig))
 
 
-class TestSettingsWindowSequencer(TestCase):
+class TestWindowSettingsSequencer(TestCase):
     sets = WindowSettings(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
 
     def test_settings_length(self):
@@ -251,17 +264,10 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
-        with pytest.raises(NotImplementedError):
-            with TemporaryDirectory() as directory:
-                path2save = Path(directory)
-                path2save.mkdir(parents=True, exist_ok=True)
-
-                WindowSequencer(set0).create_design("mcu", 8, "0", path2save)
-                files_available = []
-
-                for filename in files_available:
-                    file = path2save / filename
-                    assert file.exists()
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            WindowSequencer(set0).create_design("mcu", 8, "0", path2save)
+            assert (path2save / "windower_sliding_0.h").exists()
 
     def test_create_design_c_pc(self):
         set0 = deepcopy(self.sets)
@@ -269,39 +275,34 @@ class TestWindowSequencer(TestCase):
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
-        with pytest.raises(NotImplementedError):
-            with TemporaryDirectory() as directory:
-                path2save = Path(directory)
-                path2save.mkdir(parents=True, exist_ok=True)
-
-                WindowSequencer(set0).create_design("pc", 8, "0", path2save)
-                files_available = []
-
-                for filename in files_available:
-                    file = path2save / filename
-                    assert file.exists()
+        with TemporaryDirectory() as directory:
+            path2save = Path(directory)
+            WindowSequencer(set0).create_design("pc", 8, "0", path2save)
+            assert (path2save / "windower_sliding_0.h").exists()
 
 
 class TestCreateDesign:
     @pytest.mark.parametrize("target", ["mcu", "pc"])
-    @pytest.mark.parametrize("window_method,c_name", WIN_METHOD_CONFIGS)
+    @pytest.mark.parametrize("window_method,exp_c,exp_h,exp_tmpl", WIN_METHOD_CONFIGS)
     def test_create_design_generates_windower_c_files(
         self,
         target: str,
         window_method: WindowerTargets,
-        c_name: str,
+        exp_c: str,
+        exp_h: str,
+        exp_tmpl: str,
     ) -> None:
         windower = WindowSequencer(
             WindowSettings(
-                method_window=WindowerTargets.Sequence,
-                method_thr=TargetsThreshold.Constant,
                 sampling_rate=2e3,
                 window_sec=0.1,
                 overlap_sec=0.0,
+                method_window=window_method,
+                method_thr=ThresholdTargets.Constant,
+                threshold=10.0,
+                pre_time=0.0025,
             )
         )
-
-        backup = get_path_to_project("build_test") / "windower"
 
         backup = get_path_to_project("build_test") / "windower"
         with temporary_directory(backup) as tmpdir:
@@ -311,12 +312,10 @@ class TestCreateDesign:
                 id="0",
                 path2save=tmpdir,
                 signed=True,
-                threshold=10,
-                pre_samples=5,
             )
-            assert (tmpdir / f"windower_{c_name}_0.c").exists()
-            assert (tmpdir / f"windower_{c_name}_0.h").exists()
-            assert (tmpdir / f"windower_{c_name}_template.h").exists()
+            assert (tmpdir / exp_c).exists()
+            assert (tmpdir / exp_h).exists()
+            assert (tmpdir / exp_tmpl).exists()
 
 
 if __name__ == "__main__":
