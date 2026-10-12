@@ -23,6 +23,24 @@ class FilterTargets(Enum):
     FIR = "fir"
 
 
+class FilterFTypes(Enum):
+    Butter = "butter"
+    Cheby1 = "cheby1"
+    Cheby2 = "cheby2"
+    Ellip = "ellip"
+    Bessel = "bessel"
+
+
+class FilterBTypes(Enum):
+    Lowpass = "lowpass"
+    SimpleLowpass = "simple_lowpass"
+    Highpass = "highpass"
+    Bandpass = "bandpass"
+    Bandstop = "bandstop"
+    Notch = "notch"
+    Allpass = "allpass"
+
+
 @dataclass
 class FilterCoeffs:
     """Dataclass with filter coefficients
@@ -43,16 +61,27 @@ class FilterSettings:
         sampling_rate:  Sampling rate [Hz]
         n_order:        Integer with number of filter order
         f_filt:         List with filter frequencies [Hz] (low/high-pass, all-pass: only one value - rest: two values)
-        f_type:         String with selected filter structure ['butter', 'cheby1', 'cheby2', 'ellip', 'bessel']
-        b_type:         String with selected filter type ['lowpass', 'highpass', 'bandpass', 'bandstop', 'notch', 'allpass']
+        f_type:         Enum with selected filter structure [
+                            'butter',
+                            'cheby1',
+                            'cheby2',
+                            'ellip',
+                            'bessel']
+        b_type:         Enum with selected filter type [
+                            'lowpass',
+                            'highpass',
+                            'bandpass',
+                            'bandstop',
+                            'notch',
+                            'allpass']
     """
 
     method: FilterTargets
     sampling_rate: float
     n_order: int
     f_filt: list
-    f_type: str
-    b_type: str
+    f_type: FilterFTypes
+    b_type: FilterBTypes
 
     @property
     def _num_delay_taps(self) -> int:
@@ -64,15 +93,13 @@ FilterSettingsDefault = FilterSettings(
     n_order=2,
     f_filt=[0.1, 100],
     method=FilterTargets.IIR,
-    f_type="butter",
-    b_type="bandpass",
+    f_type=FilterFTypes("butter"),
+    b_type=FilterBTypes("bandpass"),
 )
 
 
 class Filtering(CommonDigitalFunctions, PreprocessingModule):
     __logger: Logger
-    _btype_supported: list = ["lowpass", "highpass", "bandpass", "bandstop", "notch", "allpass"]
-    _ftype_supported: list = ["butter", "bessel", "cheby1", "cheby2", "ellip"]
     _coeff_a: np.ndarray
     _coeff_b: np.ndarray
     _settings: FilterSettings
@@ -87,6 +114,10 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         self._settings = settings
         if isinstance(settings.method, str):
             self._settings.method = FilterTargets(settings.method.lower())
+        if isinstance(settings.b_type, str):
+            self._settings.b_type = FilterBTypes(settings.b_type.lower())
+        if isinstance(settings.f_type, str):
+            self._settings.f_type = FilterFTypes(settings.f_type.lower())
         self.__process_filter()
 
     def __call__(self, x: SequentialSignal) -> SequentialSignal:
@@ -148,8 +179,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
 
     def __extract_filter_coeffs_iir(self) -> None:
         frange = np.array(self._settings.f_filt)
-        match self._settings.b_type.lower():
-            case "notch":
+        match self._settings.b_type:
+            case FilterBTypes.Notch:
                 filter = scft.iirnotch(
                     w0=float(self._settings.f_filt[0]),
                     Q=self._settings.n_order,
@@ -157,7 +188,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 )
                 self._coeff_b = filter[0]
                 self._coeff_a = filter[1]
-            case "allpass":
+            case FilterBTypes.Allpass:
                 if self._settings.n_order == 1:
                     assert len(self._settings.f_filt) == 1, (
                         "f_filt should have length of 1 with [f_b] value"
@@ -182,8 +213,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     N=self._settings.n_order,
                     Wn=frange[0] if len(frange) == 1 else frange,
                     fs=self._settings.sampling_rate,
-                    ftype=self._settings.f_type.lower(),
-                    btype=self._settings.b_type.lower(),
+                    ftype=self._settings.f_type.value,
+                    btype=self._settings.b_type.value,
                     analog=False,
                     output="ba",
                 )
@@ -193,8 +224,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
     def __extract_filter_coeffs_fir(self) -> None:
         frange = np.array(self._settings.f_filt)
         self._coeff_a = np.array(1.0)
-        match self._settings.b_type.lower():
-            case "notch":
+        match self._settings.b_type:
+            case FilterBTypes.Notch:
                 assert len(self._settings.f_filt) == 2, (
                     "Size of f_filt should be 2 with [f_notch, bandwidth]"
                 )
@@ -213,7 +244,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                     gain=gain,
                     fs=self._settings.sampling_rate,
                 )
-            case "allpass":
+            case FilterBTypes.Allpass:
                 self._coeff_b = np.array(
                     [
                         1.0 if idx == self._settings._num_delay_taps - 1 else 0.0
@@ -231,17 +262,10 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                         numtaps=self._settings.n_order,
                         cutoff=frange,
                         fs=self._settings.sampling_rate,
-                        pass_zero=self._settings.b_type.lower(),
+                        pass_zero=self._settings.b_type.value,
                     )
 
     def __process_filter(self) -> None:
-        assert self._settings.f_type.lower() in self._ftype_supported, (
-            f"Filter type {self._settings.f_type} is not supported from {self._ftype_supported}"
-        )
-        assert self._settings.b_type.lower() in self._btype_supported, (
-            f"Structure type {self._settings.b_type} is not supported from {self._btype_supported}"
-        )
-
         match self._settings.method.value:
             case FilterTargets.IIR.value:
                 self.__extract_filter_coeffs_iir()
@@ -277,7 +301,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             frac_bitwidth=fraction_width,
         )
 
-        if self._settings.method == FilterTargets.FIR and self._settings.b_type == "allpass":
+        if self._settings.method == FilterTargets.FIR and self._settings.b_type == FilterBTypes.Allpass:
             params = self.get_coeffs()
             self._coeff_b = np.asarray(params.b)
             self._coeff_a = np.asarray(params.a)
@@ -293,7 +317,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             3
             if self._settings.method == FilterTargets.IIR
             else (x < 0)
-            if not self._settings.b_type == "allpass"
+            if not self._settings.b_type == FilterBTypes.Allpass
             else 0
         ) * 2**-fraction_width
         return x - offset
@@ -304,8 +328,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             filter = scft.iirfilter(
                 N=self._settings.n_order,
                 Wn=frange[0] if len(frange) == 1 else frange,
-                ftype=self._settings.f_type.lower(),
-                btype=self._settings.b_type.lower(),
+                ftype=self._settings.f_type.value,
+                btype=self._settings.b_type.value,
                 analog=True,
                 output="ba",
             )
@@ -474,7 +498,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 raise ValueError(
                     f"IIR filter order {self._settings.n_order} is not supported for biquad filter"
                 )
-            if self._settings.b_type.lower() in ["simple_lowpass"]:
+            if self._settings.b_type in [FilterBTypes.SimpleLowpass]:
                 raise ValueError(
                     f"IIR filter type {self._settings.b_type} is not supported for biquad filter"
                 )
@@ -482,7 +506,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 id=id, bitwidth=bitwidth, use_dsp_mult=True, num_mult=num_mult
             )
         elif self._settings.method == FilterTargets.FIR:
-            if self._settings.b_type.lower() not in ["allpass"]:
+            if self._settings.b_type not in [FilterBTypes.Allpass]:
                 if self._settings.f_filt[0] / self._settings.sampling_rate == 0.5:
                     params = self._create_fir_simple_lowpass_verilog(id, bitwidth)
                 elif self._settings.n_order % 2 == 1:
@@ -490,7 +514,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 else:
                     params = self._create_fir_full_verilog(id, bitwidth, True, num_mult)
             else:
-                if self._settings.b_type.lower() == "allpass":
+                if self._settings.b_type == FilterBTypes.Allpass:
                     params = self._create_fir_delay_verilog(id, bitwidth)
                 else:
                     raise ValueError(f"FIR filter type {self._settings.b_type} is not supported")
@@ -502,10 +526,10 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
     def _create_design_c(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
         from elasticai.creator_plugins.filter_data.src import c_compile
 
-        filter_type = self._settings.method.value
-        filter_structure = self._settings.b_type.lower()
+        filter_type = self._settings.method
+        filter_structure = self._settings.b_type
 
-        if filter_type == "iir":
+        if filter_type == FilterTargets.IIR:
             c_compile.build_filter_iir(
                 settings=self._settings,
                 bitwidth=bitwidth,
@@ -515,8 +539,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 define_path=".",
             )
         elif (
-            filter_type == "fir"
-            and filter_structure == "lowpass"
+            filter_type == FilterTargets.FIR
+            and filter_structure == FilterBTypes.Lowpass
             and self._settings.f_filt[0] / self._settings.sampling_rate == 0.5
         ):
             c_compile.build_filter_simple(
@@ -527,7 +551,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 path2save=path2save,
                 define_path=".",
             )
-        elif filter_type == "fir" and filter_structure == "allpass":
+        elif filter_type == FilterTargets.FIR and filter_structure == FilterBTypes.Allpass:
             c_compile.build_filter_delay(
                 settings=self._settings,
                 bitwidth=bitwidth,
@@ -536,7 +560,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
                 path2save=path2save,
                 define_path=".",
             )
-        elif filter_type == "fir":
+        elif filter_type == FilterTargets.FIR:
             c_compile.build_filter_fir(
                 settings=self._settings,
                 bitwidth=bitwidth,
