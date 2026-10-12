@@ -11,6 +11,7 @@ in {
     pkgs.git
     pkgs.tombi
     pkgs.ruff
+    pkgs.gcc
     pkgs.iverilog
     pkgs.zlib # needed as dependency cocotb/ghdl under circumstances
     pkgs.alejandra # nix formatter

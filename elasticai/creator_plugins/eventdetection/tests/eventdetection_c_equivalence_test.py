@@ -82,9 +82,8 @@ def test_create_design_generates_eventdetection_c_files(tmp_path: Path, target: 
 @pytest.mark.parametrize("is_signed", [True])
 @pytest.mark.parametrize("out_invert", [False, True])
 def test_generated_eventdetection_c_matches_python_frame(
-    tmp_path: Path,
     bitwidth: int,
-    numpy_dtype: type(np.generic),
+    numpy_dtype: type[np.generic],
     c_type: str,
     c_hysteresis: str,
     is_signed: bool,
@@ -125,9 +124,13 @@ def test_generated_eventdetection_c_matches_python_frame(
             dtype=numpy_dtype,
         )
         input_frame = np.concat((input_frame, input_frame[::-1]), axis=-1)
-        thresholds_frame = np.random.randint(
-            low=arith.minimum_as_integer + bitwidth, high=arith.maximum_as_integer - bitwidth
-        ) + np.zeros_like(input_frame)
+        thresholds_frame = np.full_like(
+            input_frame,
+            np.random.default_rng().integers(
+                low=arith.minimum_as_integer + bitwidth,
+                high=arith.maximum_as_integer - bitwidth,
+            ),
+        )
         expected = eventdetector.get_events(input_frame, thresholds_frame).astype(numpy_dtype)
 
         c_results = []
