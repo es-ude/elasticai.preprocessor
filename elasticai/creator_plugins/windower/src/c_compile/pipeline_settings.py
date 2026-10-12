@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from elasticai.preprocessor.windower.window import SettingsWindow
+from elasticai.preprocessor.windower.window import WindowSettings
 
 
 class TargetsFilterC(Enum):
@@ -77,7 +77,7 @@ class SettingsPipeline:
     Fields:
         filter        — filter-stage configuration (SettingsPipelineFilter)
         downsampling  — decimation-stage configuration (SettingsPipelineDownsampling)
-        window        — windower configuration (SettingsWindow);
+        window        — windower configuration (WindowSettings);
                         method_window, method_thr, method_input, pre_time and
                         threshold are used Python-side only — the C pipeline uses
                         only window_length and overlap_length → num_shift
@@ -87,6 +87,6 @@ class SettingsPipeline:
 
     filter: SettingsPipelineFilter
     downsampling: SettingsPipelineDownsampling
-    window: SettingsWindow
+    window: WindowSettings
     bitwidth: int
     signed: bool

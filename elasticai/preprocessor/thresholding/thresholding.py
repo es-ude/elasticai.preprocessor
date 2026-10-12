@@ -10,14 +10,14 @@ from elasticai.creator_plugins.thresholding.src import c_compile
 
 
 class ThresholdTargets(Enum):
-    Constant = "constant"
-    AbsoluteMean = "median_abs"
+    Constant =                "constant"
+    AbsoluteMean =            "median_abs"
     MedianAbsoluteDeviation = "mad"
-    MovingAverage = "mavg"
-    MovingAverageAbsolute = "mavg_abs"
-    RmsNorm = "rms_norm"
-    RmsBlackrock = "rms_black"
-    Welford = "welford"
+    MovingAverage =           "mavg"
+    MovingAverageAbsolute =   "mavg_abs"
+    RmsNorm =                 "rms_norm"
+    RmsBlackrock =            "rms_black"
+    Welford =                 "welford"
 
 
 @dataclass
@@ -31,11 +31,11 @@ class ThresholdSettings:
         do_quant:       Boolean for performing quantized operations
     """
 
-    method: ThresholdTargets
+    method:        ThresholdTargets
     sampling_rate: float
-    window_sec: float
-    thr_val: float | int
-    do_quant: bool
+    window_sec:    float
+    thr_val:       float | int
+    do_quant:      bool
 
     @property
     def window_length(self) -> int:
@@ -45,7 +45,11 @@ class ThresholdSettings:
 
 
 DefaultThresholdSettings = ThresholdSettings(
-    method=ThresholdTargets.Constant, sampling_rate=1000.0, window_sec=10e-3, thr_val=0.1, do_quant=False
+    method=ThresholdTargets.Constant,
+    sampling_rate=1000.0,
+    window_sec=10e-3,
+    thr_val=0.1,
+    do_quant=False,
 )
 
 

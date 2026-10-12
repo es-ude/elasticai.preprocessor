@@ -16,9 +16,9 @@ from elasticai.creator_plugins.windower.src.c_compile import (
     TargetsFilterC,
     build_pipeline,
 )
-from elasticai.preprocessor.eventdetection import TargetsEventPreprocessors
-from elasticai.preprocessor.thresholding import TargetsThreshold
-from elasticai.preprocessor.windower.window import SettingsWindow, TargetsWindower
+from elasticai.preprocessor.eventdetection import EventPreprocessorsTargets
+from elasticai.preprocessor.thresholding import ThresholdTargets
+from elasticai.preprocessor.windower.window import WindowerTargets, WindowSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
@@ -27,11 +27,11 @@ pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compil
 # ---------------------------------------------------------------------------
 
 
-def _window_settings(sampling_rate: float = 1000.0, window_sec: float = 0.008) -> SettingsWindow:
-    return SettingsWindow(
-        method_window=TargetsWindower.Sliding,
-        method_thr=TargetsThreshold.Constant,
-        method_input=TargetsEventPreprocessors.Normal,
+def _window_settings(sampling_rate: float = 1000.0, window_sec: float = 0.008) -> WindowSettings:
+    return WindowSettings(
+        method_window=WindowerTargets.Sliding,
+        method_thr=ThresholdTargets.Constant,
+        method_input=EventPreprocessorsTargets.Normal,
         sampling_rate=sampling_rate,
         window_sec=window_sec,  # 8 samples at 1 kHz
         overlap_sec=0.0,

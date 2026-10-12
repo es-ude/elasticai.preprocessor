@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.creator_plugins.windower.src.c_compile import build_windower
+from elasticai.creator_plugins.windower.src.c_compile import build_windower_sliding as build_windower
 from elasticai.preprocessor.windower.window import WindowSequencer, WindowSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
@@ -48,9 +48,9 @@ WINDOWER_CONFIGS = [
 def test_build_windower_generates_c_files(tmp_path: Path) -> None:
     settings = WindowSettings(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05)
     build_windower(settings=settings, bitwidth=16, signed=True, path2save=tmp_path, windower_id="0")
-    assert (tmp_path / "windower_template.h").exists()
-    assert (tmp_path / "windower_0.h").exists()
-    assert (tmp_path / "windower_0.c").exists()
+    assert (tmp_path / "windower_sliding_template.h").exists()
+    assert (tmp_path / "windower_sliding_0.h").exists()
+    assert (tmp_path / "windower_sliding_0.c").exists()
 
 
 @pytest.mark.simulation
@@ -77,10 +77,10 @@ def test_windower_c_matches_python(
     num_shift = window_length - settings.overlap_length
 
     adapter = tmp_path / "adapter.h"
-    adapter.write_text(f"_Bool calc_windower_0({c_type} data, {c_type} *out);\n")
+    adapter.write_text(f"_Bool calc_windower_sliding_0({c_type} data, {c_type} *out);\n")
     loader = CompileLoader(
         headers=str(adapter),
-        sources=[str(output_dir / "windower_0.c")],
+        sources=[str(output_dir / "windower_sliding_0.c")],
         build_dir=str(tmp_path / "cffi-build"),
         module_name=f"windower_equivalence_{uuid4().hex}",
     )
@@ -92,7 +92,7 @@ def test_windower_c_matches_python(
     py_windows = WindowSequencer(settings).slide(samples)[n_skip:]
 
     ffi = loader.ffi()
-    calc_windower = loader.get("calc_windower_0")
+    calc_windower = loader.get("calc_windower_sliding_0")
     out = ffi.new(f"{c_type}[{window_length}]")
     c_windows = []
     for data in samples.tolist():
