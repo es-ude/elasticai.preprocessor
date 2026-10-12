@@ -18,7 +18,7 @@ from elasticai.creator_plugins.pipeline import (
 )
 from elasticai.preprocessor.eventdetection import EventPreprocessorsTargets
 from elasticai.preprocessor.thresholding import ThresholdTargets
-from elasticai.preprocessor.windower.window import WindowerTargets, WindowSettings
+from elasticai.preprocessor.windower import WindowerTargets, WindowSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 

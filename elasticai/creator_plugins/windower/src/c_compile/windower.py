@@ -13,10 +13,11 @@ from elasticai.preprocessor.translation.ir2c import (
 )
 from elasticai.preprocessor.windower.window import WindowSettings
 
-_CREATOR_PLUGINS  = Path(__file__).parents[3]
+_CREATOR_PLUGINS = Path(__file__).parents[3]
 _EVENTDETECTION_C = _CREATOR_PLUGINS / "eventdetection" / "c"
-_THRESHOLDING_C   = _CREATOR_PLUGINS / "thresholding" / "c"
-_WINDOWER_C_DIR   = _CREATOR_PLUGINS / "windower" / "c"
+_THRESHOLDING_C = _CREATOR_PLUGINS / "thresholding" / "c"
+_WINDOWER_C_DIR = _CREATOR_PLUGINS / "windower" / "c"
+
 
 # (template_file, c_function_base_name, macro_renderer(uid, dtype), has_output_delay)
 # has_output_delay=True: preprocessing outputs the result for the PREVIOUS sample
@@ -39,7 +40,7 @@ _PREPROCESSING_TABLE: dict[EventPreprocessorsTargets, tuple[str, str, Callable[.
         "preprocessing_neo_template.h",
         "calc_neo",
         lambda uid, dtype: f"DEF_NEW_PREPROCESSING_NEO_IMPL({uid}, {dtype})",
-        True,   # outputs neo[k-1] at step k; use prev_data in output_buf
+        True,  # outputs neo[k-1] at step k; use prev_data in output_buf
     ),
 }
 
@@ -287,29 +288,29 @@ def build_windower_event_pipeline(
             f"No C template for preprocessing method '{settings.method_input.value}'"
         )
     if settings.method_thr not in _THRESHOLDING_TABLE:
-        raise NotImplementedError(
-            f"No C template for threshold method '{settings.method_thr.value}'"
-        )
+        raise NotImplementedError(f"No C template for threshold method '{settings.method_thr.value}'")
 
     assert bitwidth in range(2, 33), "bitwidth must be between 2 and 32"
     path2save.mkdir(parents=True, exist_ok=True)
 
-    mid   = windower_id.lower()
-    uid   = mid.upper()
+    mid = windower_id.lower()
+    uid = mid.upper()
     dtype = get_embedded_datatype(bitwidth, signed)
-    ts    = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-    wl    = settings.window_length
-    pre   = int(settings.pre_time * settings.sampling_rate)
+    ts = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    wl = settings.window_length
+    pre = int(settings.pre_time * settings.sampling_rate)
 
-    preproc_tmpl, preproc_fn, preproc_macro_fn, preproc_has_delay = _PREPROCESSING_TABLE[settings.method_input]
-    thr_tmpl,     thr_fn,     thr_macro_fn                       = _THRESHOLDING_TABLE[settings.method_thr]
+    preproc_tmpl, preproc_fn, preproc_macro_fn, preproc_has_delay = _PREPROCESSING_TABLE[
+        settings.method_input
+    ]
+    thr_tmpl, thr_fn, thr_macro_fn = _THRESHOLDING_TABLE[settings.method_thr]
 
     # Copy template headers (deduplicated, order preserved).
     # windower_event_template.h is NOT needed: the wrapper uses dual ring buffers
     # generated inline, not WindowerEventTaps / DEF_WINDOWER_EVENT.
     raw_templates = [
         (_EVENTDETECTION_C, preproc_tmpl),
-        (_THRESHOLDING_C,   thr_tmpl),
+        (_THRESHOLDING_C, thr_tmpl),
     ]
     unique_templates: list[tuple[Path, str]] = []
     seen: set[str] = set()
@@ -319,14 +320,14 @@ def build_windower_event_pipeline(
             unique_templates.append((src_dir, name))
             seen.add(name)
 
-    includes = "\n".join(
-        f'#include "{define_path}/{name}"' for _, name in unique_templates
-    )
+    includes = "\n".join(f'#include "{define_path}/{name}"' for _, name in unique_templates)
 
-    stage_macros = "\n".join([
-        preproc_macro_fn(uid, dtype),
-        thr_macro_fn(uid, dtype, settings),
-    ])
+    stage_macros = "\n".join(
+        [
+            preproc_macro_fn(uid, dtype),
+            thr_macro_fn(uid, dtype, settings),
+        ]
+    )
 
     # Dual-buffer wrapper:
     #   detect_buf  — preprocessed signal, used for threshold comparison
@@ -337,13 +338,15 @@ def build_windower_event_pipeline(
     # not signal[k].  This aligns the window content with the event position and
     # produces the same result as Python's centered NEO formula.
     if preproc_has_delay:
-        early_ret   = f"    if (!{preproc_fn}_{mid}(data, &preprocessed)) {{ prev_data = data; return false; }}"
-        prev_decl   = f"    static {dtype} prev_data = 0;"
-        buf_assign  = f"    detect_buf[{wl} - 1] = preprocessed;\n    output_buf[{wl} - 1] = prev_data;\n    prev_data = data;"
+        early_ret = (
+            f"    if (!{preproc_fn}_{mid}(data, &preprocessed)) {{ prev_data = data; return false; }}"
+        )
+        prev_decl = f"    static {dtype} prev_data = 0;"
+        buf_assign = f"    detect_buf[{wl} - 1] = preprocessed;\n    output_buf[{wl} - 1] = prev_data;\n    prev_data = data;"
     else:
-        early_ret   = f"    if (!{preproc_fn}_{mid}(data, &preprocessed)) return false;"
-        prev_decl   = ""
-        buf_assign  = f"    detect_buf[{wl} - 1] = preprocessed;\n    output_buf[{wl} - 1] = data;"
+        early_ret = f"    if (!{preproc_fn}_{mid}(data, &preprocessed)) return false;"
+        prev_decl = ""
+        buf_assign = f"    detect_buf[{wl} - 1] = preprocessed;\n    output_buf[{wl} - 1] = data;"
 
     wrapper_lines = [
         f"bool calc_windower_event_pipeline_{mid}({dtype} data, {dtype} *out) {{",
@@ -400,10 +403,7 @@ def build_windower_event_pipeline(
         f"bool calc_windower_event_pipeline_{mid}({dtype} data, {dtype} *out);\n"
     )
     (path2save / f"windower_event_pipeline_{mid}.c").write_text(
-        f"{header_comment}\n"
-        f"{includes}\n\n"
-        f"{stage_macros}\n\n"
-        f"{wrapper}\n"
+        f"{header_comment}\n{includes}\n\n{stage_macros}\n\n{wrapper}\n"
     )
 
 

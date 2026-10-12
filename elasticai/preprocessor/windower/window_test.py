@@ -23,17 +23,23 @@ from .window import (
 WIN_METHOD_CONFIGS = [
     pytest.param(
         WindowerTargets.Sliding,
-        "windower_sliding_0.c", "windower_sliding_0.h", "windower_sliding_template.h",
+        "windower_sliding_0.c",
+        "windower_sliding_0.h",
+        "windower_sliding_template.h",
         id="Sliding",
     ),
     pytest.param(
         WindowerTargets.Event,
-        "windower_event_pipeline_0.c", "windower_event_pipeline_0.h", "preprocessing_normal_template.h",
+        "windower_event_pipeline_0.c",
+        "windower_event_pipeline_0.h",
+        "preprocessing_normal_template.h",
         id="Event",
     ),
     pytest.param(
         WindowerTargets.Sequence,
-        "windower_sequence_0.c", "windower_sequence_0.h", "windower_sequence_template.h",
+        "windower_sequence_0.c",
+        "windower_sequence_0.h",
+        "windower_sequence_template.h",
         id="Sequence",
     ),
 ]

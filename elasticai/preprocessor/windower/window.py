@@ -6,8 +6,6 @@ import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 from scipy.signal.windows import gaussian
 
-import elasticai.creator_plugins.windower as hw_windower
-from elasticai.creator_plugins.windower.src import c_compile
 from elasticai.preprocessor._check_funcs import check_key_elements
 from elasticai.preprocessor.eventdetection.preprocessors import (
     EventPreprocessor,
@@ -64,13 +62,13 @@ class WindowSettings:
     """
 
     sampling_rate: float
-    window_sec:    float
-    overlap_sec:   float
-    method_window: WindowerTargets          = WindowerTargets.Sliding
-    method_thr:    ThresholdTargets         = ThresholdTargets.Constant
-    method_input:  EventPreprocessorsTargets = EventPreprocessorsTargets.Normal
-    pre_time:      float                    = 0.0
-    threshold:     float                    = 10.0
+    window_sec: float
+    overlap_sec: float
+    method_window: WindowerTargets = WindowerTargets.Sliding
+    method_thr: ThresholdTargets = ThresholdTargets.Constant
+    method_input: EventPreprocessorsTargets = EventPreprocessorsTargets.Normal
+    pre_time: float = 0.0
+    threshold: float = 10.0
 
     @property
     def window_length(self) -> int:
@@ -86,9 +84,9 @@ class WindowSettings:
 
 
 DefaultWindowSettings = WindowSettings(
-    sampling_rate = 1000.0,
-    window_sec    = 0.1,
-    overlap_sec   = 0.0,
+    sampling_rate=1000.0,
+    window_sec=0.1,
+    overlap_sec=0.0,
 )
 
 
@@ -267,6 +265,8 @@ class WindowSequencer:
             )
 
     def _create_design_verilog(self, id: str, bitwidth: int, signed: bool, path2save: Path) -> None:
+        import elasticai.creator_plugins.windower as hw_windower
+
         window_length = self._settings.window_length
         overlap_length = self._settings.overlap_length
         num_shift = window_length - overlap_length
@@ -295,6 +295,8 @@ class WindowSequencer:
         signed: bool,
         path2save: Path,
     ) -> None:
+        from elasticai.creator_plugins.windower.src import c_compile
+
         match self._settings.method_window:
             case WindowerTargets.Sequence:
                 c_compile.build_windower_sequence(

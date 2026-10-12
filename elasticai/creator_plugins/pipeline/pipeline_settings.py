@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from elasticai.preprocessor.windower.window import WindowSettings
+from elasticai.preprocessor.windower import WindowSettings
 
 
 class TargetsFilterC(Enum):
