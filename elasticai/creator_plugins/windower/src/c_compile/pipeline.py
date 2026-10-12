@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
@@ -46,7 +47,7 @@ def _delay_macro(id: str, dtype: str, f: SettingsPipelineFilter) -> str:
     return f"DEF_NEW_FIR_DELAY_IMPL({id}, {dtype}, {f.delay_order})"
 
 
-_FILTER_TABLE: dict[TargetsFilterC, tuple[str | None, str | None, object]] = {
+_FILTER_TABLE: dict[TargetsFilterC, tuple[str | None, str | None, Callable[..., str] | None]] = {
     #                               template file              fn_name               macro renderer
     TargetsFilterC.IIR: ("filter_iir_template.h", "filt_iir", _iir_macro),
     TargetsFilterC.FIR: ("filter_fir_template.h", "filt_fir", _fir_macro),
@@ -72,7 +73,7 @@ def _simple_macro(id: str, dtype: str, d: SettingsPipelineDownsampling) -> str:
     return f"DEF_NEW_DO_SIMPLE_TAP_IMPL({id}, {dtype}, {d.ratio})"
 
 
-_DECIMATION_TABLE: dict[TargetsDownsamplingC, tuple[str | None, str | None, object]] = {
+_DECIMATION_TABLE: dict[TargetsDownsamplingC, tuple[str | None, str | None, Callable[..., str] | None]] = {
     #                                    template file                      fn_name          macro renderer
     TargetsDownsamplingC.PolyOne: ("downsampling_poly_template.h", "calc_do_poly_one", _poly1_macro),
     TargetsDownsamplingC.PolyTwo: ("downsampling_poly_template.h", "calc_do_poly_two", _poly2_macro),
