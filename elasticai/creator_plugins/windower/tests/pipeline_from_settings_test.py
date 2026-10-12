@@ -8,7 +8,7 @@ from shutil import which
 
 import pytest
 
-from elasticai.creator_plugins.windower.src.c_compile import (
+from elasticai.creator_plugins.pipeline import (
     SettingsPipeline,
     SettingsPipelineDownsampling,
     SettingsPipelineFilter,

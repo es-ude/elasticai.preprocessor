@@ -18,7 +18,7 @@ from .pipeline_settings import (
 # Navigate from this file up to elasticai/creator_plugins/ and then into each
 # plugin's c/ directory.  Using __file__ directly avoids issues with namespace
 # packages (e.g. 'downsampling') that have no __init__.py and return __file__=None.
-_CREATOR_PLUGINS = Path(__file__).parents[3]  # elasticai/creator_plugins/
+_CREATOR_PLUGINS = Path(__file__).parents[1]  # elasticai/creator_plugins/
 _WINDOWER_C = _CREATOR_PLUGINS / "windower" / "c"
 _FILTER_C = _CREATOR_PLUGINS / "filter_data" / "c"
 _POLY_C = _CREATOR_PLUGINS / "datarate" / "c"
