@@ -92,7 +92,7 @@ def test_build(tmp_path: Path, target: str) -> None:
     backup = tmp_path / f"build_{target}"
     backup.mkdir(parents=True, exist_ok=True)
     with temporary_directory(backup) as tmpdir:
-        Filtering(settings).create_design(target, bitwidth=8, id="0", path2save=tmpdir)
+        Filtering(settings).create_design(target=target, total_bitwidth=8, id="0", path2save=tmpdir)
         assert (tmpdir / "filter_fir_delay_0.c").exists()
         assert (tmpdir / "filter_fir_delay_0.h").exists()
         assert (tmpdir / "filter_fir_delay_template.h").exists()

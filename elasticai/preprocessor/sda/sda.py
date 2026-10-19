@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from logging import Logger, getLogger
+from pathlib import Path
 
 import numpy as np
 
+from elasticai.preprocessor._basics import DataTransient, DataWaveform, PreprocessingModule
 from elasticai.preprocessor.eventdetection import (
     EventDetection,
     EventDetectionSettings,
@@ -19,26 +21,6 @@ from elasticai.preprocessor.thresholding import (
     ThresholdSettings,
     ThresholdTargets,
 )
-
-
-@dataclass
-class FrameWaveform:
-    waveform: np.ndarray
-    xpos: np.ndarray
-    label: np.ndarray
-    sampling_rate: float
-
-    @property
-    def length(self) -> int:
-        return self.waveform.shape[1]
-
-    @property
-    def num_samples(self) -> int:
-        return self.xpos.size
-
-    @property
-    def is_data_labeled(self) -> bool:
-        return np.unique(self.label).size > 0 and 255 not in self.label.tolist()
 
 
 @dataclass
@@ -123,7 +105,7 @@ DefaultSDASettings = SDASettings(
 )
 
 
-class SpikeDetection:
+class SpikeDetection(PreprocessingModule[DataTransient, DataWaveform]):
     _settings: SDASettings
     _threshold: Thresholding
     _events: EventDetection
@@ -136,6 +118,7 @@ class SpikeDetection:
         :param settings:    Class SettingsSDA for configuring the accelerator
         :return:            None
         """
+        super().__init__()
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
 
@@ -158,7 +141,7 @@ class SpikeDetection:
         )
         self._events = EventDetection(
             settings=EventDetectionSettings(
-                method=EventDetectionTargets("normal"),
+                method=EventDetectionTargets.Normal,
                 window_size=1,
                 out_invert=False,
             )
@@ -172,9 +155,12 @@ class SpikeDetection:
             )
         )
 
+    def apply_threshold(self, thr: float | int) -> None:
+        self._threshold._settings.thr_val = thr
+
     def __frame_extraction(
         self, xraw: np.ndarray, xpos: np.ndarray | list, xoffset: int = 0
-    ) -> FrameWaveform:
+    ) -> DataWaveform:
         def _in_bounds(start: int, end: int, size: int) -> bool:
             return start >= 0 and end <= size
 
@@ -202,32 +188,42 @@ class SpikeDetection:
 
             alig_frames.append(frame1)
             alig_xpos.append(x_neg1)
-        return FrameWaveform(
+        return DataWaveform(
             waveform=np.array(alig_frames),
             xpos=np.array(alig_xpos),
             label=np.full(len(alig_xpos), 255, dtype=np.uint8),
             sampling_rate=self._settings.sampling_rate,
         )
 
-    def get_frames(self, xraw: np.ndarray, thr_val: float = 0.0) -> FrameWaveform:
-        """Function for extracting the spike waveforms from transient input
-        :param xraw:    Numpy array with transient input
-        :param thr_val: Float / Integer for constant thresholding (only for method_thr == TargetsThreshold.Constant)
-        :return:        Class FrameWaveform with waveforms, labels and position
-        """
-        sda = self._event_pre.get_preprocessed(xraw=xraw)
-        self._threshold._settings.thr_val = thr_val
-        thr = self._threshold.get_threshold(xin=sda)
+    def _forward_full(self, x: np.ndarray) -> DataWaveform:
+        sda = self._event_pre.forward(x=x)
+        thr = self._threshold.forward(x=sda)
         xpos = self._events.get_events_position(xin=sda, threshold=thr)
-        return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=0)
+        return self.__frame_extraction(xraw=x, xpos=xpos, xoffset=0)
 
-    def get_frames_from_positions(
-        self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int
-    ) -> FrameWaveform:
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        return self._forward_full(x=x).waveform
+
+    def __call__(self, x: DataTransient) -> DataWaveform:
+        self._settings.sampling_rate = x.sampling_rate
+        return self._forward_full(x.data)
+
+    def get_frames_from_positions(self, xraw: np.ndarray, xpos: np.ndarray, xoffset: int) -> DataWaveform:
         """Function for extracting the spike waveforms from transient input and given position
         :param xraw:    Numpy array with transient input
         :param xpos:    Numpy array with positions where spike waveforms are available (ground truth)
         :param xoffset: Integer for shifting the xpos values
-        :return:        Class FrameWaveform with waveforms, labels and position
+        :return:        Class DataWaveform with waveforms, labels and position
         """
         return self.__frame_extraction(xraw=xraw, xpos=xpos, xoffset=xoffset)
+
+    def create_design(
+        self,
+        id: str,
+        target: str,
+        path2save: Path,
+        total_bitwidth: int,
+        frac_bitwidth: int,
+        is_signed: bool,
+    ) -> None:
+        raise NotImplementedError

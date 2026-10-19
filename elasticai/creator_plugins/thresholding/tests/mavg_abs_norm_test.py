@@ -189,18 +189,17 @@ def test_build_equal(
         do_quant=True,
     )
     threshold = Thresholding(settings)
-    checked_data = threshold.get_threshold(data_in)
+    checked_data = threshold.forward(data_in)
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
         threshold.create_design(
-            data=data_in,
             target="fpga",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id=f"{id}",
-            signed=True,
+            is_signed=True,
             path2save=build_dir,
         )
 

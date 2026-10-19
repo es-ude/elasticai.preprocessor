@@ -29,10 +29,10 @@ def test_create_design_generates_simple_c_files(tmp_path: Path, target: str) -> 
 
     downsampler.create_design(
         target=target,
-        bitwidth=8,
+        total_bitwidth=8,
         id="0",
         path2save=tmp_path,
-        signed=True,
+        is_signed=True,
     )
     assert (tmp_path / "downsampling_simple_0.c").exists()
     assert (tmp_path / "downsampling_simple_0.h").exists()
@@ -53,10 +53,10 @@ def test_generated_simple_c_matches_python_frame(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     adapter = tmp_path / "adapter.h"
@@ -98,10 +98,10 @@ def test_generated_simple_c_matches_python_sinewave(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     adapter = tmp_path / "adapter.h"

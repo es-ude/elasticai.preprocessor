@@ -6,11 +6,11 @@ from unittest import TestCase, main
 import numpy as np
 
 from .downsampling import (
+    DataTransient,
     DefaultDownSamplingSettings,
     DownSampling,
     DownSamplingSettings,
     DownSamplingTargets,
-    SequentialSignal,
 )
 
 test_settings = DownSamplingSettings(
@@ -44,7 +44,7 @@ class TestDownSampling(TestCase):
 
     def test_do_simple(self):
         self.sets.method = DownSamplingTargets.Simple
-        results = DownSampling(self.sets).decimate(self.input)
+        results = DownSampling(self.sets).forward(self.input)
         self.assertEqual(results.size, self.sets.sampling_rate / self.sets.dsr)
 
     def test_do_simple_with_str(self):
@@ -57,7 +57,7 @@ class TestDownSampling(TestCase):
         self.sets.method = DownSamplingTargets.CIC
         self.sets.num_stages = 5
         check = int(1 + (self.input.size - 1) / self.sets.dsr)
-        results = DownSampling(self.sets).decimate(self.input)
+        results = DownSampling(self.sets).forward(self.input)
         self.assertEqual(results.size, check)
 
     def test_cic_type(self):
@@ -70,7 +70,7 @@ class TestDownSampling(TestCase):
         self.sets.num_stages = 1
         self.sets.dsr = 2
         check = int((self.input.size - 1) / 2)
-        results = DownSampling(self.sets).decimate(self.input)
+        results = DownSampling(self.sets).forward(self.input)
         self.assertEqual(results.size, check)
 
     def test_polyphase_one_type(self):
@@ -109,7 +109,7 @@ class TestDownSampling(TestCase):
         )
 
         np.testing.assert_array_equal(
-            dut.decimate(data),
+            dut.forward(data),
             np.array(
                 [
                     [0, 3, 6, 9],
@@ -119,7 +119,7 @@ class TestDownSampling(TestCase):
         )
 
         np.testing.assert_array_equal(
-            dut(SequentialSignal(data=data, sample_rate=self.sets.sampling_rate)).data,
+            dut(DataTransient(data=data, sampling_rate=self.sets.sampling_rate)).data,
             np.array(
                 [
                     [0, 3, 6, 9],
@@ -201,8 +201,8 @@ class TestDownSampling(TestCase):
             DownSampling(sets).create_design(
                 id="0",
                 target="fpga",
-                bitwidth=16,
-                signed=True,
+                total_bitwidth=16,
+                is_signed=True,
                 path2save=path2save,
             )
             files_available = [
@@ -222,8 +222,8 @@ class TestDownSampling(TestCase):
             DownSampling(sets).create_design(
                 id="0",
                 target="fpga",
-                bitwidth=16,
-                signed=True,
+                total_bitwidth=16,
+                is_signed=True,
                 path2save=path2save,
             )
             files_available = [
@@ -243,8 +243,8 @@ class TestDownSampling(TestCase):
             DownSampling(sets).create_design(
                 id="0",
                 target="fpga",
-                bitwidth=16,
-                signed=True,
+                total_bitwidth=16,
+                is_signed=True,
                 path2save=path2save,
             )
             files_available = [
@@ -264,8 +264,8 @@ class TestDownSampling(TestCase):
             DownSampling(sets).create_design(
                 id="0",
                 target="fpga",
-                bitwidth=16,
-                signed=True,
+                total_bitwidth=16,
+                is_signed=True,
                 path2save=path2save,
             )
             files_available = [
@@ -285,8 +285,8 @@ class TestDownSampling(TestCase):
             DownSampling(sets).create_design(
                 id="0",
                 target="asic",
-                bitwidth=16,
-                signed=True,
+                total_bitwidth=16,
+                is_signed=True,
                 path2save=path2save,
             )
             files_available = [

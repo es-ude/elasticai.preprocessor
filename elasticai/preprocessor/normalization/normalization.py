@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
+
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 
 
 class NormalizationTargets(Enum):
@@ -44,64 +47,51 @@ DefaultNormalizationSettings = NormalizationSettings(
 )
 
 
-class DataNormalization:
+class DataNormalization(PreprocessingModule[DataTransient, DataTransient]):
     _settings: NormalizationSettings
     __params: dict = {}
 
-    def __init__(self, settings: NormalizationSettings):
+    def __init__(self, settings: NormalizationSettings) -> None:
         """Normalizing the input data to enhance classification performance.
-        Parameters:
-            settings:   Settings for performing normalization on input data
-        Methods:
-            normalize(): Normalize the input data based on the selected mode and method.
-        Examples:
-            # Create an instance of DataNormalization
-            handler = DataNormalization("minmax")
-            data_in = (0.5 - np.random.rand(100, 10)) * 10
-            normalized_frames = handler.normalize(data_in)
+        :param settings:   Settings for performing normalization on input data
         """
+        super().__init__()
         self._settings = settings
+        if isinstance(settings.method, str):
+            self._settings.method = NormalizationTargets(settings.method.lower())
         self.__list_norm_methods = {
-            NormalizationTargets("zeroone"): self._normalize_zeroone,
-            NormalizationTargets("minmax"): self._normalize_minmax,
-            NormalizationTargets("norm"): self._normalize_norm,
-            NormalizationTargets("zscore"): self._normalize_zscore,
-            NormalizationTargets("medianmad"): self._normalize_medianmad,
-            NormalizationTargets("meanmad"): self._normalize_meanmad,
+            NormalizationTargets.Zeroone: self._normalize_zeroone,
+            NormalizationTargets.Minmax: self._normalize_minmax,
+            NormalizationTargets.Norm: self._normalize_norm,
+            NormalizationTargets.Zscore: self._normalize_zscore,
+            NormalizationTargets.MedinanMAD: self._normalize_medianmad,
+            NormalizationTargets.MeanMAD: self._normalize_meanmad,
         }
 
     def _list_normalization_methods(self) -> list:
-        """Return list with all available methods for normalization"""
         return [key for key in self.__list_norm_methods.keys()]
 
-    def normalize(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
-        """Apply normalization methods on input data
-        Args:
-            Numpy array with frames for normalizing
-        Returns:
-            Numpy array with normalized frames
-        """
+    def forward(self, x: Any) -> Any:
         if self._settings.method in self.__list_norm_methods.keys():
-            return self.__list_norm_methods[self._settings.method](dataset)
+            return self.__list_norm_methods[self._settings.method](x)
         else:
             raise NotImplementedError("Selected mode is not available.")
 
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(
+            data=self.forward(x.data),
+            sampling_rate=x.sampling_rate,
+        )
+
     def create_design(
         self,
-        target: str,
-        bitwidth: int,
         id: str,
+        target: str,
         path2save: Path,
-        signed: bool = True,
+        total_bitwidth: int,
+        frac_bitwidth: int = 0,
+        is_signed: bool = True,
     ) -> None:
-        """Generate a C design for the configured normalization method.
-        :param target:      String with target name ["mcu", "pc", "fpga"]
-        :param bitwidth:    Integer with total bitwidth
-        :param id:          String with unique identifier of device (appended to the name)
-        :param path2save:   Path to save the hardware files
-        :param signed:      Whether generated C designs use a signed integer data type
-        :return:            None
-        """
         supported_targets = ["mcu", "pc", "fpga"]
         target = target.lower()
         if target not in supported_targets:
@@ -112,15 +102,15 @@ class DataNormalization:
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
         else:
             self._create_design_fpga(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
 
@@ -128,16 +118,16 @@ class DataNormalization:
         from elasticai.creator_plugins.normalization.src import c_compile
 
         method = self._settings.method
-        if method not in (NormalizationTargets("minmax"), NormalizationTargets("zscore")):
+        if method not in (NormalizationTargets.Minmax, NormalizationTargets.Zscore):
             raise NotImplementedError(
                 "C generation currently supports only minmax and zscore normalization"
             )
-        if method == NormalizationTargets("minmax") and self._settings.peak_mode != PeakMode.AbsMax:
+        if method == NormalizationTargets.Minmax and self._settings.peak_mode != PeakMode.AbsMax:
             raise NotImplementedError("C generation currently supports only peak_mode=AbsMax")
 
         builders = {
-            NormalizationTargets("minmax"): c_compile.build_normalization_minmax,
-            NormalizationTargets("zscore"): c_compile.build_normalization_zscore,
+            NormalizationTargets.Minmax: c_compile.build_normalization_minmax,
+            NormalizationTargets.Zscore: c_compile.build_normalization_zscore,
         }
         builders[method](
             bitwidth=bitwidth,

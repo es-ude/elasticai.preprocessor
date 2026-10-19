@@ -9,7 +9,7 @@ from elasticai.creator.arithmetic import FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
-from elasticai.preprocessor.windower import WindowSequencer, WindowSettings
+from elasticai.preprocessor.windower import WindowerTargets, WindowSequencer, WindowSettings
 
 
 def build_testdata(bitwidth: int, is_signed: bool, samples: int, repeats: int = 8) -> list[int]:
@@ -156,6 +156,7 @@ def test_build(
     sampling_rate = 100
     dut = WindowSequencer(
         WindowSettings(
+            method_window=WindowerTargets.Sequence,
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,
@@ -170,7 +171,7 @@ def test_build(
 
         dut.create_design(
             target="fpga",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="",
             path2save=build_dir,
         )
@@ -198,13 +199,14 @@ def test_sliding_build_equal(
     sampling_rate = 100
     dut = WindowSequencer(
         WindowSettings(
+            method_window=WindowerTargets.Sliding,
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,
         )
     )
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-    data_checked = dut.slide(np.asarray(data_in)).tolist()
+    data_checked = dut.forward(np.asarray(data_in)).tolist()
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
@@ -212,7 +214,7 @@ def test_sliding_build_equal(
 
         dut.create_design(
             target="fpga",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="",
             path2save=build_dir,
         )
@@ -240,13 +242,14 @@ def test_sequence_build_equal(
     sampling_rate = 100
     dut = WindowSequencer(
         WindowSettings(
+            method_window=WindowerTargets.Sequence,
             sampling_rate=sampling_rate,
             window_sec=samples / sampling_rate,
             overlap_sec=(samples - num_shift) / sampling_rate,
         )
     )
     data_in = build_testdata(bitwidth=bitwidth, is_signed=False, samples=samples, repeats=8)
-    data_checked = dut.sequence(np.asarray(data_in)).tolist()
+    data_checked = dut.forward(np.asarray(data_in)).tolist()
 
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
@@ -254,7 +257,7 @@ def test_sequence_build_equal(
 
         dut.create_design(
             target="fpga",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="",
             path2save=build_dir,
         )

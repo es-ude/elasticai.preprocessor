@@ -23,7 +23,7 @@ def check_filter_c_equivalence(
     backup.mkdir(parents=True, exist_ok=True)
     with temporary_directory(backup) as tmpdir:
         output_dir = tmpdir / "src"
-        filtering.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+        filtering.create_design(target="mcu", total_bitwidth=bitwidth, id="0", path2save=output_dir, is_signed=True)
 
         for file in output_dir.glob("*"):
             print(file)
@@ -40,7 +40,7 @@ def check_filter_c_equivalence(
         c_filter = loader.get(function_name)
         out = loader.ffi().new(f"{c_type} *")
 
-        expected = filtering.filt(data_in.astype(float)).astype(numpy_dtype).tolist()
+        expected = filtering.forward(data_in.astype(float)).astype(numpy_dtype).tolist()
         data_out = list()
         checked = list()
         for val_in, val_ref in zip(data_in.tolist(), expected):

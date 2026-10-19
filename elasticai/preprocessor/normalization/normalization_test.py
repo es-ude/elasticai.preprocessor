@@ -6,7 +6,12 @@ import numpy as np
 import pytest
 import torch
 
-from .normalization import DataNormalization, NormalizationSettings, NormalizationTargets
+from .normalization import (
+    DataNormalization,
+    DataTransient,
+    NormalizationSettings,
+    NormalizationTargets,
+)
 
 
 def generate_test_data(
@@ -116,17 +121,13 @@ def test_list_methods():
 
 
 def test_error_wrong_input():
-    sets = NormalizationSettings(
-        method="bimax",
-        peak_mode=0,
-    )
-    test_func = DataNormalization(settings=sets)
-    try:
-        test_func.normalize(generate_test_data(do_tensor=False))
-    except:
-        assert True
-    else:
-        assert False
+    with pytest.raises(ValueError):
+        sets = NormalizationSettings(
+            method="bimax",
+            peak_mode=0,
+        )
+        test_func = DataNormalization(settings=sets)
+        test_func.forward(generate_test_data(do_tensor=False))
 
 
 @pytest.mark.parametrize(
@@ -217,13 +218,21 @@ def test_normalization_method(
     )
     test_func = DataNormalization(settings=sets)
 
-    data = test_func.normalize(generate_test_data(do_tensor=True))
-    result = (data.min().float().item(), data.max().float().item())
-    np.testing.assert_almost_equal(result, expected_torch, decimal=6)
+    din = generate_test_data(do_tensor=True)
+    data0 = test_func.forward(din)
+    result0 = (data0.min().float().item(), data0.max().float().item())
+    data1 = test_func(DataTransient(data=din, sampling_rate=1.0)).data
+    result1 = (data1.min().float().item(), data1.max().float().item())
+    np.testing.assert_almost_equal(result0, expected_torch, decimal=6)
+    np.testing.assert_almost_equal(result1, expected_torch, decimal=6)
 
-    data = test_func.normalize(generate_test_data(do_tensor=False))
-    result = (data.min(), data.max())
-    np.testing.assert_almost_equal(result, expected_numpy, decimal=6)
+    din = generate_test_data(do_tensor=False)
+    data0 = test_func.forward(din)
+    result0 = (data0.min(), data0.max())
+    data1 = test_func(DataTransient(data=din, sampling_rate=1.0)).data
+    result1 = (data1.min(), data1.max())
+    np.testing.assert_almost_equal(result0, expected_numpy, decimal=6)
+    np.testing.assert_almost_equal(result1, expected_numpy, decimal=6)
 
 
 def test_create_c_minmax_absmax():
@@ -234,7 +243,9 @@ def test_create_c_minmax_absmax():
 
     with TemporaryDirectory() as directory:
         path2save = Path(directory)
-        DataNormalization(settings=sets).create_design("mcu", 8, "0", path2save, signed=False)
+        DataNormalization(settings=sets).create_design(
+            target="mcu", total_bitwidth=8, id="0", path2save=path2save, is_signed=False
+        )
 
         assert {file.name for file in path2save.iterdir()} == {
             "normalization_minmax_0.h",
@@ -251,7 +262,9 @@ def test_create_c_zscore():
 
     with TemporaryDirectory() as directory:
         path2save = Path(directory)
-        DataNormalization(settings=sets).create_design("mcu", 8, "0", path2save, signed=False)
+        DataNormalization(settings=sets).create_design(
+            target="mcu", total_bitwidth=8, id="0", path2save=path2save, is_signed=False
+        )
 
         assert {file.name for file in path2save.iterdir()} == {
             "normalization_zscore_0.h",

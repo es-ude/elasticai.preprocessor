@@ -93,12 +93,15 @@ def test_build_equal(
         sets = ThresholdSettings(
             method="constant", sampling_rate=100.0, window_sec=1.0, do_quant=False, thr_val=const
         )
-        Thresholding(settings=sets).create_design(
-            data=np.array([0, 0, 0, 0, 0]),
+        dut = Thresholding(settings=sets)
+        dut.forward(
+            x=np.array([0, 0, 0, 0, 0]),
+        )
+        dut.create_design(
             id="0",
             target="fpga",
-            bitwidth=bitwidth,
-            signed=True,
+            total_bitwidth=bitwidth,
+            is_signed=True,
             path2save=build_dir,
         )
 

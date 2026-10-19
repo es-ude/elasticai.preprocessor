@@ -24,7 +24,7 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path) -> Non
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
             target="mcu",
-            bitwidth=8,
+            total_bitwidth=8,
             id="0",
             path2save=tmp_path,
         )
@@ -46,10 +46,10 @@ def test_generated_cic_c_matches_python_frame(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     adapter = tmp_path / "adapter.h"
@@ -93,10 +93,10 @@ def test_generated_cic_c_matches_python_sinewave(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     adapter = tmp_path / "adapter.h"

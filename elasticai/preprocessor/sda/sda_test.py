@@ -3,6 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
+from elasticai.preprocessor._basics import DataTransient, DataWaveform
 from elasticai.preprocessor._check_funcs import compare_timestamps
 from elasticai.preprocessor.eventdetection import (
     EventPreprocessorsTargets,
@@ -16,7 +17,7 @@ from elasticai.preprocessor.thresholding import (
     ThresholdTargets,
 )
 
-from .sda import FrameWaveform, SDASettings, SpikeDetection
+from .sda import SDASettings, SpikeDetection
 
 TestSettings = SDASettings(
     method=EventPreprocessorsTargets("normal"),
@@ -92,7 +93,7 @@ class TestFrameWaveform(TestCase):
             xpos = np.arange(5)
         if label is None:
             label = np.array([0, 1, 2, 3, 4])
-        return FrameWaveform(waveform, xpos, label, sampling_rate)
+        return DataWaveform(waveform, xpos, label, sampling_rate)
 
     def test_length_returns_second_dimension(self):
         frame = self.make_frame(waveform=np.zeros((3, 7)))
@@ -162,7 +163,12 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("normal")
         self.set0.mode_thr = ThresholdTargets("constant")
         self.set0.mode_align = FrameAlignmentTargets("none")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
+
+        dut = SpikeDetection(self.set0)
+        dut.apply_threshold(thr=-40e-6)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -175,7 +181,12 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("normal")
         self.set0.mode_thr = ThresholdTargets("constant")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=-40e-6)
+
+        dut = SpikeDetection(self.set0)
+        dut.apply_threshold(thr=-40e-6)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -193,7 +204,11 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("neo")
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -211,7 +226,11 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("mteo")
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -225,7 +244,11 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("absolute")
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -240,7 +263,11 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("ado")
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -255,7 +282,11 @@ class TestSpikeDetection(TestCase):
         self.set0.method = EventPreprocessorsTargets("aso")
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -270,7 +301,11 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = ThresholdTargets("rms_black")
         self.set0.mode_align = FrameAlignmentTargets("min")
         self.set0.f_filt = [200.0]
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0])
+
+        dut = SpikeDetection(self.set0)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
@@ -285,7 +320,12 @@ class TestSpikeDetection(TestCase):
         self.set0.mode_thr = ThresholdTargets("constant")
         self.set0.mode_align = FrameAlignmentTargets("min")
         self.set0.f_filt = [200.0, 2000.0]
-        rslt = SpikeDetection(self.set0).get_frames(xraw=self.signal_eap[0], thr_val=60e-6)
+
+        dut = SpikeDetection(self.set0)
+        dut.apply_threshold(thr=60e-6)
+        rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
+        rsltf = dut.forward(x=self.signal_eap[0])
+        assert rslt.waveform.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),

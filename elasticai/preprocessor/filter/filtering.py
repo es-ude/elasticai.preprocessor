@@ -9,13 +9,13 @@ import scipy.signal as scft
 from elasticai.creator.arithmetic import FxpArithmetic, FxpConverter, FxpParams
 
 import elasticai.creator_plugins.filter_data as hw_filters
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 from elasticai.preprocessor._plot_helper import (
     get_plot_color,
     get_textsize_paper,
     save_figure,
 )
-from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
 
 
 class FilterTargets(Enum):
@@ -98,7 +98,7 @@ FilterSettingsDefault = FilterSettings(
 )
 
 
-class Filtering(CommonDigitalFunctions, PreprocessingModule):
+class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataTransient]):
     __logger: Logger
     _coeff_a: np.ndarray
     _coeff_b: np.ndarray
@@ -119,12 +119,6 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         if isinstance(settings.f_type, str):
             self._settings.f_type = FilterFTypes(settings.f_type.lower())
         self.__process_filter()
-
-    def __call__(self, x: SequentialSignal) -> SequentialSignal:
-        return SequentialSignal(
-            data=self.filt(x.data),
-            sample_rate=x.sample_rate,
-        )
 
     def get_coeffs(self) -> FilterCoeffs:
         """Getting the filter coefficients
@@ -274,12 +268,17 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             case _:
                 raise AttributeError("Wrong method selection")
 
-    def filt(self, xin: np.ndarray) -> np.ndarray:
-        """Apply filter structure on transient input data
-        :param xin:     Numpy array with transient input data
-        :return:        Numpy array with filtered data
-        """
-        return scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=xin)
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        return scft.lfilter(b=self._coeff_b, a=self._coeff_a, x=x)
+
+    def __call__(self, x: DataTransient) -> DataTransient:
+        if self._settings.sampling_rate != x.sampling_rate:
+            self._settings.sampling_rate = x.sampling_rate
+            self.__process_filter()
+        return DataTransient(
+            data=self.forward(x.data),
+            sampling_rate=x.sampling_rate,
+        )
 
     def filt_quantized(
         self,
@@ -311,7 +310,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
             self._coeff_a = np.asarray(params.a)
 
         x = self._quantize_fxp(xin)
-        x = self.filt(x)
+        x = self.forward(x)
         x = self._quantize_fxp(x)
         offset = (
             3
@@ -391,29 +390,27 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule):
         plt.show(block=show_plot)
 
     def create_design(
-        self, target: str, bitwidth: int, id: str, path2save: Path, signed: bool = True
+        self,
+        id: str,
+        target: str,
+        path2save: Path,
+        total_bitwidth: int,
+        frac_bitwidth: int = 0,
+        is_signed: bool = True,
     ) -> None:
-        """Creating the hardware design for executing on specific target
-        :param target:      String with target name ["mcu", "pc", "fpga"]
-        :param bitwidth:    Integer with total bitwidth
-        :param id:          String with unique identifier of device (appended to the name)
-        :param path2save:   Path to save the hardware files
-        :param signed:      Whether generated C designs use a signed integer data type
-        :return:            None
-        """
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
+        assert total_bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
         else:
-            self._create_design_verilog(id=id, bitwidth=bitwidth, path2save=path2save, num_mult=1)
+            self._create_design_verilog(id=id, bitwidth=total_bitwidth, path2save=path2save, num_mult=1)
 
     def _create_iir_biquad_verilog(
         self, id: str, bitwidth: int, use_dsp_mult: bool, num_mult: int = 1

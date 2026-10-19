@@ -171,7 +171,7 @@ def test_build_equal_first_order(cocotb_test_fixture: CocotbTestFixture, bitwidt
         build_dir = tmpdir / "verilog"
         dut.create_design(
             target="asic",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="1",
             path2save=build_dir,
         )
@@ -208,7 +208,7 @@ def test_build_equal_second_order(cocotb_test_fixture: CocotbTestFixture, bitwid
 
         dut.create_design(
             target="asic",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="1",
             path2save=build_dir,
         )

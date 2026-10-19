@@ -7,13 +7,15 @@ import pytest
 from elasticai.equichecker import CompileLoader, compare_values
 
 from elasticai.creator_plugins.windower.src.c_compile import build_windower_sliding as build_windower
-from elasticai.preprocessor.windower.window import WindowSequencer, WindowSettings
+from elasticai.preprocessor.windower.window import WindowerTargets, WindowSequencer, WindowSettings
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
 
 WINDOWER_CONFIGS = [
     pytest.param(
-        WindowSettings(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05),
+        WindowSettings(
+            method_window=WindowerTargets.Sliding, sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05
+        ),
         16,
         True,
         "signed short",
@@ -21,7 +23,9 @@ WINDOWER_CONFIGS = [
         id="int16_window10_overlap5",
     ),
     pytest.param(
-        WindowSettings(sampling_rate=100.0, window_sec=0.08, overlap_sec=0.04),
+        WindowSettings(
+            method_window=WindowerTargets.Sliding, sampling_rate=100.0, window_sec=0.08, overlap_sec=0.04
+        ),
         8,
         True,
         "signed char",
@@ -29,7 +33,9 @@ WINDOWER_CONFIGS = [
         id="int8_window8_overlap4",
     ),
     pytest.param(
-        WindowSettings(sampling_rate=100.0, window_sec=0.06, overlap_sec=0.0),
+        WindowSettings(
+            method_window=WindowerTargets.Sliding, sampling_rate=100.0, window_sec=0.06, overlap_sec=0.0
+        ),
         8,
         False,
         "unsigned char",
@@ -46,7 +52,9 @@ WINDOWER_CONFIGS = [
 
 
 def test_build_windower_generates_c_files(tmp_path: Path) -> None:
-    settings = WindowSettings(sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05)
+    settings = WindowSettings(
+        method_window=WindowerTargets.Sliding, sampling_rate=100.0, window_sec=0.10, overlap_sec=0.05
+    )
     build_windower(settings=settings, bitwidth=16, signed=True, path2save=tmp_path, windower_id="0")
     assert (tmp_path / "windower_sliding_template.h").exists()
     assert (tmp_path / "windower_sliding_0.h").exists()
@@ -73,6 +81,7 @@ def test_windower_c_matches_python(
         define_path=".",
     )
 
+    settings.method_window = WindowerTargets.Sliding
     window_length = settings.window_length
     num_shift = window_length - settings.overlap_length
 
@@ -89,7 +98,7 @@ def test_windower_c_matches_python(
     num_samples = window_length + 3 * num_shift
     samples = np.arange(num_samples, dtype=np_dtype)
     n_skip = -(-settings.overlap_length // num_shift)
-    py_windows = WindowSequencer(settings).slide(samples)[n_skip:]
+    py_windows = WindowSequencer(settings).forward(samples)[n_skip:]
 
     ffi = loader.ffi()
     calc_windower = loader.get("calc_windower_sliding_0")

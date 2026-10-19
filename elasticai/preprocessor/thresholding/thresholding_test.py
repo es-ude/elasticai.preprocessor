@@ -78,7 +78,7 @@ class ThresholdingTest(TestCase):
         self.set0.thr_val = 0.5
 
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         self.assertEqual(np.mean(rslt), self.set0.thr_val)
@@ -86,7 +86,7 @@ class ThresholdingTest(TestCase):
     def test_abs_mean(self):
         self.set0.method = ThresholdTargets.AbsoluteMean
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = 1 / np.sqrt(2)
@@ -95,7 +95,7 @@ class ThresholdingTest(TestCase):
     def test_median_absolute_derivation(self):
         self.set0.method = ThresholdTargets.MedianAbsoluteDeviation
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 1.048301
@@ -105,7 +105,7 @@ class ThresholdingTest(TestCase):
         self.set0.method = ThresholdTargets.MovingAverage
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt)
@@ -115,7 +115,7 @@ class ThresholdingTest(TestCase):
         self.set0.method = ThresholdTargets.MovingAverageAbsolute
         self.set0.window_sec = 0.2
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.637
@@ -124,7 +124,7 @@ class ThresholdingTest(TestCase):
     def test_root_mean_squared_normal(self):
         self.set0.method = ThresholdTargets.RmsNorm
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.70709
@@ -133,7 +133,7 @@ class ThresholdingTest(TestCase):
     def test_root_mean_squared_blackrock(self):
         self.set0.method = ThresholdTargets.RmsBlackrock
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 3.181901
@@ -142,7 +142,7 @@ class ThresholdingTest(TestCase):
     def test_welford(self):
         self.set0.method = ThresholdTargets.Welford
         dut = Thresholding(settings=self.set0)
-        rslt = dut.get_threshold(self.signal_in)
+        rslt = dut.forward(self.signal_in)
 
         assert rslt.size == self.signal_in.size
         chck = np.zeros_like(rslt) + 0.707
@@ -154,13 +154,14 @@ class ThresholdingTest(TestCase):
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
 
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in,
+            dut = Thresholding(settings=self.set0)
+            dut.forward(x=self.signal_in)
+            dut.create_design(
                 id="0",
                 target="fpga",
-                bitwidth=12,
+                total_bitwidth=12,
                 path2save=path2temp,
-                signed=True,
+                is_signed=True,
             )
             files_available = [
                 "const_0.v",
@@ -177,8 +178,10 @@ class ThresholdingTest(TestCase):
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
 
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, signed=True
+            dut = Thresholding(settings=self.set0)
+            dut.forward(x=self.signal_in)
+            dut.create_design(
+                id="0", target="fpga", total_bitwidth=12, path2save=path2temp, is_signed=True
             )
             files_available = [
                 "mov_avg_norm_0.v",
@@ -195,8 +198,10 @@ class ThresholdingTest(TestCase):
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
 
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, signed=True
+            dut = Thresholding(settings=self.set0)
+            dut.forward(x=self.signal_in)
+            dut.create_design(
+                id="0", target="fpga", total_bitwidth=12, path2save=path2temp, is_signed=True
             )
             files_available = [
                 "mov_avg_pow2_0.v",
@@ -213,8 +218,10 @@ class ThresholdingTest(TestCase):
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
 
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, signed=True
+            dut = Thresholding(settings=self.set0)
+            dut.forward(x=self.signal_in)
+            dut.create_design(
+                id="0", target="fpga", total_bitwidth=12, path2save=path2temp, is_signed=True
             )
             files_available = [
                 "mov_avg_abs_norm_0.v",
@@ -231,8 +238,10 @@ class ThresholdingTest(TestCase):
         with TemporaryDirectory() as tmpdir:
             path2temp = Path(tmpdir)
 
-            Thresholding(settings=self.set0).create_design(
-                data=self.signal_in, id="0", target="fpga", bitwidth=12, path2save=path2temp, signed=True
+            dut = Thresholding(settings=self.set0)
+            dut.forward(x=self.signal_in)
+            dut.create_design(
+                id="0", target="fpga", total_bitwidth=12, path2save=path2temp, is_signed=True
             )
             files_available = [
                 "mov_avg_abs_pow2_0.v",
@@ -269,8 +278,8 @@ def test_create_design_c(
         thresholder.create_design(
             id="0",
             target=target,
-            bitwidth=bitwidth,
-            signed=True,
+            total_bitwidth=bitwidth,
+            is_signed=True,
             path2save=tmpdir,
         )
         assert (tmpdir / f"{c_name}_0.c").exists()

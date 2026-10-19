@@ -143,7 +143,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, dec_
 
         dut.create_design(
             target="fpga",
-            bitwidth=bitwidth,
+            total_bitwidth=bitwidth,
             id="1",
             path2save=build_dir,
         )

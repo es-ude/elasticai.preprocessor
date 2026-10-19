@@ -67,7 +67,7 @@ def test_build(tmp_path: Path, target: str) -> None:
             b_type="lowpass")
         Filtering(settings).create_design(
                 target=target,
-                bitwidth=8,
+                total_bitwidth=8,
                 id="0",
                 path2save=tmpdir,
                 )

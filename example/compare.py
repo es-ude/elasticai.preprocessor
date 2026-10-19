@@ -6,7 +6,7 @@ from pyxdf import load_xdf
 from matplotlib import pyplot as plt
 
 from elasticai.preprocessor import get_path_to_project, PreprocessingSequential
-from elasticai.preprocessor.sequential import SequentialSignal, CreateSequentialSettings
+from elasticai.preprocessor.sequential import DataTransient, CreateSequentialSettings
 from elasticai.preprocessor.downsampling import DownSamplingSettings, DownSampling, DownSamplingTargets
 from elasticai.preprocessor.filter import FilterSettings, Filtering, FilterTargets
 
@@ -82,13 +82,13 @@ def process_data(data: Data) -> Data:
         data0.append(
             dut(
                 x=xraw,
-                fs=data.sample_rate,
+                fs=data.sampling_rate,
             )
         )
 
     return Data(
-        sampling_rate=data0[-1].sample_rate,
-        time=np.arange(start=0, stop=data0[0].data.size, step=1) / data0[-1].sample_rate,
+        sampling_rate=data0[-1].sampling_rate,
+        time=np.arange(start=0, stop=data0[0].data.size, step=1) / data0[-1].sampling_rate,
         data=np.asarray([data.data for data in data0]),
         channel_id=data.channel_id
     )

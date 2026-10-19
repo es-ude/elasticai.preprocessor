@@ -201,7 +201,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, frac
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
-        dut.create_design(target="fpga", bitwidth=bitwidth, id="0", path2save=build_dir, signed=True)
+        dut.create_design(target="fpga", total_bitwidth=bitwidth, id="0", path2save=build_dir, is_signed=True)
 
         cocotb_test_fixture.write({"data": data_in, "check": data_check})
         cocotb_test_fixture.set_top_module_name("FIR_LOW_0")

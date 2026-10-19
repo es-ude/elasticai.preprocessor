@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from scipy.signal import find_peaks
 
-from elasticai.preprocessor.sequential import SequentialSignal
+from elasticai.preprocessor.sequential import DataTransient
 from elasticai.preprocessor.transformation import do_fft
 
 from .filtering import FilterBTypes, FilterFTypes, Filtering, FilterSettings, FilterTargets
@@ -71,8 +71,8 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("lowpass")
         sets.f_filt = [50.0]
-        result0 = Filtering(sets).filt(signal)
-        result1 = Filtering(sets)(SequentialSignal(data=signal, sample_rate=test_settings.sampling_rate))
+        result0 = Filtering(sets).forward(signal)
+        result1 = Filtering(sets)(DataTransient(data=signal, sampling_rate=test_settings.sampling_rate))
 
         assert result0.tolist() == result1.data.tolist()
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
@@ -105,7 +105,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 2
         sets.b_type = FilterBTypes("lowpass")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -120,7 +120,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("highpass")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -135,7 +135,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("bandpass")
         sets.f_filt = [50.0, 100.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -150,7 +150,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("bandstop")
         sets.f_filt = [50.0, 100.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -165,7 +165,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("notch")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -180,7 +180,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 1
         sets.b_type = FilterBTypes("allpass")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -197,7 +197,7 @@ class TestDigitalFilters(TestCase):
         sets.f_filt = [50.0]
 
         with pytest.raises(AssertionError):
-            Filtering(sets).filt(signal)
+            Filtering(sets).forward(signal)
 
     def test_allpass_iir_second_order(self):
         signal = np.sum([np.sin(2 * np.pi * f0 * self.time) for f0 in self.freq], axis=0)
@@ -206,7 +206,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 2
         sets.b_type = FilterBTypes("allpass")
         sets.f_filt = [50.0, 100.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -301,7 +301,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 21
         sets.b_type = FilterBTypes("lowpass")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -316,7 +316,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 51
         sets.b_type = FilterBTypes("lowpass")
         sets.f_filt = [50.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -331,7 +331,7 @@ class TestDigitalFilters(TestCase):
         sets.n_order = 51
         sets.b_type = FilterBTypes.Highpass
         sets.f_filt = [20.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -347,7 +347,7 @@ class TestDigitalFilters(TestCase):
         sets.b_type = "bandpass"
         sets.f_type = "butter"
         sets.f_filt = [20.0, 100.0]
-        result = Filtering(sets).filt(signal)
+        result = Filtering(sets).forward(signal)
 
         freq0, peak0, pos = extract_peaks(signal, sets.sampling_rate)
         freq1, peak1 = do_fft(result, sets.sampling_rate)
@@ -370,7 +370,7 @@ class TestDigitalFilters(TestCase):
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
         dut = Filtering(sets)
 
-        out_norm = dut.filt(xin=signal)
+        out_norm = dut.forward(x=signal)
         out_quant = dut.filt_quantized(
             xin=signal,
             total_bitwidth=bitwidth,
@@ -394,7 +394,7 @@ class TestDigitalFilters(TestCase):
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
         dut = Filtering(sets)
 
-        out_norm = dut.filt(xin=signal)
+        out_norm = dut.forward(x=signal)
         out_quant = dut.filt_quantized(
             xin=signal,
             total_bitwidth=bitwidth,
@@ -418,7 +418,7 @@ class TestDigitalFilters(TestCase):
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
         dut = Filtering(sets)
 
-        out_norm = dut.filt(xin=signal)
+        out_norm = dut.forward(x=signal)
         out_quant = dut.filt_quantized(
             xin=signal,
             total_bitwidth=bitwidth,
@@ -442,7 +442,7 @@ class TestDigitalFilters(TestCase):
         signal = np.sin(2 * np.pi * self.freq[0] * self.time)
         dut = Filtering(sets)
 
-        out_norm = dut.filt(xin=signal)
+        out_norm = dut.forward(x=signal)
         out_quant = dut.filt_quantized(
             xin=signal,
             total_bitwidth=bitwidth,
@@ -581,7 +581,7 @@ class TestDigitalFilters(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            Filtering(sets).create_design(target="fpga", total_bitwidth=8, id="0", path2save=path2save)
             files_available = ["biquad_df1_0.v", "mac_array.v", "mac_core.v", "mult_dsp_signed.v"]
             for file in path2save.glob("*.v"):
                 assert file.exists()
@@ -597,7 +597,7 @@ class TestDigitalFilters(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            Filtering(sets).create_design(target="fpga", total_bitwidth=8, id="0", path2save=path2save)
             files_available = [
                 "fir_full_0.v",
                 "mac_array.v",
@@ -619,7 +619,7 @@ class TestDigitalFilters(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            Filtering(sets).create_design(target="fpga", total_bitwidth=8, id="0", path2save=path2save)
             files_available = [
                 "fir_half_0.v",
                 "mac_array.v",
@@ -641,7 +641,7 @@ class TestDigitalFilters(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            Filtering(sets).create_design(target="fpga", total_bitwidth=8, id="0", path2save=path2save)
             files_available = ["fir_delay_0.v", "ring_buffer.v"]
             for file in path2save.glob("*.v"):
                 assert file.exists()
@@ -658,7 +658,7 @@ class TestDigitalFilters(TestCase):
             path2save = Path(directory)
             path2save.mkdir(parents=True, exist_ok=True)
 
-            Filtering(sets).create_design("fpga", 8, "0", path2save)
+            Filtering(sets).create_design(target="fpga", total_bitwidth=8, id="0", path2save=path2save)
             files_available = ["fir_low_0.v"]
             for file in path2save.glob("*.v"):
                 assert file.exists()
@@ -672,7 +672,9 @@ class TestDigitalFilters(TestCase):
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            Filtering(sets).create_design("mcu", 8, "0", path2save, signed=False)
+            Filtering(sets).create_design(
+                target="mcu", total_bitwidth=8, id="0", path2save=path2save, is_signed=False
+            )
 
             assert {file.name for file in path2save.iterdir()} == {
                 "filter_fir_low_0.c",
@@ -690,7 +692,7 @@ class TestDigitalFilters(TestCase):
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            Filtering(sets).create_design("mcu", 8, "0", path2save)
+            Filtering(sets).create_design(target="mcu", total_bitwidth=8, id="0", path2save=path2save)
 
             assert "template (opt)" in (path2save / "filter_fir_low_0.c").read_text()
 
@@ -703,7 +705,7 @@ class TestDigitalFilters(TestCase):
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            Filtering(sets).create_design("mcu", 8, "0", path2save)
+            Filtering(sets).create_design(target="mcu", total_bitwidth=8, id="0", path2save=path2save)
 
             assert {file.name for file in path2save.iterdir()} == {
                 "filter_fir_delay_0.c",
@@ -719,7 +721,7 @@ class TestDigitalFilters(TestCase):
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            Filtering(sets).create_design("pc", 16, "0", path2save)
+            Filtering(sets).create_design(target="pc", total_bitwidth=8, id="0", path2save=path2save)
 
             assert {file.name for file in path2save.iterdir()} == {
                 "filter_iir_low_0.h",
@@ -737,7 +739,7 @@ class TestDigitalFilters(TestCase):
         with TemporaryDirectory() as directory:
             project_dir = Path(directory)
             path2save = project_dir / "src"
-            Filtering(sets).create_design("mcu", 8, "0", path2save)
+            Filtering(sets).create_design(target="mcu", total_bitwidth=8, id="0", path2save=path2save)
 
             self.assert_c_compiles(project_dir, path2save / "filter_fir_low_0.c")
 
@@ -752,7 +754,7 @@ class TestDigitalFilters(TestCase):
         with TemporaryDirectory() as directory:
             project_dir = Path(directory)
             path2save = project_dir / "src"
-            Filtering(sets).create_design("mcu", 8, "0", path2save)
+            Filtering(sets).create_design(target="mcu", total_bitwidth=8, id="0", path2save=path2save)
 
             self.assert_c_compiles(project_dir, path2save / "filter_fir_delay_0.c")
 

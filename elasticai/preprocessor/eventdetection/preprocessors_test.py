@@ -51,7 +51,7 @@ def test_invalid_methods_raises(settings: EventPreprocessorSettings):
 
 def test_sda_normal(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "normal"
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = signal
 
     assert rslt.size == signal.size
@@ -60,7 +60,7 @@ def test_sda_normal(settings: EventPreprocessorSettings, signal: np.ndarray):
 
 def test_sda_absolute(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "absolute"
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.abs(signal)
 
     assert rslt.size == signal.size
@@ -70,7 +70,7 @@ def test_sda_absolute(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_neo_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "neo"
     settings.window_size = [1]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.zeros_like(signal) + 0.06184665997806704
 
     assert rslt.size == signal.size
@@ -80,7 +80,7 @@ def test_sda_neo_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_neo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "neo"
     settings.window_size = [2]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.zeros_like(signal) + 0.23208660251050067
 
     assert rslt.size == signal.size
@@ -90,7 +90,7 @@ def test_sda_neo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_mteo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "mteo"
     settings.window_size = [1, 2, 3]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.zeros_like(signal) + 0.4686047402353426
 
     assert rslt.size == signal.size
@@ -100,7 +100,7 @@ def test_sda_mteo_two(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_ado_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "ado"
     settings.window_size = [1]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.abs(rslt)
 
     assert rslt.size == signal.size
@@ -112,7 +112,7 @@ def test_sda_ado_ones(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_ado_threes(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "ado"
     settings.window_size = [3]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.abs(rslt)
 
     assert rslt.size == signal.size
@@ -124,7 +124,7 @@ def test_sda_ado_threes(settings: EventPreprocessorSettings, signal: np.ndarray)
 def test_sda_eed(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "eed"
     settings.f_filt = [150.0]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.abs(rslt)
 
     assert rslt.size == signal.size
@@ -136,7 +136,7 @@ def test_sda_eed(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_spb_none(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "spb"
     try:
-        EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+        EventPreprocessor(settings=settings).forward(x=signal)
     except:
         assert True
     else:
@@ -146,7 +146,7 @@ def test_sda_spb_none(settings: EventPreprocessorSettings, signal: np.ndarray):
 def test_sda_sbp(settings: EventPreprocessorSettings, signal: np.ndarray):
     settings.method = "sbp"
     settings.f_filt = [100.0, 1000.0]
-    rslt = EventPreprocessor(settings=settings).get_preprocessed(xraw=signal)
+    rslt = EventPreprocessor(settings=settings).forward(x=signal)
     check = np.abs(rslt)
 
     assert rslt.size == signal.size

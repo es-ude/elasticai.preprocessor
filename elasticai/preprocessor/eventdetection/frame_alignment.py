@@ -56,7 +56,7 @@ class FrameAligner:
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = FrameAlignmentTargets(settings.method)
+            self._settings.method = FrameAlignmentTargets(settings.method.lower())
 
     def _frame_align_none(self, frame_in: np.ndarray) -> int:
         return self._settings.length_offset_int
