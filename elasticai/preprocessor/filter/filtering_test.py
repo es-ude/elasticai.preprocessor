@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from scipy.signal import find_peaks
 
-from elasticai.preprocessor.sequential import DataTransient
+from elasticai.preprocessor._basics import DataTransient
 from elasticai.preprocessor.transformation import do_fft
 
 from .filtering import FilterBTypes, FilterFTypes, Filtering, FilterSettings, FilterTargets

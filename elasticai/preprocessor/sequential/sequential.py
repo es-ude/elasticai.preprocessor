@@ -78,7 +78,7 @@ class PreprocessingSequential:
         if not len(self):
             raise AttributeError("No pipelines are loaded")
 
-        self._create_sequential(target=settings.target, path2save=settings.path2build)
+        self._create_sequential(settings=settings, num_inputs=1, num_outputs=1)
         path2src = settings.path2build / "src"
         path2src.mkdir(exist_ok=True, parents=True)
         for idx, module in enumerate(self.modules):
@@ -93,24 +93,42 @@ class PreprocessingSequential:
                 is_signed=settings.do_signed,
             )
 
-    def _create_sequential(self, target: BuildPlatformTargets, path2save: Path) -> None:
-        match target:
+    def _create_sequential(
+        self, settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
+    ) -> None:
+        match settings.target:
             case BuildPlatformTargets.Workstation:
-                self._create_sequential_c(path2save=path2save)
+                self._create_sequential_c(settings=settings)
             case BuildPlatformTargets.MCU:
-                self._create_sequential_c(path2save=path2save)
+                self._create_sequential_c(settings=settings)
             case BuildPlatformTargets.FPGA:
-                self._create_sequential_verilog(path2save=path2save)
+                self._create_sequential_verilog(
+                    settings=settings, num_inputs=num_inputs, num_outputs=num_outputs
+                )
             case BuildPlatformTargets.ASIC:
-                self._create_sequential_asic(path2save=path2save)
+                self._create_sequential_asic(settings=settings)
             case _:
                 raise AttributeError
 
-    def _create_sequential_asic(self, path2save: Path) -> None:
+    def _create_sequential_asic(self, settings: CreateSequentialSettings) -> None:
         pass
 
-    def _create_sequential_verilog(self, path2save: Path) -> None:
-        pass
+    def _create_sequential_verilog(
+        self, settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
+    ) -> None:
+        from elasticai.creator_plugins.sequential.utils import load_and_plugin
 
-    def _create_sequential_c(self, path2save: Path) -> None:
+        load_and_plugin(
+            type="sequential",
+            id="0",
+            params={
+                "BITWIDTH_INPUT": settings.total_bitwidth,
+                "BITWIDTH_OUTPUT": settings.total_bitwidth,
+                "SIZE_INPUT": num_inputs,
+                "SIZE_OUTPUT": num_outputs,
+            },
+            path2save=settings.path2build,
+        )
+
+    def _create_sequential_c(self, settings: CreateSequentialSettings) -> None:
         pass

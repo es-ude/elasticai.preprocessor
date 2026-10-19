@@ -19,7 +19,8 @@
 
 
 module PREPROCESSOR#(
-    parameter integer BITWIDTH = 8,
+    parameter integer BITWIDTH_INPUT = 8,
+    parameter integer BITWIDTH_OUTPUT = 8,
     parameter integer SIZE_INPUT = 4,
     parameter integer SIZE_OUTPUT = 2
 )(
@@ -27,8 +28,8 @@ module PREPROCESSOR#(
     input wire RSTN,
     input wire EN,
     input wire DO_CALC,
-    input wire [SIZE_INPUT* BITWIDTH-1:0] DATA_IN,
-    output wire [SIZE_OUTPUT* BITWIDTH-1:0] DATA_OUT,
+    input wire [SIZE_INPUT* BITWIDTH_INPUT-1:0] DATA_IN,
+    output wire [SIZE_OUTPUT* BITWIDTH_OUTPUT-1:0] DATA_OUT,
     output reg DATA_VALID
 );
 

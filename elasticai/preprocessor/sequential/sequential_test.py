@@ -1,16 +1,17 @@
 from dataclasses import dataclass
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
 
+from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 from elasticai.preprocessor.sequential import (
     BuildPlatformTargets,
     CreateSequentialSettings,
     PreprocessingSequential,
 )
+from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
 @dataclass
@@ -92,7 +93,9 @@ def test_sequential_run_empty(data_in: np.ndarray, fs: float):
 
 def test_sequential_create_design_empty():
     pipeline = PreprocessingSequential()
-    with TemporaryDirectory() as tmpdir:
+
+    backup = get_path_to_project() / "build_test" / "seq_empty"
+    with temporary_directory(backup) as tmpdir:
         path2build = Path(tmpdir).absolute()
         sets = CreateSequentialSettings(
             target=BuildPlatformTargets.Workstation,
@@ -162,7 +165,8 @@ def test_sequential_stages_run_and_create(
     np.testing.assert_array_equal(data_out.data, data_check)
     np.testing.assert_array_equal(data_out.sampling_rate, fs)
 
-    with TemporaryDirectory() as tmpdir:
+    backup = get_path_to_project() / "build_test" / f"seq_stage_{num_stages}"
+    with temporary_directory(backup) as tmpdir:
         path2build = Path(tmpdir).absolute()
         sets1 = CreateSequentialSettings(
             target=BuildPlatformTargets.Workstation,
@@ -197,10 +201,11 @@ def test_sequential_stages_mixed_run_and_create(data_in: np.ndarray, fs: float) 
     data_check += 4
     np.testing.assert_array_equal(pipeline(data_in, fs).data, data_check)
 
-    with TemporaryDirectory() as tmpdir:
+    backup = get_path_to_project() / "build_test" / "seq_mixed"
+    with temporary_directory(backup) as tmpdir:
         path2build = Path(tmpdir).absolute()
         sets1 = CreateSequentialSettings(
-            target=BuildPlatformTargets.Workstation,
+            target=BuildPlatformTargets.FPGA,
             total_bitwidth=16,
             frac_bitwidth=0,
             do_signed=False,
@@ -209,6 +214,7 @@ def test_sequential_stages_mixed_run_and_create(data_in: np.ndarray, fs: float) 
         pipeline.create_design(settings=sets1)
 
         path2src = path2build / "src"
+        assert (path2build / "sequential_0.v").exists()
         assert (path2src / "adder_off_0.txt").exists()
         assert (path2src / "amplifier_1.txt").exists()
         assert (path2src / "amplifier_2.txt").exists()
