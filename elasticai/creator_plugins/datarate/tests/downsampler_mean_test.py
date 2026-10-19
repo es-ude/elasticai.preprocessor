@@ -170,8 +170,8 @@ def test_build_equal(
 
         dut.create_design(
             target="fpga",
-            bitwidth=bitwidth,
-            signed=is_signed,
+            total_bitwidth=bitwidth,
+            is_signed=is_signed,
             id="1",
             path2save=build_dir,
         )

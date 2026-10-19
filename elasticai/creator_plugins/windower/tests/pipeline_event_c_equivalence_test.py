@@ -167,7 +167,7 @@ def test_pipeline_c_matches_python(
         )
         loader.load()
 
-        py_windows = WindowSequencer(settings).get_windows(signal)
+        py_windows = WindowSequencer(settings).forward(signal)
         assert py_windows.shape[1] > 1, "no events detected in Python — check test signal or threshold"
 
         ffi = loader.ffi()

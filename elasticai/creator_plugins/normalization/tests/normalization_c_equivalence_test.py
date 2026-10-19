@@ -24,7 +24,7 @@ INTEGER_CONFIGS = [
 def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> None:
     sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
-    normalizer.create_design(target, 8, "0", tmp_path, signed=True)
+    normalizer.create_design(target=target, total_bitwidth=8, id="0", path2save=tmp_path, is_signed=True)
 
     assert (tmp_path / "normalization_minmax_0.c").exists()
     assert (tmp_path / "normalization_minmax_0.h").exists()
@@ -35,7 +35,7 @@ def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> 
 def test_create_design_generates_zscore_c_files(tmp_path: Path, target: str) -> None:
     sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
-    normalizer.create_design(target, 8, "0", tmp_path, signed=True)
+    normalizer.create_design(target=target, total_bitwidth=8, id="0", path2save=tmp_path, is_signed=True)
 
     assert (tmp_path / "normalization_zscore_0.c").exists()
     assert (tmp_path / "normalization_zscore_0.h").exists()
@@ -47,7 +47,7 @@ def test_create_design_rejects_unknown_target(tmp_path: Path) -> None:
     normalizer = DataNormalization(settings=sets)
 
     with pytest.raises(ValueError, match="Target unknown is not supported"):
-        normalizer.create_design("unknown", 8, "0", tmp_path)
+        normalizer.create_design(target="unknown", total_bitwidth=8, id="0", path2save=tmp_path)
 
 
 def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
@@ -55,7 +55,7 @@ def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
     normalizer = DataNormalization(settings=sets)
 
     try:
-        normalizer.create_design("fpga", 8, "0", tmp_path)
+        normalizer.create_design(target="fpga", total_bitwidth=8, id="0", path2save=tmp_path)
     except NotImplementedError:
         assert True
     else:
@@ -67,7 +67,7 @@ def test_create_design_rejects_other_normalization_methods(tmp_path: Path) -> No
     normalizer = DataNormalization(settings=sets)
 
     try:
-        normalizer.create_design("mcu", 8, "0", tmp_path)
+        normalizer.create_design(target="mcu", total_bitwidth=8, id="0", path2save=tmp_path)
     except NotImplementedError:
         assert True
     else:
@@ -79,7 +79,7 @@ def test_create_design_rejects_other_peak_modes(tmp_path: Path) -> None:
     normalizer = DataNormalization(settings=sets)
 
     try:
-        normalizer.create_design("mcu", 8, "0", tmp_path)
+        normalizer.create_design(target="mcu", total_bitwidth=8, id="0", path2save=tmp_path)
     except NotImplementedError:
         assert True
     else:
@@ -97,7 +97,9 @@ def test_generated_minmax_c_matches_python_frames(
     sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
-    normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+    normalizer.create_design(
+        target="mcu", total_bitwidth=bitwidth, id="0", path2save=output_dir, is_signed=True
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(
@@ -125,7 +127,7 @@ def test_generated_minmax_c_matches_python_frames(
     for input_values in frames:
         input_frame = np.array(input_values, dtype=numpy_dtype)
         with np.errstate(divide="ignore", invalid="ignore"):
-            expected = normalizer.normalize(input_frame.astype(np.float32))
+            expected = normalizer.forward(input_frame.astype(np.float32))
         c_input = loader.ffi().new(f"{c_type}[]", input_frame.tolist())
         c_output = loader.ffi().new("float[]", len(input_frame))
 
@@ -147,7 +149,9 @@ def test_generated_zscore_c_matches_python_frames(
     sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
-    normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+    normalizer.create_design(
+        target="mcu", total_bitwidth=bitwidth, id="0", path2save=output_dir, is_signed=True
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(
@@ -175,7 +179,7 @@ def test_generated_zscore_c_matches_python_frames(
     for input_values in frames:
         input_frame = np.array(input_values, dtype=numpy_dtype)
         with np.errstate(divide="ignore", invalid="ignore"):
-            expected = normalizer.normalize(input_frame.astype(np.float32))
+            expected = normalizer.forward(input_frame.astype(np.float32))
         c_input = loader.ffi().new(f"{c_type}[]", input_frame.tolist())
         c_output = loader.ffi().new("float[]", len(input_frame))
 
@@ -197,7 +201,9 @@ def test_generated_minmax_c_accepts_empty_frame(
     sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
-    normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+    normalizer.create_design(
+        target="mcu", total_bitwidth=bitwidth, id="0", path2save=output_dir, is_signed=True
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(
@@ -229,7 +235,9 @@ def test_generated_zscore_c_accepts_empty_frame(
     sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
-    normalizer.create_design("mcu", bitwidth, "0", output_dir, signed=True)
+    normalizer.create_design(
+        target="mcu", total_bitwidth=bitwidth, id="0", path2save=output_dir, is_signed=True
+    )
 
     adapter = tmp_path / "adapter.h"
     adapter.write_text(

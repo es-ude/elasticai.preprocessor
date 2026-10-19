@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 import numpy as np
+
+from elasticai.preprocessor._basics import DataTransient, DataWaveform, PreprocessingModule
 
 
 class BuildPlatformTargets(Enum):
@@ -32,42 +33,19 @@ class CreateSequentialSettings:
     path2build: Path
 
 
-@dataclass
-class SequentialSignal:
-    """Dataclass for handling the transient data inside the pipeline
-    Attributes:
-        data:           Numpy array of the data
-        sample_rate:    Float with sampling rate [Hz]
-    """
-
-    data: np.ndarray
-    sample_rate: float
-
-
-class PreprocessingModule(ABC):
-    @abstractmethod
-    def __call__(self, x: SequentialSignal) -> SequentialSignal: ...
-
-    # @abstractmethod
-    # def create_design(self, id: str, settings: SettingsCreateSequential) -> None: ...
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}"
-
-
 class PreprocessingSequential:
     modules: list[PreprocessingModule]
 
     def __init__(self, *modules: PreprocessingModule):
         self.modules = list(modules)
 
-    def __call__(self, x: np.ndarray, fs: float) -> SequentialSignal:
+    def __call__(self, x: np.ndarray, fs: float) -> DataTransient | DataWaveform:
         if not len(self):
             raise AttributeError("No pipelines are loaded")
 
-        data = SequentialSignal(
+        data = DataTransient(
             data=x,
-            sample_rate=fs,
+            sampling_rate=fs,
         )
         for module in self.modules:
             data = module(data)
@@ -99,7 +77,40 @@ class PreprocessingSequential:
         """
         if not len(self):
             raise AttributeError("No pipelines are loaded")
+
+        self._create_sequential(target=settings.target, path2save=settings.path2build)
+        path2src = settings.path2build / "src"
+        path2src.mkdir(exist_ok=True, parents=True)
         for idx, module in enumerate(self.modules):
             if not hasattr(module, "create_design"):
                 raise AttributeError(f"module {module} has no `create_design` method")
-            module.create_design(id=f"{idx}", settings=settings)  # type: ignore
+            module.create_design(
+                id=f"{idx}",
+                target=settings.target.value,
+                path2save=path2src,
+                total_bitwidth=settings.total_bitwidth,
+                frac_bitwidth=settings.frac_bitwidth,
+                is_signed=settings.do_signed,
+            )
+
+    def _create_sequential(self, target: BuildPlatformTargets, path2save: Path) -> None:
+        match target:
+            case BuildPlatformTargets.Workstation:
+                self._create_sequential_c(path2save=path2save)
+            case BuildPlatformTargets.MCU:
+                self._create_sequential_c(path2save=path2save)
+            case BuildPlatformTargets.FPGA:
+                self._create_sequential_verilog(path2save=path2save)
+            case BuildPlatformTargets.ASIC:
+                self._create_sequential_asic(path2save=path2save)
+            case _:
+                raise AttributeError
+
+    def _create_sequential_asic(self, path2save: Path) -> None:
+        pass
+
+    def _create_sequential_verilog(self, path2save: Path) -> None:
+        pass
+
+    def _create_sequential_c(self, path2save: Path) -> None:
+        pass

@@ -4,41 +4,14 @@ from pathlib import Path
 
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
-from scipy.signal.windows import gaussian
 
-from elasticai.preprocessor._check_funcs import check_key_elements
+from elasticai.preprocessor._basics import DataTransient, DataWaveform, PreprocessingModule
 from elasticai.preprocessor.eventdetection.preprocessors import (
     EventPreprocessor,
     EventPreprocessorSettings,
     EventPreprocessorsTargets,
 )
 from elasticai.preprocessor.thresholding import Thresholding, ThresholdSettings, ThresholdTargets
-
-
-def transformation_window_method(window_size: int, method: str = "hamming") -> np.ndarray:
-    """Generating window for smoothing input of signal transformation method.
-    :param window_size: Integer number with size of the window
-    :param method:      Selection of window method [
-                            '': Ones,
-                            'hamming',
-                            'hanning',
-                            'gaussian',
-                            'bartlett',
-                            'blackman']
-    :return:            Numpy array with window
-    """
-    methods_avai = {
-        "": np.ones(window_size),
-        "hamming": np.hamming(window_size),
-        "gaussian": gaussian(window_size, int(0.16 * window_size), sym=True),
-        "hanning": np.hanning(window_size),
-        "bartlett": np.bartlett(window_size),
-        "blackman": np.blackman(window_size),
-    }
-    methods_check = [method.lower() for method in methods_avai.keys()]
-    if not check_key_elements(method.lower(), methods_check):
-        raise ValueError(f"Wrong method ({methods_check})")
-    return methods_avai[[key for key in methods_check if key == method.lower()][0]]
 
 
 class WindowerTargets(Enum):
@@ -64,7 +37,7 @@ class WindowSettings:
     sampling_rate: float
     window_sec: float
     overlap_sec: float
-    method_window: WindowerTargets = WindowerTargets.Sliding
+    method_window: WindowerTargets
     method_thr: ThresholdTargets = ThresholdTargets.Constant
     method_input: EventPreprocessorsTargets = EventPreprocessorsTargets.Normal
     pre_time: float = 0.0
@@ -84,24 +57,30 @@ class WindowSettings:
 
 
 DefaultWindowSettings = WindowSettings(
+    method_window=WindowerTargets.Sequence,
     sampling_rate=1000.0,
     window_sec=0.1,
     overlap_sec=0.0,
 )
 
 
-class WindowSequencer:
+class WindowSequencer(PreprocessingModule[DataTransient, DataWaveform]):
     _settings: WindowSettings
-    _window_normalization: np.ndarray
 
     def __init__(self, settings: WindowSettings) -> None:
         """Class for applying a window on transient signals
         :param settings:    Class SettingsWindow with definitions for the window
         :return:            None
         """
+        super().__init__()
         self._settings = settings
+        if isinstance(settings.method_window, str):
+            self._settings.method_window = WindowerTargets(settings.method_window.lower())
+        if isinstance(settings.method_thr, str):
+            self._settings.method_thr = ThresholdTargets(settings.method_thr.lower())
+
         self._settings_thr = ThresholdSettings(
-            method=settings.method_thr,
+            method=self._settings.method_thr,
             sampling_rate=self._settings.sampling_rate,
             window_sec=self._settings.window_sec / 2,
             thr_val=settings.threshold,
@@ -115,24 +94,13 @@ class WindowSequencer:
                 f_filt=[150.0],
             )
         )
-        self._window_normalization = transformation_window_method(
-            window_size=self._settings.window_length, method=""
-        )
 
-    def sequence(self, signal: np.ndarray) -> np.ndarray:
-        """Building a sequence-to-sequence output array from signal input
-        :param signal:  Numpy array with input signal to build the sequence with shape=(N, )
-        :return:        Numpy array of sequence signals with shape=(M, window length)
-        """
+    def _do_sequencing(self, signal: np.ndarray) -> np.ndarray:
         num_sequences = int(signal.shape[0] / self._settings.window_length)
         array_length = num_sequences * self._settings.window_length
         return signal[0:array_length].reshape((num_sequences, self._settings.window_length), copy=True)
 
-    def slide(self, signal: np.ndarray) -> np.ndarray:
-        """Building a sliding window sequencer on signal input
-        :param signal:  Numpy array with input signal to build the sequence with shape=(N, )
-        :return:        Numpy array of sequence signals with shape=(M, window length)
-        """
+    def _do_sliding(self, signal: np.ndarray) -> np.ndarray:
         delta_steps = self._settings.window_length - self._settings.overlap_length
 
         num_pre_padding = self._settings.window_length - delta_steps
@@ -148,21 +116,13 @@ class WindowSequencer:
             x=signal, axis=0, window_shape=self._settings.window_length, writeable=True
         )[::delta_steps]
 
-    def window_event_detected(
+    def _do_event_detection(
         self,
         signal: np.ndarray,
         thr: float,
         pre_time: float,
         signal_for_detection: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Building a window sequencer based on an event-detection (absolute input)
-        :param signal:              Numpy array with input signal — window content is taken from here
-        :param thr:                 Floating value with absolute threshold value
-        :param pre_time:            Floating value with pre-time in the window before event is detected
-        :param signal_for_detection: Optional preprocessed signal used only for threshold detection;
-                                    if None, `signal` is used for detection as well
-        :return:                    Numpy array of sequence signals with shape=(M, window length)
-        """
         signal_detect = signal_for_detection if signal_for_detection is not None else signal
         self._settings_thr.thr_val = thr
         xpos_event = Thresholding(settings=self._settings_thr).get_threshold_position(
@@ -174,8 +134,6 @@ class WindowSequencer:
         else:
             sequence_window = np.zeros((len(xpos_event), self._settings.window_length))
             for ite, idx in enumerate(xpos_event):
-                # idx is already the window-start position (get_threshold_position already
-                # subtracts pre_samples); do NOT subtract pre_samples again here.
                 start_xpos = max(0, idx)
                 num_pre_padding = max(0, -idx)
                 stop_xpos = (
@@ -205,45 +163,41 @@ class WindowSequencer:
                 sequence_window[ite, :] = cutted_signal
             return sequence_window
 
-    def get_windows(self, signal: np.ndarray) -> np.ndarray:
-        """Apply windowing based on method_window, method_thr and method_input from settings.
-        :param signal:  Numpy array with input signal with shape=(N, )
-        :return:        Numpy array of windows with shape=(M, window_length)
-        """
+    def forward(self, x: np.ndarray) -> np.ndarray:
         match self._settings.method_window:
             case WindowerTargets.Sequence:
-                return self.sequence(signal)
+                return self._do_sequencing(x)
             case WindowerTargets.Sliding:
-                return self.slide(signal)
+                return self._do_sliding(x)
             case WindowerTargets.Event:
-                signal_preprocessed = self._preprocessor.get_preprocessed(signal)
-                return self.window_event_detected(
-                    signal=signal,
+                signal_preprocessed = self._preprocessor.forward(x)
+                return self._do_event_detection(
+                    signal=x,
                     thr=self._settings.threshold,
                     pre_time=self._settings.pre_time,
                     signal_for_detection=signal_preprocessed,
                 )
             case _:
-                raise NotImplementedError(
-                    f"window_method '{self._settings.method_window.value}' has no Python implementation."
-                )
+                raise AttributeError
+
+    def __call__(self, x: DataTransient) -> DataWaveform:
+        self._settings.sampling_rate = x.sampling_rate
+        return DataWaveform(
+            waveform=self.forward(x=x.data),
+            xpos=np.asarray([0]),
+            label=np.asarray([255]),
+            sampling_rate=self._settings.sampling_rate,
+        )
 
     def create_design(
         self,
-        target: str,
-        bitwidth: int,
         id: str,
+        target: str,
         path2save: Path,
-        signed: bool = True,
+        total_bitwidth: int,
+        frac_bitwidth: int = 0,
+        is_signed: bool = True,
     ) -> None:
-        """Create a target-specific windower design.
-        :param target:      String with target name ["mcu", "pc", "fpga"]
-        :param bitwidth:    Integer with total bitwidth
-        :param id:          String with unique identifier of device (appended to the name)
-        :param path2save:   Path to save the hardware files
-        :param signed:      Whether generated C designs use a signed integer data type
-        :return:            None
-        """
         supported_targets = ["mcu", "pc", "fpga"]
         target = target.lower()
         if target not in supported_targets:
@@ -252,15 +206,15 @@ class WindowSequencer:
         if target in ["mcu", "pc"]:
             self._create_design_c(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
         else:
             self._create_design_verilog(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
 

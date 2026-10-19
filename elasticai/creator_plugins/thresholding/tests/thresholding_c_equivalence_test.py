@@ -80,9 +80,8 @@ def test_generated_thresholding_c_matches_python_frame(
         thresholder.create_design(
             id="0",
             target=target,
-            bitwidth=bitwidth,
-            signed=is_signed,
-            data=data,
+            total_bitwidth=bitwidth,
+            is_signed=is_signed,
             path2save=output_dir,
         )
 
@@ -96,7 +95,7 @@ def test_generated_thresholding_c_matches_python_frame(
         )
         loader.load()
 
-        expected_all = thresholder.get_threshold(data).astype(numpy_dtype)
+        expected_all = thresholder.forward(data).astype(numpy_dtype)
         ffi = loader.ffi()
         out = ffi.new(f"{c_type}[1]")
         c_results = []

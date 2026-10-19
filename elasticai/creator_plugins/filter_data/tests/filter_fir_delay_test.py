@@ -189,7 +189,7 @@ def test_build_equal(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, frac
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
-        dut.create_design(target="fpga", bitwidth=bitwidth, id="0", path2save=build_dir, signed=True)
+        dut.create_design(target="fpga", total_bitwidth=bitwidth, id="0", path2save=build_dir, is_signed=True)
         assert (build_dir / "*.v").exists
 
         cocotb_test_fixture.write({"data": data_in, "check": data_checked})

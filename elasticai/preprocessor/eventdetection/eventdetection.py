@@ -53,7 +53,7 @@ class EventDetection:
         self._logger: Logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = EventDetectionTargets(settings.method)
+            self._settings.method = EventDetectionTargets(settings.method.lower())
 
     def _type_hysteresis(self, threshold: int) -> list:
         thr_zero = threshold

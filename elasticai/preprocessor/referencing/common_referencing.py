@@ -1,33 +1,47 @@
 from dataclasses import dataclass
+from enum import Enum
 from logging import Logger, getLogger
+from pathlib import Path
 
 import numpy as np
 from scipy.signal import convolve2d
+
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
+
+
+class ReferencingTargets(Enum):
+    CAR = "car"
 
 
 @dataclass
 class ReferencingSettings:
     """Class for defining the properties of the common referencing methods
     Attributes:
+        method:         Targets for selecting method to apply (CAR)
         kernel_size:    Kernel size for convolution (must be odd-numbered)
     """
 
+    method: ReferencingTargets
     kernel_size: int
 
 
-DefaultReferencingSettings = ReferencingSettings(
-    kernel_size=3,
+ReferencingSettingsDefault = ReferencingSettings(
+    method=ReferencingTargets.CAR,
+    kernel_size=1,
 )
 
 
-class CommonReferencing:
+class Referencing(PreprocessingModule[DataTransient, DataTransient]):
     _logger: Logger
 
     def __init__(self, settings: ReferencingSettings) -> None:
+        super().__init__()
         self._logger = getLogger(__name__)
         self._settings = settings
+        if isinstance(settings.method, str):
+            self._settings.method = ReferencingTargets(settings.method.lower())
 
-    def build_dummy_active_mapping(self, signal: np.ndarray) -> np.ndarray:
+    def _build_dummy_active_mapping(self, signal: np.ndarray) -> np.ndarray:
         """Function for building a dummy active mapper with True values
         :param signal:  Numpy array with channel-specific signals
         :return:        Numpy array with boolean (default: true) for channels are used
@@ -42,9 +56,9 @@ class CommonReferencing:
             case _:
                 raise NotImplementedError
 
-    def get_reference_map(self, signal: np.ndarray, active: np.ndarray) -> np.ndarray:
+    def _get_reference_map(self, signal: np.ndarray, active: np.ndarray) -> np.ndarray:
         """Building the common reference mapper using CAR algorithm (Common Average Referencing) on input signals
-        :param signal:  Input signal of transient analysis with shape [num_channels, num_smaples] or num_channels splitted into electrode design
+        :param signal:  Input signal of transient analysis with shape [num_channels, num_samples] or num_channels splitted into electrode design
         :param active:  Overview of active channels used for referencing
         :return:        Numpy array with convolved signal for doing common average referencing
         """
@@ -58,9 +72,12 @@ class CommonReferencing:
             case _:
                 raise NotImplementedError
 
-    def apply_reference(self, signal: np.ndarray, active: np.ndarray) -> np.ndarray:
-        """"""
-        return signal - self.get_reference_map(signal, active)
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        active = self._build_dummy_active_mapping(x)
+        return x - self._get_reference_map(x, active)
+
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(data=self.forward(x=x.data), sampling_rate=x.sampling_rate)
 
     @staticmethod
     def _calculate_reference_car_1d(mea_signal: np.ndarray, mapp_used: np.ndarray) -> np.ndarray:
@@ -97,5 +114,15 @@ class CommonReferencing:
             for col in range(0, mea_signal.shape[1]):
                 if not mapp_used[row, col]:
                     data_out[row, col, :] = np.zeros((mea_signal.shape[-1],), dtype=float)
-
         return data_out
+
+    def create_design(
+        self,
+        id: str,
+        target: str,
+        path2save: Path,
+        total_bitwidth: int,
+        frac_bitwidth: int,
+        is_signed: bool,
+    ) -> None:
+        raise NotImplementedError

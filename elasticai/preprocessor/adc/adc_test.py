@@ -5,19 +5,34 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 
-from .adc import ResamplerSettings, TransientResampler
+from .adc import (
+    ConversionResampler,
+    ConversionResamplerSettings,
+    ConversionResamplerTargets,
+    DataTransient,
+)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def adc_sets():
-    sets = ResamplerSettings(
-        total_bits=8, frac_bits=4, is_signed=False, srate_orig=100.0, srate_new=100.0, vpos=0.0, vneg=0.0
+    sets = ConversionResamplerSettings(
+        method=ConversionResamplerTargets.FromInteger,
+        total_bits=8,
+        frac_bits=4,
+        is_signed=False,
+        srate_orig=100.0,
+        srate_new=100.0,
+        vpos=0.0,
+        vneg=0.0,
+        is_int_output=False,
     )
     yield sets
 
 
 @pytest.mark.parametrize("vss, vdd, expected", [(0.0, 1.0, 0.5), (-3.3, +3.3, 0.0)])
-def test_adc_settings_vcm(adc_sets: ResamplerSettings, vss: float, vdd: float, expected: float) -> None:
+def test_adc_settings_vcm(
+    adc_sets: ConversionResamplerSettings, vss: float, vdd: float, expected: float
+) -> None:
     sets = deepcopy(adc_sets)
     sets.vpos = vdd
     sets.vneg = vss
@@ -28,7 +43,7 @@ def test_adc_settings_vcm(adc_sets: ResamplerSettings, vss: float, vdd: float, e
     "bitwidth, vss, vdd, expected", [(4, 0.0, 1.0, 0.0625), (8, -3.3, +3.3, 0.02578125)]
 )
 def test_adc_settings_lsb(
-    adc_sets: ResamplerSettings, bitwidth: int, vss: float, vdd: float, expected: float
+    adc_sets: ConversionResamplerSettings, bitwidth: int, vss: float, vdd: float, expected: float
 ) -> None:
     sets = deepcopy(adc_sets)
     sets.total_bits = bitwidth
@@ -45,7 +60,7 @@ def test_adc_settings_lsb(
     ],
 )
 def test_adc_clamp_integer(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -58,7 +73,7 @@ def test_adc_clamp_integer(
     sets.is_signed = is_signed
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._clamp_digital(data=data_in, use_integer=True).tolist()
+    data_out = ConversionResampler(sets)._clamp_digital(data=data_in, use_integer=True).tolist()
     assert data_out == expected
 
 
@@ -70,7 +85,7 @@ def test_adc_clamp_integer(
     ],
 )
 def test_adc_clamp_voltage(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     vpos: float,
     vneg: float,
     input: list,
@@ -81,7 +96,7 @@ def test_adc_clamp_voltage(
     sets.vneg = vneg
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._clamp_analog(data=data_in).tolist()
+    data_out = ConversionResampler(sets)._clamp_analog(data=data_in).tolist()
     assert data_out == expected
 
 
@@ -95,7 +110,7 @@ def test_adc_clamp_voltage(
     ],
 )
 def test_adc_clamp_fxp(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -108,7 +123,7 @@ def test_adc_clamp_fxp(
     sets.is_signed = is_signed
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._clamp_digital(data=data_in, use_integer=False).tolist()
+    data_out = ConversionResampler(sets)._clamp_digital(data=data_in, use_integer=False).tolist()
     assert data_out == expected
 
 
@@ -139,14 +154,18 @@ def test_adc_clamp_fxp(
     ],
 )
 def test_adc_resampling(
-    adc_sets: ResamplerSettings, srate_orig: float, srate_new: float, input: list, expected: list
+    adc_sets: ConversionResamplerSettings,
+    srate_orig: float,
+    srate_new: float,
+    input: list,
+    expected: list,
 ):
     sets = deepcopy(adc_sets)
     sets.srate_new = srate_new
     sets.srate_orig = srate_orig
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._do_resample(data=data_in).tolist()
+    data_out = ConversionResampler(sets)._do_resample(data=data_in).tolist()
     assert data_out == expected
 
 
@@ -166,14 +185,14 @@ def test_adc_resampling(
     ],
 )
 def test_int_dtype_quantize_output(
-    adc_sets: ResamplerSettings, bitwidth: int, is_signed: bool, expected: np.dtype
+    adc_sets: ConversionResamplerSettings, bitwidth: int, is_signed: bool, expected: np.dtype
 ) -> None:
     sets = deepcopy(adc_sets)
     sets.total_bits = bitwidth
     sets.is_signed = is_signed
 
     data_in = np.asarray([1.0, 1.0, 1.0])
-    data_out = TransientResampler(sets)._quantize(data=data_in, is_int_output=True)
+    data_out = ConversionResampler(sets)._quantize(data=data_in, is_int_output=True)
     assert data_out.dtype == expected
 
 
@@ -187,7 +206,7 @@ def test_int_dtype_quantize_output(
     ],
 )
 def test_adc_quantize_float(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -200,7 +219,7 @@ def test_adc_quantize_float(
     sets.is_signed = is_signed
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._quantize_digital(
+    data_out = ConversionResampler(sets)._quantize_digital(
         data=data_in, is_int_input=False, is_int_output=True
     )
     assert data_out.dtype == np.int8 if is_signed else np.uint8
@@ -217,7 +236,7 @@ def test_adc_quantize_float(
     ],
 )
 def test_adc_quantize_integer(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
@@ -230,7 +249,7 @@ def test_adc_quantize_integer(
     sets.is_signed = is_signed
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._quantize_digital(
+    data_out = ConversionResampler(sets)._quantize_digital(
         data=data_in, is_int_input=True, is_int_output=True
     )
     assert data_out.dtype == np.int8 if is_signed else np.uint8
@@ -270,7 +289,7 @@ def test_adc_quantize_integer(
     ],
 )
 def test_adc_rescaling_voltage_fxp(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     signed: bool,
@@ -287,7 +306,7 @@ def test_adc_rescaling_voltage_fxp(
     sets.vneg = vneg
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets)._quantize_voltage(data=data_in, is_int_output=False)
+    data_out = ConversionResampler(sets)._quantize_voltage(data=data_in, is_int_output=False)
     assert data_out.tolist() == expected
 
 
@@ -301,7 +320,7 @@ def test_adc_rescaling_voltage_fxp(
     ],
 )
 def test_adc_cutting_input_data_orig(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -313,7 +332,7 @@ def test_adc_cutting_input_data_orig(
     sets.srate_orig = srate_orig
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).do_cut_transient(
+    data_out = ConversionResampler(sets).do_cut_transient(
         data=data_in, t_range_sec=t_range_sec, use_srate_orig=True
     )
     assert data_out.tolist() == expected
@@ -329,7 +348,7 @@ def test_adc_cutting_input_data_orig(
     ],
 )
 def test_adc_cutting_input_data_new(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -341,7 +360,7 @@ def test_adc_cutting_input_data_new(
     sets.srate_orig = srate_orig
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).do_cut_transient(
+    data_out = ConversionResampler(sets).do_cut_transient(
         data=data_in, t_range_sec=t_range_sec, use_srate_orig=False
     )
     assert data_out.tolist() == expected
@@ -357,7 +376,7 @@ def test_adc_cutting_input_data_new(
     ],
 )
 def test_adc_cutting_input_labels_orig(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -371,7 +390,7 @@ def test_adc_cutting_input_labels_orig(
 
     label0 = np.asarray(label_id)
     label1 = np.asarray(label_pos)
-    data_out = TransientResampler(sets).do_cut_labels(
+    data_out = ConversionResampler(sets).do_cut_labels(
         label_id=label0, label_pos=label1, t_range_sec=t_range_sec, use_srate_orig=True
     )
     assert data_out[0].tolist() == expected[0]
@@ -388,7 +407,7 @@ def test_adc_cutting_input_labels_orig(
     ],
 )
 def test_adc_cutting_input_labels_new(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     srate_orig: float,
     srate_new: float,
     t_range_sec: list,
@@ -402,7 +421,7 @@ def test_adc_cutting_input_labels_new(
 
     label0 = np.asarray(label_id)
     label1 = np.asarray(label_pos)
-    data_out = TransientResampler(sets).do_cut_labels(
+    data_out = ConversionResampler(sets).do_cut_labels(
         label_id=label0, label_pos=label1, t_range_sec=t_range_sec, use_srate_orig=False
     )
     assert data_out[0].tolist() == expected[0]
@@ -419,22 +438,29 @@ def test_adc_cutting_input_labels_new(
     ],
 )
 def test_adc_quantize_from_int_to_int(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromInteger
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
+    sets.is_int_output = True
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_int(data=data_in, is_int_output=True)
-    assert data_out.dtype == np.int8 if is_signed else np.uint8
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_int(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.int8 if is_signed else np.uint8
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
 @pytest.mark.parametrize(
@@ -445,22 +471,29 @@ def test_adc_quantize_from_int_to_int(
     ],
 )
 def test_adc_quantize_from_int_to_fxp(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromInteger
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
+    sets.is_int_output = False
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_int(data=data_in, is_int_output=False)
-    assert data_out.dtype == np.float32
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_int(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.float32
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
 @pytest.mark.parametrize(
@@ -473,22 +506,29 @@ def test_adc_quantize_from_int_to_fxp(
     ],
 )
 def test_adc_quantize_from_fxp_to_int(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromFxp
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
+    sets.is_int_output = True
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_fxp(data=data_in, is_int_output=True)
-    assert data_out.dtype == np.int8 if is_signed else np.uint8
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_fxp(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.int8 if is_signed else np.uint8
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
 @pytest.mark.parametrize(
@@ -499,22 +539,29 @@ def test_adc_quantize_from_fxp_to_int(
     ],
 )
 def test_adc_quantize_from_fxp_to_fxp(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     bitwidth: int,
     fracwidth: int,
     is_signed: bool,
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromFxp
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
+    sets.is_int_output = False
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_fxp(data=data_in, is_int_output=False)
-    assert data_out.dtype == np.float32
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_fxp(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.float32
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
 @pytest.mark.parametrize(
@@ -541,7 +588,7 @@ def test_adc_quantize_from_fxp_to_fxp(
     ],
 )
 def test_adc_quantize_from_voltage_to_fxp(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     vpos: float,
     vneg: float,
     bitwidth: int,
@@ -550,17 +597,24 @@ def test_adc_quantize_from_voltage_to_fxp(
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromVoltage
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
     sets.vpos = vpos
     sets.vneg = vneg
+    sets.is_int_output = False
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_voltage(data=data_in, is_int_output=False)
-    assert data_out.dtype == np.float32
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_voltage(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.float32
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
 @pytest.mark.parametrize(
@@ -587,7 +641,7 @@ def test_adc_quantize_from_voltage_to_fxp(
     ],
 )
 def test_adc_quantize_from_voltage_to_int(
-    adc_sets: ResamplerSettings,
+    adc_sets: ConversionResamplerSettings,
     vpos: float,
     vneg: float,
     bitwidth: int,
@@ -596,20 +650,27 @@ def test_adc_quantize_from_voltage_to_int(
     input: list,
     expected: list,
 ):
-    sets = deepcopy(adc_sets)
+    sets: ConversionResamplerSettings = deepcopy(adc_sets)
+    sets.method = ConversionResamplerTargets.FromVoltage
     sets.total_bits = bitwidth
     sets.frac_bits = fracwidth
     sets.is_signed = is_signed
     sets.vpos = vpos
     sets.vneg = vneg
+    sets.is_int_output = True
 
     data_in = np.asarray(input)
-    data_out = TransientResampler(sets).redefine_from_voltage(data=data_in, is_int_output=True)
-    assert data_out.dtype == np.int8 if is_signed else np.uint8
-    assert data_out.tolist() == expected
+    dut = ConversionResampler(sets)
+    data_out0 = dut._redefine_from_voltage(data=data_in)
+    data_out1 = dut.forward(x=data_in)
+    data_out2 = dut(data=DataTransient(data=data_in, sampling_rate=sets.srate_orig)).data
+    assert data_out0.dtype == np.int8 if is_signed else np.uint8
+    assert data_out0.tolist() == expected
+    assert data_out1.tolist() == expected
+    assert data_out2.tolist() == expected
 
 
-def test_create_replayer_verilog_only_data(adc_sets: ResamplerSettings):
+def test_create_replayer_verilog_only_data(adc_sets: ConversionResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
 
@@ -617,9 +678,9 @@ def test_create_replayer_verilog_only_data(adc_sets: ResamplerSettings):
         path2save = Path(directory)
         path2save.mkdir(parents=True, exist_ok=True)
 
-        TransientResampler(sets).create_design_as_replayer(
-            target="fpga", data=data, path2save=path2save, id="0"
-        )
+        dut = ConversionResampler(sets)
+        dut.forward(x=data)
+        dut.create_design(target="fpga", path2save=path2save, id="0")
 
         files_check = ["replayer_0.v", "replayer_0_data.mem"]
         files_check.sort()
@@ -630,7 +691,7 @@ def test_create_replayer_verilog_only_data(adc_sets: ResamplerSettings):
         assert files_check == files_avai
 
 
-def test_create_replayer_verilog_trgg_data(adc_sets: ResamplerSettings):
+def test_create_replayer_verilog_trgg_data(adc_sets: ConversionResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
@@ -639,9 +700,10 @@ def test_create_replayer_verilog_trgg_data(adc_sets: ResamplerSettings):
         path2save = Path(directory)
         path2save.mkdir(parents=True, exist_ok=True)
 
-        TransientResampler(sets).create_design_as_replayer(
-            target="fpga", data=data, path2save=path2save, id="0", trgg=trgg
-        )
+        dut = ConversionResampler(sets)
+        dut.forward(x=data)
+        dut.add_trigger_list(trgg)
+        dut.create_design(target="fpga", path2save=path2save, id="0")
 
         files_check = ["replayer_0.v", "replayer_0_data.mem", "replayer_0_trgg.mem"]
         files_check.sort()
@@ -652,7 +714,7 @@ def test_create_replayer_verilog_trgg_data(adc_sets: ResamplerSettings):
         assert files_check == files_avai
 
 
-def test_create_replayer_c_only_data(adc_sets: ResamplerSettings):
+def test_create_replayer_c_only_data(adc_sets: ConversionResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
 
@@ -660,9 +722,9 @@ def test_create_replayer_c_only_data(adc_sets: ResamplerSettings):
         path2save = Path(directory)
         path2save.mkdir(parents=True, exist_ok=True)
 
-        TransientResampler(sets).create_design_as_replayer(
-            target="mcu", data=data, path2save=path2save, id="0"
-        )
+        dut = ConversionResampler(sets)
+        dut.forward(x=data)
+        dut.create_design(target="mcu", path2save=path2save, id="0")
 
         files_check = ["replayer_0.c", "replayer_0.h", "replayer_template.h"]
         files_check.sort()
@@ -673,7 +735,7 @@ def test_create_replayer_c_only_data(adc_sets: ResamplerSettings):
         assert files_check == files_avai
 
 
-def test_create_replayer_c_trgg_data(adc_sets: ResamplerSettings):
+def test_create_replayer_c_trgg_data(adc_sets: ConversionResamplerSettings):
     sets = deepcopy(adc_sets)
     data = np.asarray([[1, 2, 3, 4, 5, 6, 7, 8, 9]]).flatten()
     trgg = [0, 0, 0, 0, 0, 0, 0, 1, 0]
@@ -682,44 +744,12 @@ def test_create_replayer_c_trgg_data(adc_sets: ResamplerSettings):
         path2save = Path(directory)
         path2save.mkdir(parents=True, exist_ok=True)
 
-        TransientResampler(sets).create_design_as_replayer(
-            target="mcu", data=data, path2save=path2save, id="1", trgg=trgg
-        )
+        dut = ConversionResampler(sets)
+        dut.forward(x=data)
+        dut.add_trigger_list(trgg)
+        dut.create_design(target="mcu", path2save=path2save, id="1")
 
         files_check = ["replayer_1.c", "replayer_1.h", "replayer_template.h"]
-        files_check.sort()
-        files_avai = [file.name for file in path2save.glob("*.*")]
-        files_avai.sort()
-
-        assert len(files_check) == len(files_avai)
-        assert files_check == files_avai
-
-
-def test_create_stream_verilog(adc_sets: ResamplerSettings):
-    sets = deepcopy(adc_sets)
-    with TemporaryDirectory() as directory:
-        path2save = Path(directory)
-        path2save.mkdir(parents=True, exist_ok=True)
-
-        try:
-            TransientResampler(sets).create_design_for_streaming(
-                target="fpga", path2save=path2save, id="0"
-            )
-        except NotImplementedError:
-            assert True
-        else:
-            assert False
-
-
-def test_create_stream_c(adc_sets: ResamplerSettings):
-    sets = deepcopy(adc_sets)
-    with TemporaryDirectory() as directory:
-        path2save = Path(directory)
-        path2save.mkdir(parents=True, exist_ok=True)
-
-        TransientResampler(sets).create_design_for_streaming(target="mcu", path2save=path2save, id="1")
-
-        files_check = ["adc_1.c", "adc_1.h", "adc_template.h"]
         files_check.sort()
         files_avai = [file.name for file in path2save.glob("*.*")]
         files_avai.sort()

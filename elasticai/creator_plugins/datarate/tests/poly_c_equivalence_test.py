@@ -38,10 +38,10 @@ def test_create_design_generates_poly_c_files(
     )
     downsampler.create_design(
         target=target,
-        bitwidth=8,
+        total_bitwidth=8,
         id="0",
         path2save=tmp_path,
-        signed=True,
+        is_signed=True,
     )
     stem, _ = _poly_names(take_first_order)
     assert (tmp_path / f"{stem}.c").exists()
@@ -62,7 +62,7 @@ def test_create_design_rejects_invalid_downsampling_ratio(tmp_path: Path, take_f
     with pytest.raises(ValueError, match="dsr must be >= 1"):
         downsampler.create_design(
             target="mcu",
-            bitwidth=8,
+            total_bitwidth=8,
             id="0",
             path2save=tmp_path,
         )
@@ -81,7 +81,7 @@ def test_create_design_rejects_downsampling_ratio_not_bin(tmp_path: Path, take_f
     with pytest.raises(ValueError, match=r"dsr must be 2\^n"):
         downsampler.create_design(
             target="mcu",
-            bitwidth=8,
+            total_bitwidth=8,
             id="0",
             path2save=tmp_path,
         )
@@ -107,10 +107,10 @@ def test_generated_poly_c_matches_python_frame(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     stem, fn = _poly_names(take_first_order)
@@ -161,10 +161,10 @@ def test_generated_poly_c_matches_python_sinewave(
     output_dir = tmp_path / "src"
     downsampler.create_design(
         target="mcu",
-        bitwidth=bitwidth,
+        total_bitwidth=bitwidth,
         id="0",
         path2save=output_dir,
-        signed=True,
+        is_signed=True,
     )
 
     stem, fn = _poly_names(take_first_order)

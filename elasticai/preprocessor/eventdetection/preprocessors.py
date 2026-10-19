@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 from scipy.signal import iirfilter, lfilter
 
+from elasticai.preprocessor._basics import DataTransient
+
 
 class EventPreprocessorsTargets(Enum):
     Normal = "normal"
@@ -58,7 +60,7 @@ class EventPreprocessor:
         self._logger = getLogger(__name__)
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = EventPreprocessorsTargets(settings.method)
+            self._settings.method = EventPreprocessorsTargets(settings.method.lower())
 
     def _get_methods(self) -> list:
         split_key = "_sda_"
@@ -116,9 +118,9 @@ class EventPreprocessor:
         filt0 = lfilter(filter[0], filter[1], xin)
         return np.abs(filt0)
 
-    def get_preprocessed(self, xraw: np.ndarray) -> np.ndarray:
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """Returning the transient signal of the preprocessed comparator values
-        :param xraw:    Raw signal of the input signal
+        :param x:       Raw signal of the input signal
         :return:        Transient signal of the preprocessed comparator values
         """
         if len(self._settings.window_size) < 1:
@@ -129,7 +131,14 @@ class EventPreprocessor:
             raise ValueError(
                 f"Event Preprocessing Method '{self._settings.method}' is not known. Please change!"
             )
-        return getattr(self, f"_sda_{self._settings.method.value}")(xraw)
+        return getattr(self, f"_sda_{self._settings.method.value}")(x)
+
+    def __call__(self, x: DataTransient) -> DataTransient:
+        self._settings.sampling_rate = x.sampling_rate
+        return DataTransient(
+            data=self.forward(x.data),
+            sampling_rate=self._settings.sampling_rate,
+        )
 
     def create_design(
         self,

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from fractions import Fraction
 from logging import Logger, getLogger
 from pathlib import Path
@@ -8,26 +9,36 @@ from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 from scipy.signal import resample_poly
 
-from elasticai.creator_plugins.player.utils import load_and_plugin
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 from elasticai.preprocessor._common_func import CommonDigitalFunctions
 
 
+class ConversionResamplerTargets(Enum):
+    FromInteger = "integer"
+    FromFxp = "fxp"
+    FromVoltage = "voltage"
+
+
 @dataclass
-class ResamplerSettings:
-    """Settings for defining Settingsthe properties of the Analog-Digital Converter (ADC).
+class ConversionResamplerSettings:
+    """Settings for defining the properties of the Analog-Digital Converter (ADC).
     Attributes:
+        method:         Defining the input data type as ResamplerTargets
         total_bits:     Integer with total number of bits
         frac_bits:      Integer with fractional number of bits (0= only integer)
         is_signed:      Boolean if conversion will be signed or not
+        is_int_output:  Boolean for deciding if the output representation is integer (True) or fixed_point (False)
         srate_orig:     Float with sampling rate of the input data stream [Hz]
         srate_new:      Float with sampling rate of the output data stream [Hz]
         vneg:           Float with minimum negative input voltage value
         vpos:           Float with maximum positive input voltage value
     """
 
+    method: ConversionResamplerTargets
     total_bits: int
     frac_bits: int
     is_signed: bool
+    is_int_output: bool
     srate_orig: float
     srate_new: float
     vneg: float
@@ -44,17 +55,33 @@ class ResamplerSettings:
         return (self.vpos - self.vneg) / (2**self.total_bits)
 
 
-class TransientResampler:
+ConversionResamplerSettingsDefault = ConversionResamplerSettings(
+    method=ConversionResamplerTargets.FromVoltage,
+    total_bits=8,
+    frac_bits=6,
+    is_signed=False,
+    is_int_output=False,
+    srate_orig=0.0,
+    srate_new=0.0,
+    vneg=0.0,
+    vpos=1.8,
+)
+
+
+class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
     _logger: Logger
     _funcs = CommonDigitalFunctions
     _arith = FxpArithmetic
-    _settings: ResamplerSettings
+    _settings: ConversionResamplerSettings
+    _data: np.ndarray
+    _trgg: list = []
 
-    def __init__(self, settings: ResamplerSettings) -> None:
+    def __init__(self, settings: ConversionResamplerSettings) -> None:
         """Class for resampling pre-recorded transient data to get a new data stream output with adapted characteristics
         :param settings:    Settings for defining the properties of the Analog-Digital Converter
         :return:            None
         """
+        super().__init__()
         self._logger = getLogger(__name__)
         self._funcs = CommonDigitalFunctions()
         self._funcs.define_limits(
@@ -68,6 +95,8 @@ class TransientResampler:
             )
         )
         self._settings = settings
+        if isinstance(settings.method, str):
+            self._settings.method = ConversionResamplerTargets(settings.method.lower())
 
     def _clamp_analog(self, data: np.ndarray) -> np.ndarray:
         return np.clip(a=data, a_min=self._settings.vneg, a_max=self._settings.vpos)
@@ -206,74 +235,80 @@ class TransientResampler:
         else:
             raise ValueError(f"t_range should be empty or have a length of 2 (not {len(t_range_sec)})")
 
-    def redefine_from_voltage(self, data: np.ndarray, is_int_output: bool = True) -> np.ndarray:
-        """Function for translating the voltage transient data into digital data stream
-        :param data:            Numpy array with voltage data [shape=(num_samples, )]
-        :param is_int_output:   Boolean for getting the data output in integers else fxp
-        :return:                Numpy array with digital data stream
-        """
-        xin = self._do_resample(data)
-        return self._quantize_voltage(xin, is_int_output=is_int_output)
+    def _redefine_from_voltage(self, data: np.ndarray) -> np.ndarray:
+        return self._quantize_voltage(data, is_int_output=self._settings.is_int_output)
 
-    def redefine_from_fxp(self, data: np.ndarray, is_int_output: bool = True) -> np.ndarray:
-        """Function for translating the fixed-point transient data into new values
-        :param data:            Numpy array with fxp data [shape=(num_samples, )]
-        :param is_int_output:   Boolean for getting the data output in integers else fxp
-        :return:                Numpy array with redefined digital data stream
-        """
-        xin = self._do_resample(data)
-        return self._quantize_digital(xin, is_int_input=False, is_int_output=is_int_output)
+    def _redefine_from_fxp(self, data: np.ndarray) -> np.ndarray:
+        return self._quantize_digital(
+            data, is_int_input=False, is_int_output=self._settings.is_int_output
+        )
 
-    def redefine_from_int(self, data: np.ndarray, is_int_output: bool = True) -> np.ndarray:
-        """Function for translating the integer transient data into new values
-        :param data:            Numpy array with integer data [shape=(num_samples, )]
-        :param is_int_output:   Boolean for getting the data output in integers else fxp
-        :return:                Numpy array with redefined digital data stream
-        """
-        xin = self._do_resample(data)
-        return self._quantize_digital(xin, is_int_input=True, is_int_output=is_int_output)
+    def _redefine_from_int(self, data: np.ndarray) -> np.ndarray:
+        return self._quantize_digital(data, is_int_input=True, is_int_output=self._settings.is_int_output)
 
-    def create_design_as_replayer(
-        self, target: str, id: str, path2save: Path, data: np.ndarray, trgg: list = []
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        xin = self._do_resample(x)
+        match self._settings.method:
+            case ConversionResamplerTargets.FromFxp:
+                self._data = self._redefine_from_fxp(xin)
+            case ConversionResamplerTargets.FromInteger:
+                self._data = self._redefine_from_int(xin)
+            case ConversionResamplerTargets.FromVoltage:
+                self._data = self._redefine_from_voltage(x)
+            case _:
+                raise AttributeError
+        return self._data
+
+    def __call__(self, data: DataTransient) -> DataTransient:
+        self._settings.srate_orig = data.sampling_rate
+        return DataTransient(data=self.forward(x=data.data), sampling_rate=self._settings.srate_new)
+
+    def add_trigger_list(self, trgg: list) -> None:
+        """Add trigger list for the hardware design
+        :param trgg:    List with trigger positions
+        """
+        self._trgg = trgg
+
+    def create_design(
+        self,
+        id: str,
+        target: str,
+        path2save: Path,
+        total_bitwidth: int = 0,
+        frac_bitwidth: int = 0,
+        is_signed: bool = False,
     ):
-        """Function for creating the hardware design to use pre-recorded in simulations
-        :param target:      Target for hardware design (MCU, FPGA, PC)
-        :param id:          ID of hardware designs
-        :param path2save:   Path to the saved hardware designs
-        :param data:        Numpy array with transient data / frame used in Simulation [shape=(num_samples, ), type=int]
-        :param trgg:        List with trigger output (event detection, ...) used in Simulation [shape=(num_samples, ), type=int]
-        :return:            None
-        """
-        if "int" not in data.dtype.name:  # pragma: no branch
+        if self._data is None:
+            raise ValueError("No data is available - Please apply data to the forward func")
+        if not self._settings.is_int_output:
+            self._settings.is_int_output = True
+            self._data = self._redefine_from_fxp(self._data)
+        if "int" not in self._data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
-        if data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
+        if self._data.shape not in ((self._data.size,), (1, self._data.size)):  # pragma: no branch
             raise ValueError("shape")
 
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if target.lower() in ["mcu", "pc"]:
-            self._create_design_c_replayer(
+            self._create_design_c(
                 id=id,
-                data=data,
-                trgg=trgg,
                 path2save=path2save,
             )
         else:
-            self._create_design_verilog_replayer(id=id, data=data, trgg=trgg, path2save=path2save)
+            self._create_design_verilog(id=id, path2save=path2save)
 
-    def _create_design_c_replayer(
-        self, id: str, path2save: Path, data: np.ndarray, trgg: list = [], define_path: str = "src"
-    ):
+    def _create_design_c(self, id: str, path2save: Path, define_path: str = "src"):
         from elasticai.creator_plugins.player.src import c_compile
 
-        use_trgg = len(trgg) > 0
+        use_trgg = len(self._trgg) > 0
         if use_trgg:
             c_compile.build_replayer_with_trigger(
                 replayer_id=id,
                 define_path=define_path,
-                data=data.tolist(),
-                trigger=trgg,
+                data=self._data.tolist(),
+                trigger=self._trgg,
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
                 path2save=path2save,
@@ -282,29 +317,29 @@ class TransientResampler:
             c_compile.build_replayer(
                 replayer_id=id,
                 define_path=define_path,
-                data=data.tolist(),
+                data=self._data.tolist(),
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
                 path2save=path2save,
             )
 
-    def _create_design_verilog_replayer(
-        self, id: str, path2save: Path, data: np.ndarray, trgg: list = []
-    ) -> None:
-        use_trgg = len(trgg) > 0
+    def _create_design_verilog(self, id: str, path2save: Path) -> None:
+        from elasticai.creator_plugins.player.utils import load_and_plugin
+
+        use_trgg = len(self._trgg) > 0
 
         path2data = path2save / f"replayer_{id}_data.mem"
-        write_mem_file(path=path2data, data=data.tolist(), bitwidth=self._settings.total_bits)
+        write_mem_file(path=path2data, data=self._data.tolist(), bitwidth=self._settings.total_bits)
         path2trgg = path2save / f"replayer_{id}_trgg.mem"
         if use_trgg:
-            write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
+            write_mem_file(path=path2trgg, data=self._trgg, bitwidth=1)
 
         load_and_plugin(
             type="replayer",
             id=id,
             params={
                 "BITWIDTH": self._settings.total_bits,
-                "NUM_VALUES": data.size,
+                "NUM_VALUES": self._data.size,
                 "PATH2DATA": translate_path_to_int(path2data),
                 "PATH2TRGG": translate_path_to_int(path2trgg),
                 "ADD_TRIGGER": use_trgg,
@@ -312,35 +347,3 @@ class TransientResampler:
             packages=["player"],
             path2save=path2save,
         )
-
-    def create_design_for_streaming(self, target: str, id: str, path2save: Path):
-        """Function for creating the hardware design to process raw data in streaming processes
-        :param target:      Target for hardware design (MCU, FPGA, PC)
-        :param id:          ID of hardware designs
-        :param path2save:   Path to the saved hardware designs
-        :return:            None
-        """
-        supported_targets = ["mcu", "pc", "fpga"]
-        if target.lower() not in supported_targets:
-            raise ValueError(f"Target {target} is not supported: only {supported_targets}")
-        if target.lower() in ["mcu", "pc"]:
-            self._create_design_c_stream(
-                id=id,
-                path2save=path2save,
-                define_path="src",
-            )
-        else:
-            self._create_design_verilog_stream(id=id, path2save=path2save)
-
-    def _create_design_c_stream(self, id: str, path2save: Path, define_path: str = "src"):
-        from elasticai.creator_plugins.adc.src import c_compile
-
-        c_compile.build_adc_quant(
-            adc_id=id,
-            define_path=define_path,
-            settings=self._settings,
-            path2save=path2save,
-        )
-
-    def _create_design_verilog_stream(self, id: str, path2save: Path) -> None:
-        raise NotImplementedError("FPGA design is not implemented yet")

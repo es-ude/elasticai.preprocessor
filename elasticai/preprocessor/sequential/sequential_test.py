@@ -5,12 +5,11 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pytest
 
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 from elasticai.preprocessor.sequential import (
     BuildPlatformTargets,
     CreateSequentialSettings,
-    PreprocessingModule,
     PreprocessingSequential,
-    SequentialSignal,
 )
 
 
@@ -19,20 +18,24 @@ class SettingsAmplifier:
     gain: float
 
 
-class Amplifier(PreprocessingModule):
+class Amplifier(PreprocessingModule[DataTransient, DataTransient]):
     _settings: SettingsAmplifier
 
-    def __init__(self, settings: SettingsAmplifier):
+    def __init__(self, settings: SettingsAmplifier) -> None:
+        super().__init__()
         self._settings = settings
 
-    def __call__(self, x: SequentialSignal) -> SequentialSignal:
-        return SequentialSignal(
-            data=self._settings.gain * x.data,
-            sample_rate=x.sample_rate,
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(
+            data=self.forward(x=x.data),
+            sampling_rate=x.sampling_rate,
         )
 
-    def create_design(self, id: str, settings: CreateSequentialSettings):
-        with open(settings.path2build / f"amplifier_{id}.txt", "w") as f:
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        return self._settings.gain * x
+
+    def create_design(self, id: str, **settings: CreateSequentialSettings):
+        with open(settings["path2save"] / f"amplifier_{id}.txt", "w") as f:
             f.write("Hallo Welt!\n")
 
 
@@ -41,20 +44,24 @@ class SettingsAdderOffset:
     offset: float
 
 
-class Offset(PreprocessingModule):
+class Offset(PreprocessingModule[DataTransient, DataTransient]):
     _settings: SettingsAdderOffset
 
-    def __init__(self, settings: SettingsAdderOffset):
+    def __init__(self, settings: SettingsAdderOffset) -> None:
+        super().__init__()
         self._settings = settings
 
-    def __call__(self, x: SequentialSignal) -> SequentialSignal:
-        return SequentialSignal(
-            data=self._settings.offset + x.data,
-            sample_rate=x.sample_rate,
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(
+            data=self.forward(x=x.data),
+            sampling_rate=x.sampling_rate,
         )
 
-    def create_design(self, id: str, settings: CreateSequentialSettings):
-        with open(settings.path2build / f"adder_off_{id}.txt", "w") as f:
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        return self._settings.offset + x
+
+    def create_design(self, id: str, **settings: CreateSequentialSettings):
+        with open(settings["path2save"] / f"adder_off_{id}.txt", "w") as f:
             f.write("Hallo Welt!\n")
 
 
@@ -153,7 +160,7 @@ def test_sequential_stages_run_and_create(
         total_gain *= g
     data_check = total_gain * data_in
     np.testing.assert_array_equal(data_out.data, data_check)
-    np.testing.assert_array_equal(data_out.sample_rate, fs)
+    np.testing.assert_array_equal(data_out.sampling_rate, fs)
 
     with TemporaryDirectory() as tmpdir:
         path2build = Path(tmpdir).absolute()
@@ -167,7 +174,7 @@ def test_sequential_stages_run_and_create(
         pipeline.create_design(settings=sets1)
 
         for idx, _ in enumerate(modules):
-            assert (path2build / f"amplifier_{idx}.txt").exists()
+            assert (path2build / "src" / f"amplifier_{idx}.txt").exists()
 
 
 def test_sequential_stages_mixed_run_and_create(data_in: np.ndarray, fs: float) -> None:
@@ -201,7 +208,8 @@ def test_sequential_stages_mixed_run_and_create(data_in: np.ndarray, fs: float) 
         )
         pipeline.create_design(settings=sets1)
 
-        assert (path2build / "adder_off_0.txt").exists()
-        assert (path2build / "amplifier_1.txt").exists()
-        assert (path2build / "amplifier_2.txt").exists()
-        assert (path2build / "adder_off_3.txt").exists()
+        path2src = path2build / "src"
+        assert (path2src / "adder_off_0.txt").exists()
+        assert (path2src / "amplifier_1.txt").exists()
+        assert (path2src / "amplifier_2.txt").exists()
+        assert (path2src / "adder_off_3.txt").exists()

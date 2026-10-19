@@ -7,6 +7,7 @@ import numpy as np
 
 import elasticai.creator_plugins.thresholding.utils as hw_utils
 from elasticai.creator_plugins.thresholding.src import c_compile
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 
 
 class ThresholdTargets(Enum):
@@ -53,16 +54,20 @@ DefaultThresholdSettings = ThresholdSettings(
 )
 
 
-class Thresholding:
+class Thresholding(PreprocessingModule[DataTransient, DataTransient]):
+    _val_thr: int = 0
+
     def __init__(self, settings: ThresholdSettings) -> None:
         """Class for calculating the thresholding values based on the transient input signal
         :param settings:    Class SettingsThreshold for configuring the properties
         :return:            None
         """
+        super().__init__()
         self._logger: Logger = getLogger(__name__)
         self._settings: ThresholdSettings = settings
         if isinstance(settings.method, str):
             self._settings.method = ThresholdTargets(settings.method)
+
         self._map_hardware = {
             ThresholdTargets.Constant: "const",
             ThresholdTargets.AbsoluteMean: "const",
@@ -87,48 +92,31 @@ class Thresholding:
         self,
         id: str,
         target: str,
-        bitwidth: int,
         path2save: Path,
-        signed: bool,
-        data: np.ndarray | None = None,
-    ) -> int:
-        """Create hardware design for thresholding.
-        :param data:            Numpy array with transient signal
-        :param id:              String with additional ID
-        :param target:          String with target hardware type ["mcu", "pc", "fpga"]
-        :param bitwidth:        Integer with bitwidth for target hardware type
-        :param signed:          bool if input type signed ["signed", "unsigned"]
-        :param path2save:       Path to save the design
-        :return:                Integer value of the threshold value (for testing purpose)
-        """
+        total_bitwidth: int,
+        frac_bitwidth: int = 0,
+        is_signed: bool = True,
+    ) -> None:
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
 
-        if data is None:
-            thr_val0 = 0
-        else:
-            thr_val0 = int(self.get_threshold(xin=data)[0])
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
-                thr_val=thr_val0,
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
         else:
             self._create_design_verilog(
-                thr_val=thr_val0,
                 id=id,
-                bitwidth=bitwidth,
+                bitwidth=total_bitwidth,
                 path2save=path2save,
             )
-        return thr_val0
 
     def _create_design_c(
         self,
-        thr_val: int,
         id: str,
         bitwidth: int,
         signed: bool,
@@ -186,7 +174,7 @@ class Thresholding:
                     )
             case _:
                 c_compile.build_thresholding_const(
-                    threshold=thr_val,
+                    threshold=self._val_thr,
                     bitwidth=bitwidth,
                     signed=signed,
                     path2save=path2save,
@@ -196,7 +184,6 @@ class Thresholding:
 
     def _create_design_verilog(
         self,
-        thr_val: int,
         id: str,
         bitwidth: int,
         path2save: Path,
@@ -212,7 +199,7 @@ class Thresholding:
         }
         match self._settings.method:
             case ThresholdTargets.Constant:
-                params["params"].update({"CONST_THR": thr_val})
+                params["params"].update({"CONST_THR": self._val_thr})
             case ThresholdTargets.MovingAverage:
                 if self._is_power_of_two(self._settings.window_length):
                     params["type"] = "mov_avg_pow2"
@@ -240,18 +227,22 @@ class Thresholding:
         split_key = "_thr_"
         return [method.split(split_key)[-1] for method in dir(self) if split_key in method]
 
-    def get_threshold(self, xin: np.ndarray) -> np.ndarray:
-        """Function for getting the thresholding value from input
-        :param xin:     Numpy array with transient raw signal
-        :return:        Numpy array with thresholding value from applied method
-        """
+    def forward(self, x: np.ndarray) -> np.ndarray:
         used_method = self._settings.method.value
         if used_method not in self._get_methods():
-            raise ValueError(
+            raise AttributeError(
                 f"Thresholding method {used_method} not available - Please change to {self._get_methods()}"
             )
-        val = getattr(self, f"_thr_{used_method}")(xin)
-        return np.floor(val).astype(int) if self._settings.do_quant else val
+        val = getattr(self, f"_thr_{used_method}")(x)
+        data = np.floor(val).astype(int) if self._settings.do_quant else val
+        self._val_thr = data[0]
+        return data
+
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(
+            data=self.forward(x=x.data),
+            sampling_rate=x.sampling_rate,
+        )
 
     def get_threshold_position(self, xin: np.ndarray, pre_time: float = 0.0) -> np.ndarray:
         """Function for getting the crosspoints of thresholding value and transient input
@@ -259,7 +250,7 @@ class Thresholding:
         :param pre_time:    Floating value with pre-time in the window before event is detected [s]
         :return:            Numpy array with thresholding value from applied method
         """
-        xthr = self.get_threshold(xin=xin)
+        xthr = self.forward(x=xin)
         pos = np.argwhere(xin >= xthr).flatten()
         pos_pre = int(self._settings.sampling_rate * pre_time)
         return np.array(self._get_values_non_incremented_change(pos)) - pos_pre

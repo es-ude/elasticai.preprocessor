@@ -6,7 +6,7 @@ import numpy as np
 
 import elasticai.creator_plugins.datarate as datarate_filters
 from elasticai.creator_plugins.datarate.src import c_compile
-from elasticai.preprocessor.sequential import PreprocessingModule, SequentialSignal
+from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 
 
 class DownSamplingTargets(Enum):
@@ -40,18 +40,12 @@ DefaultDownSamplingSettings = DownSamplingSettings(
 )
 
 
-class DownSampling(PreprocessingModule):
+class DownSampling(PreprocessingModule[DataTransient, DataTransient]):
     def __init__(self, settings: DownSamplingSettings):
         super().__init__()
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = DownSamplingTargets(settings.method)
-
-    def __call__(self, x: SequentialSignal) -> SequentialSignal:
-        return SequentialSignal(
-            data=self.decimate(x.data),
-            sample_rate=self.sampling_rate_out,
-        )
+            self._settings.method = DownSamplingTargets(settings.method.lower())
 
     @property
     def sampling_rate_out(self) -> float:
@@ -67,21 +61,13 @@ class DownSampling(PreprocessingModule):
 
     def create_design(
         self,
-        target: str,
-        bitwidth: int,
         id: str,
+        target: str,
         path2save: Path,
-        signed: bool = True,
+        total_bitwidth: int,
+        frac_bitwidth: int = 0,
+        is_signed: bool = True,
     ) -> None:
-        """Generate the hardware design to downsampling on hardware
-        :param target:           Target platform ["mcu", "pc", "fpga", "asic"]
-        :param bitwidth:         Bitwidth
-        :param id:               ID of the target structure
-        :param path2save:        Path to save downsampling subsampling
-        :param signed:           Signal to use for downsampling
-        :return:                 None
-        """
-
         supported_targets = ["mcu", "pc", "fpga", "asic"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
@@ -89,25 +75,25 @@ class DownSampling(PreprocessingModule):
             raise ValueError("dsr must be >= 1")
         if self._settings.num_stages < 1:
             raise ValueError("num_stages must be >= 1")
-        assert bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
+        assert total_bitwidth in range(2, 33), "Bitwidth must be between 2 and 32"
 
         if target.lower() in ["mcu", "pc"]:
             self._create_design_c(
                 id=id,
-                bitwidth=bitwidth,
-                signed=signed,
+                bitwidth=total_bitwidth,
+                signed=is_signed,
                 path2save=path2save,
             )
         elif target.lower() in ["fpga"]:
             self._create_design_fpga_verilog(
                 id=id,
-                bitwidth=bitwidth,
+                bitwidth=total_bitwidth,
                 path2save=path2save,
             )
         elif target.lower() in ["asic"]:
             self._create_design_asic_verilog(
                 id=id,
-                bitwidth=bitwidth,
+                bitwidth=total_bitwidth,
                 path2save=path2save,
             )
 
@@ -337,19 +323,21 @@ class DownSampling(PreprocessingModule):
                 x = self._do_decimation_polyphase_order_two(x)
         return x
 
-    def decimate(self, uin: np.ndarray) -> np.ndarray:
-        """Performing the decimation filter on an input data stream
-        param uin:          Numpy array with transient signal input (high sampling rate)
-        return:             Numpy array with transient signal output (low sampling rate)
-        """
+    def forward(self, x: np.ndarray) -> np.ndarray:
         match self._settings.method:
             case DownSamplingTargets.Simple:
-                return self._do_simple(uin)
+                return self._do_simple(x)
             case DownSamplingTargets.Subsampling:
-                return self.do_subsampling(data=uin, augment=False, take_sample=0)
+                return self.do_subsampling(data=x, augment=False, take_sample=0)
             case DownSamplingTargets.CIC:
-                return self._do_cic(uin)
+                return self._do_cic(x)
             case DownSamplingTargets.Polyphase:
-                return self._do_decimation_polyphase(uin, take_first_order=False)
+                return self._do_decimation_polyphase(x, take_first_order=False)
             case _:
-                raise AttributeError("Not right selected decimation method")
+                raise AttributeError
+
+    def __call__(self, x: DataTransient) -> DataTransient:
+        return DataTransient(
+            data=self.forward(x.data),
+            sampling_rate=self.sampling_rate_out,
+        )

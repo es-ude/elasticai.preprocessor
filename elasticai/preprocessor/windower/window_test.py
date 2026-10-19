@@ -10,16 +10,11 @@ from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.thresholding import (
     ThresholdTargets,
 )
+from elasticai.preprocessor.transformation.transformation import transformation_window_method
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
-from .window import (
-    WindowerTargets,
-    WindowSequencer,
-    WindowSettings,
-    transformation_window_method,
-)
+from .window import WindowerTargets, WindowSequencer, WindowSettings
 
-# (method, expected_c_file, expected_h_file, expected_template)
 WIN_METHOD_CONFIGS = [
     pytest.param(
         WindowerTargets.Sliding,
@@ -55,12 +50,14 @@ class TestWindowMethod(TestCase):
             transformation_window_method(window_size=self.vsig.size, method="Hammingd")
 
     def test_transformation_window_method_ones(self):
-        window = transformation_window_method(window_size=self.vsig.size, method="")
+        window = transformation_window_method(window_size=self.vsig.size, method="ones")
         np.testing.assert_array_equal(window, np.ones_like(self.vsig))
 
 
 class TestWindowSettingsSequencer(TestCase):
-    sets = WindowSettings(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = WindowSettings(
+        method_window=WindowerTargets.Sequence, sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3
+    )
 
     def test_settings_length(self):
         self.assertEqual(self.sets.window_length, 100)
@@ -70,14 +67,16 @@ class TestWindowSettingsSequencer(TestCase):
 
 
 class TestWindowSequencer(TestCase):
-    sets = WindowSettings(sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3)
+    sets = WindowSettings(
+        method_window=WindowerTargets.Sequence, sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3
+    )
 
     def test_window_sequence_match_full(self):
         set0 = deepcopy(self.sets)
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
-        rslt = WindowSequencer(set0).sequence(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (int(num_trials), set0.window_length)
         for idx, sequence in enumerate(rslt):
@@ -86,11 +85,12 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_sequence_match_not_full(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sequence
         num_trials = np.random.randint(1, 10) + np.random.random(1)[0] - 0.5
         num_samples = int(num_trials * set0.window_length)
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
-        rslt = WindowSequencer(set0).sequence(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (int(num_trials), set0.window_length)
         for idx, sequence in enumerate(rslt):
@@ -99,7 +99,8 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_max_overlapping(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = set0.window_sec - 1 / set0.sampling_rate
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
@@ -113,7 +114,7 @@ class TestWindowSequencer(TestCase):
             constant_values=0,
         )
 
-        rslt = WindowSequencer(set0).slide(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (
             num_samples,
@@ -125,7 +126,8 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_quarter_overlapping(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.25 * set0.window_sec
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
@@ -139,7 +141,7 @@ class TestWindowSequencer(TestCase):
             constant_values=0,
         )
 
-        rslt = WindowSequencer(set0).slide(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
 
@@ -154,7 +156,8 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_half_overlapping(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.5 * set0.window_sec
         num_trials = np.random.randint(1, 10)
         num_samples = int(num_trials * set0.window_length)
@@ -168,7 +171,7 @@ class TestWindowSequencer(TestCase):
             constant_values=0,
         )
 
-        rslt = WindowSequencer(set0).slide(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         expected_num_windows = len(range(0, len(padded_stimuli) - set0.window_length + 1, delta_steps))
 
@@ -183,12 +186,13 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_slide_sequence(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.0
         num_trials = np.random.randint(1, 10)
         num_samples = num_trials * set0.window_length
         stimuli = 2 * (np.random.random(num_samples) - 0.5)
-        rslt = WindowSequencer(set0).slide(stimuli)
+        rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (num_trials, set0.window_length)
         for idx, sequence in enumerate(rslt):
@@ -197,53 +201,54 @@ class TestWindowSequencer(TestCase):
             np.testing.assert_array_equal(sequence, chck)
 
     def test_window_event_detection_without_padding_normal(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Event
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.01)
+        sequence = WindowSequencer(set0)._do_event_detection(signal=stimuli, thr=0.25, pre_time=0.01)
         self.assertEqual(sequence.shape, (num_trials, set0.window_length))
         chck0 = [np.sum(frame == frame[0]) for frame in sequence]
         self.assertTrue(all(x == chck0[0] for x in chck0))
 
     def test_window_event_detection_without_padding_absolute(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.01)
+        sequence = WindowSequencer(set0)._do_event_detection(signal=stimuli, thr=0.25, pre_time=0.01)
         self.assertEqual(sequence.shape, (num_trials, set0.window_length))
         chck0 = [np.sum(frame == frame[0]) for frame in sequence]
         self.assertTrue(all(x == chck0[0] for x in chck0))
 
     def test_window_event_detection_with_prepadding(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=0.25, pre_time=0.05)
+        sequence = WindowSequencer(set0)._do_event_detection(signal=stimuli, thr=0.25, pre_time=0.05)
         chck0 = np.sum(sequence[0, :] == sequence[0, 0])
         chck1 = np.sum(sequence[1, :] == sequence[1, 0])
         self.assertGreater(chck0, chck1)
 
     def test_window_event_detection_with_postpadding(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
         stimuli[int(set0.window_length / 2)] = 1.5
         stimuli[-int(set0.window_length / 2)] = 1.5
-        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=1.2, pre_time=0.05)
+        sequence = WindowSequencer(set0)._do_event_detection(signal=stimuli, thr=1.2, pre_time=0.05)
         chck0 = np.sum(sequence[-2, :] == sequence[-2, -1])
         chck1 = np.sum(sequence[-1, :] == sequence[-1, -1])
         self.assertGreater(chck1, chck0)
 
     def test_window_event_detection_high_threshold(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
         set0.window_sec = 0.25
         num_trials = 5
         stimuli = np.sin(2 * np.pi * np.arange(start=0, stop=num_trials, step=1 / set0.sampling_rate))
-        sequence = WindowSequencer(set0).window_event_detected(signal=stimuli, thr=100.0, pre_time=0.01)
+        sequence = WindowSequencer(set0)._do_event_detection(signal=stimuli, thr=100.0, pre_time=0.01)
         assert sequence == np.asarray([0])
 
     def test_create_verilog_windower(self):
@@ -254,7 +259,7 @@ class TestWindowSequencer(TestCase):
 
         backup = get_path_to_project() / "build_test" / "build_windower_verilog"
         with temporary_directory(backup) as tmpdir:
-            WindowSequencer(set0).create_design("fpga", 8, "0", tmpdir)
+            WindowSequencer(set0).create_design(target="fpga", total_bitwidth=8, id="0", path2save=tmpdir)
             files_available = [
                 "windower_0.v",
                 "shift_register.v",
@@ -265,25 +270,31 @@ class TestWindowSequencer(TestCase):
                 assert file.exists()
 
     def test_create_design_c_mcu(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.sampling_rate = 100
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            WindowSequencer(set0).create_design("mcu", 8, "0", path2save)
+            WindowSequencer(set0).create_design(
+                target="mcu", total_bitwidth=8, id="0", path2save=path2save
+            )
             assert (path2save / "windower_sliding_0.h").exists()
 
     def test_create_design_c_pc(self):
-        set0 = deepcopy(self.sets)
+        set0: WindowSettings = deepcopy(self.sets)
+        set0.method_window = WindowerTargets.Sliding
         set0.sampling_rate = 100
         set0.window_sec = 0.32
         set0.overlap_sec = 0.28
 
         with TemporaryDirectory() as directory:
             path2save = Path(directory)
-            WindowSequencer(set0).create_design("pc", 8, "0", path2save)
+            WindowSequencer(set0).create_design(
+                target="pc", total_bitwidth=8, id="0", path2save=path2save
+            )
             assert (path2save / "windower_sliding_0.h").exists()
 
 
@@ -314,10 +325,10 @@ class TestCreateDesign:
         with temporary_directory(backup) as tmpdir:
             windower.create_design(
                 target=target,
-                bitwidth=8,
+                total_bitwidth=8,
                 id="0",
                 path2save=tmpdir,
-                signed=True,
+                is_signed=True,
             )
             assert (tmpdir / exp_c).exists()
             assert (tmpdir / exp_h).exists()
