@@ -20,7 +20,7 @@ def sequential(impl: DataGraph, _: Registry) -> Iterable[Code]:
         TemplateDirector()
         .define_scoped_switch("ADD_TRIGGER", False)
         .parameter("BITWIDTH_INPUT")
-        .parameter("BITWIDTH_OUPUT")
+        .parameter("BITWIDTH_OUTPUT")
         .parameter("SIZE_INPUT")
         .parameter("SIZE_OUTPUT")
         .add_module_name()
