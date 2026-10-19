@@ -7,26 +7,21 @@
 typedef struct {
     uint16_t tap_start;
     uint16_t tap_length;
-    void   *taps;
+    void    *taps;
+    int32_t *tap_sum;
 } MavgWindow;
 
 #ifndef DEF_CALC_MAVG_THR
 #define DEF_CALC_MAVG_THR(id, input_type) \
 float calc_next_datum_moving_window_average_ ##id(input_type data, MavgWindow *window) { \
-    uint16_t win_tap_start = window->tap_start; \
-    uint16_t win_tap_length = window->tap_length; \
- \
     input_type *win_tap = (input_type *) window->taps; \
-    win_tap[win_tap_start] = data; \
- \
-    int32_t sum = 0; \
-    for (uint16_t i = 0; i < win_tap_length; i++) { \
-        sum += (int32_t)win_tap[i]; \
-    } \
-    win_tap_start++; \
-    if (win_tap_start >= win_tap_length) win_tap_start = 0; \
-    window->tap_start = win_tap_start; \
-    return (float)sum / (float)win_tap_length; \
+    int32_t *sum = window->tap_sum; \
+    \
+    *sum += data - win_tap[window->tap_start]; \
+    win_tap[window->tap_start] = data; \
+    if (++window->tap_start >= window->tap_length) window->tap_start = 0; \
+    \
+    return (float)*sum / (float)window->tap_length; \
 }
 #endif//DEF_CALC_MAVG_THR
 
@@ -34,10 +29,12 @@ float calc_next_datum_moving_window_average_ ##id(input_type data, MavgWindow *w
 #define DEF_NEW_MAVG_WINDOW_IMPL(id, input_type, size) \
 bool calc_thresholding_mavg_ ## id(input_type data, input_type *out) { \
     static input_type window_taps[size] = {0}; \
+    static int32_t sum = 0; \
     static MavgWindow win_params = { \
         .tap_start = 0, \
         .tap_length = size, \
-        .taps = window_taps \
+        .taps = window_taps, \
+        .tap_sum = &sum \
     }; \
     *out = (input_type)floorf(calc_next_datum_moving_window_average_ ##id(data, &(win_params))); \
     return true; \
