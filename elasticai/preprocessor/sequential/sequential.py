@@ -98,23 +98,27 @@ class PreprocessingSequential:
     ) -> None:
         match settings.target:
             case BuildPlatformTargets.Workstation:
-                self._create_sequential_c(settings=settings)
+                self._create_sequential_c(
+                    settings=settings, num_inputs=num_inputs, num_outputs=num_outputs
+                )
             case BuildPlatformTargets.MCU:
-                self._create_sequential_c(settings=settings)
+                self._create_sequential_c(
+                    settings=settings, num_inputs=num_inputs, num_outputs=num_outputs
+                )
             case BuildPlatformTargets.FPGA:
                 self._create_sequential_verilog(
                     settings=settings, num_inputs=num_inputs, num_outputs=num_outputs
                 )
             case BuildPlatformTargets.ASIC:
-                self._create_sequential_asic(settings=settings)
+                self._create_sequential_verilog(
+                    settings=settings, num_inputs=num_inputs, num_outputs=num_outputs
+                )
             case _:
                 raise AttributeError
 
-    def _create_sequential_asic(self, settings: CreateSequentialSettings) -> None:
-        pass
-
+    @staticmethod
     def _create_sequential_verilog(
-        self, settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
+        settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
     ) -> None:
         from elasticai.creator_plugins.sequential.utils import load_and_plugin
 
@@ -130,5 +134,18 @@ class PreprocessingSequential:
             path2save=settings.path2build,
         )
 
-    def _create_sequential_c(self, settings: CreateSequentialSettings) -> None:
-        pass
+    @staticmethod
+    def _create_sequential_c(
+        settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
+    ) -> None:
+        from elasticai.creator_plugins.sequential.src.sequential_c import build_sequential
+
+        build_sequential(
+            seq_id="PREPROCESSING_0",
+            path2save=settings.path2build,
+            bitwidth_input=settings.total_bitwidth,
+            bitwidth_output=settings.total_bitwidth,
+            num_inputs=num_inputs,
+            num_outputs=num_outputs,
+            is_signed=settings.do_signed,
+        )

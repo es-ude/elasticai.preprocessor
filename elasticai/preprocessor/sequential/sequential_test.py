@@ -177,6 +177,9 @@ def test_sequential_stages_run_and_create(
         )
         pipeline.create_design(settings=sets1)
 
+        assert path2build / "sequential_preprocessing_0.c"
+        assert path2build / "sequential_preprocessing_0.h"
+        assert path2build / "sequential_template.h"
         for idx, _ in enumerate(modules):
             assert (path2build / "src" / f"amplifier_{idx}.txt").exists()
 
