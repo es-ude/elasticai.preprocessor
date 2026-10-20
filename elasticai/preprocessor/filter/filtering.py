@@ -112,12 +112,12 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
         super().__init__()
         self.__logger = getLogger(__name__)
         self._settings = settings
-        if isinstance(settings.method, str):
-            self._settings.method = FilterTargets(settings.method.lower())
-        if isinstance(settings.b_type, str):
-            self._settings.b_type = FilterBTypes(settings.b_type.lower())
-        if isinstance(settings.f_type, str):
-            self._settings.f_type = FilterFTypes(settings.f_type.lower())
+        if isinstance(self._settings.method, str):
+            self._settings.method = FilterTargets(self._settings.method.lower())
+        if isinstance(self._settings.b_type, str):
+            self._settings.b_type = FilterBTypes(self._settings.b_type.lower())
+        if isinstance(self._settings.f_type, str):
+            self._settings.f_type = FilterFTypes(self._settings.f_type.lower())
         self.__process_filter()
 
     def get_coeffs(self) -> FilterCoeffs:
@@ -568,4 +568,4 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
                 define_path=".",
             )
         else:
-            raise ValueError(f"Filter type {self._settings.method.value} is not supported")
+            raise ValueError(f"Filter type {self._settings.method} is not supported")

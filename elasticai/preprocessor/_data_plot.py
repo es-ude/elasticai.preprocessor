@@ -1,9 +1,9 @@
-from pathlib import Path
-import numpy as np
 from dataclasses import dataclass
+from pathlib import Path
 
-from pyxdf import load_xdf
+import numpy as np
 from matplotlib import pyplot as plt
+from pyxdf import load_xdf
 
 
 @dataclass
@@ -25,19 +25,18 @@ def load_smatable_data(path2data: Path) -> Data:
     stream = next(
         stream
         for stream in streams
-        if np.asarray(stream["time_series"]).ndim == 2
-        and np.asarray(stream["time_series"]).shape[1] >= 9
+        if np.asarray(stream["time_series"]).ndim == 2 and np.asarray(stream["time_series"]).shape[1] >= 9
     )
-    scaling = 3.3 / 2 ** 17 / 40
+    scaling = 3.3 / 2**17 / 40
     return Data(
         sampling_rate=float(stream["info"]["nominal_srate"][0]),
         channel_id=used_channels,
-        time=np.asarray(stream["time_stamps"]-stream["time_stamps"][0], dtype=np.float32),
-        data=scaling * np.asarray(stream["time_series"][:, used_channels], dtype=np.float32).T
+        time=np.asarray(stream["time_stamps"] - stream["time_stamps"][0], dtype=np.float32),
+        data=scaling * np.asarray(stream["time_series"][:, used_channels], dtype=np.float32).T,
     )
 
 
-def ticks_with_zero(vmin, vmax, n: int=7):
+def ticks_with_zero(vmin, vmax, n: int = 7):
     vmin = min(vmin, 0)
     vmax = max(vmax, 0)
     span = vmax - vmin
@@ -57,23 +56,33 @@ def ticks_with_zero(vmin, vmax, n: int=7):
     return ticks
 
 
-def plot_data(data_orig: Data, data_filt: Data) -> None:
+def plot_data(
+    data_orig: Data,
+    data_filt: Data,
+    yscale: float = 1e3,
+    ylabel_out: str = "Filtered [mV]",
+    path2save: Path | None = None,
+) -> None:
     num_rows = 2
     num_cols = 4
     scaley = 1e3
-    _, axs = plt.subplots(num_rows,num_cols, sharex=True, sharey=True)
+    _, axs = plt.subplots(num_rows, num_cols, sharex=True, sharey=True)
 
     for idx, (raw_orig, raw_filt) in enumerate(zip(data_orig.data, data_filt.data)):
         ysel = idx % num_cols
         axs[0, 0].set_ylabel("Original [mV]")
         axs[0, 0].set_xlim([data_orig.time[0], data_orig.time[-1]])
-        axs[0, ysel].plot(data_orig.time, scaley * raw_orig, color="k", label=f"CH-{data_orig.channel_id[idx]:02d}")
+        axs[0, ysel].plot(
+            data_orig.time, scaley * raw_orig, color="k", label=f"CH-{data_orig.channel_id[idx]:02d}"
+        )
         axs[0, ysel].grid(True)
         axs[0, ysel].legend(loc="upper right")
 
-        axs[1, 0].set_ylabel("Filtered [mV]")
+        axs[1, 0].set_ylabel(ylabel_out)
         axs[1, 2].set_xlabel("Time / s")
-        axs[1, ysel].plot(data_filt.time, scaley * raw_filt, color="r", label=f"CH-{data_filt.channel_id[idx]:02d}")
+        axs[1, ysel].plot(
+            data_filt.time, yscale * raw_filt, color="r", label=f"CH-{data_filt.channel_id[idx]:02d}"
+        )
         axs[1, ysel].grid(True)
         axs[1, ysel].legend(loc="upper right")
 
@@ -81,7 +90,11 @@ def plot_data(data_orig: Data, data_filt: Data) -> None:
     ymin, ymax = axs[0, 0].get_ylim()
     xticks = ticks_with_zero(xmin, xmax, n=6)
     yticks = ticks_with_zero(ymin, ymax, n=7)
-    axs[0,0].set_xticks(xticks)
-    axs[0,0].set_yticks(yticks)
+    axs[0, 0].set_xticks(xticks)
+    axs[0, 0].set_yticks(yticks)
     plt.tight_layout()
-    plt.show()
+
+    if path2save is None:
+        plt.show()
+    else:
+        plt.savefig(path2save.absolute().as_posix())

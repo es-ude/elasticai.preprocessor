@@ -2,16 +2,11 @@
 This Python framework allows to deploy preprocessing methods on transient data. This can be done on pre-recorded data (offline) for evaluating an user-specific end-to-end signal processor.
 Afterwards, the used methods with its configuration can be deployed on hardware (MCU / FPGA) for real-time signal processing. We deliver the hardware-software co-design.
 
-In general, this framework aims to accelerate the deployment of signal processor pipelines in next-gen hardware development. 
-For building the whole digital AI hardware, we recommend to use the following framework: 
-- [denspp.offline](https://github.com/es-ude/denspp.offline): Finding the best preprocessing methods with offline data
-- [elasticAI.explorer](https://github.com/es-ude/elastic-ai.explorer): Hardware-aware NAS
-- [elasticAI.creator](https://github.com/es-ude/elastic-ai.creator): Building embedded deep learning models
-- [elasticAI.hardware](https://github.com/es-ude/elasticai.hardware): Hardware for deploying the embedded models
-- [elasticAI.equi-checker](https://github.com/es-ude/elasticai.equi-checker): Equivalence Framework for Hardware/Software Co-Design
 # Table of Content
 1. [Installation guide](#installation-guide)
-2. [Citation](#citation--documentation)
+2. [Third-party Tools](#third-party-tools)
+3. [Supporting layers](#supporting layers)
+3. [Citation](#citation--documentation)
 
 ## Installation guide
 For using this framework, the following software tools are necessary / recommended.
@@ -47,5 +42,19 @@ brew install icarus-verilog
 ```
 winget install IcarusVerilog.IcarusVerilog
 ```
+
+## Third-party tools
+In general, this framework aims to accelerate the deployment of signal processor pipelines in next-gen hardware development. 
+For building the whole digital AI hardware, we recommend to use the following framework: 
+- [denspp.offline](https://github.com/es-ude/denspp.offline): Finding the best preprocessing methods with offline data
+- [elasticAI.explorer](https://github.com/es-ude/elastic-ai.explorer): Hardware-aware NAS
+- [elasticAI.creator](https://github.com/es-ude/elastic-ai.creator): Building embedded deep learning models
+- [elasticAI.hardware](https://github.com/es-ude/elasticai.hardware): Hardware for deploying the embedded models
+- [elasticAI.equi-checker](https://github.com/es-ude/elasticai.equi-checker): Equivalence Framework for Hardware/Software Co-Design
+
+## Supporting layers
+This framework focus on time series analysis for sensor system. Therefore, we have support only a few processing layers.
+You find an overview [here](elasticai/preprocessor/README.md).
+
 ## Citation / Documentation
 If you want to understand what is the idea behind elasticAI ecosystem, please have a look on the corresponding [paper](https://doi.org/10.1515/cdbme-2023-1118) regarding end-to-end signal processing.

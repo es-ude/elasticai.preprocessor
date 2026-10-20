@@ -1,22 +1,12 @@
-from pathlib import Path
 import numpy as np
 
-from _data_plot import Data, load_smatable_data, plot_data
+from elasticai.preprocessor._data_plot import Data, load_smatable_data, plot_data
 from elasticai.preprocessor import get_path_to_project, PreprocessingSequential
 from elasticai.preprocessor.sequential import CreateSequentialSettings
 from elasticai.preprocessor.downsampling import DownSamplingSettings, DownSampling, DownSamplingTargets
-from elasticai.preprocessor.filter import FilterSettings, Filtering, FilterTargets
 
 
 def process_data(data: Data) -> Data:
-    sets_filt = FilterSettings(
-        method=FilterTargets.IIR,
-        sampling_rate=data.sampling_rate,
-        n_order=2,
-        f_filt=[100., 200.],
-        f_type="butter",
-        b_type="bandpass"
-    )
     sets_down = DownSamplingSettings(
         method=DownSamplingTargets.Polyphase,
         num_stages=1,
@@ -26,7 +16,6 @@ def process_data(data: Data) -> Data:
 
     dut = PreprocessingSequential(
         DownSampling(settings=sets_down),
-        Filtering(settings=sets_filt),
     )
     out = dut(
         x=data.data,
@@ -38,7 +27,7 @@ def process_data(data: Data) -> Data:
             total_bitwidth=8,
             frac_bitwidth=5,
             do_signed=True,
-            path2build=Path("build")
+            path2build=get_path_to_project("build")
         )
     )
 

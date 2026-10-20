@@ -131,6 +131,7 @@ include = ["elasticai"]
 exclude = [
   "elasticai/**/*_test.py",
   "elasticai/**/adc.py",
+  "**/_example*.py",
 ]
 
 [tool.uv]
