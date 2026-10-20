@@ -9,7 +9,7 @@ import torch
 from elasticai.preprocessor._basics import DataTransient, PreprocessingModule
 
 
-class NormalizationTargets(Enum):
+class DataNormalizationTargets(Enum):
     Norm = "norm"
     MedinanMAD = "medianmad"
     MeanMAD = "meanmad"
@@ -18,14 +18,14 @@ class NormalizationTargets(Enum):
     Zeroone = "zeroone"
 
 
-class PeakMode(IntEnum):
+class DataNormalizationPeakMode(IntEnum):
     Max = 0
     Min = 1
     AbsMax = 2
 
 
 @dataclass
-class NormalizationSettings:
+class DataNormalizationSettings:
     """Settings for performing normalization on input data
     Attributes:
         method: TargetsNormalization [
@@ -37,35 +37,35 @@ class NormalizationSettings:
         peak_mode:  Mode for taking peak value (0: max, 1: min, 2: abs-max)
     """
 
-    method: NormalizationTargets
-    peak_mode: int | PeakMode
+    method: DataNormalizationTargets
+    peak_mode: int | DataNormalizationPeakMode
 
 
-DefaultNormalizationSettings = NormalizationSettings(
-    method=NormalizationTargets.Minmax,
-    peak_mode=PeakMode.AbsMax,
+DataNormalizationSettingsDefault = DataNormalizationSettings(
+    method=DataNormalizationTargets.Minmax,
+    peak_mode=DataNormalizationPeakMode.AbsMax,
 )
 
 
 class DataNormalization(PreprocessingModule[DataTransient, DataTransient]):
-    _settings: NormalizationSettings
+    _settings: DataNormalizationSettings
     __params: dict = {}
 
-    def __init__(self, settings: NormalizationSettings) -> None:
+    def __init__(self, settings: DataNormalizationSettings) -> None:
         """Normalizing the input data to enhance classification performance.
         :param settings:   Settings for performing normalization on input data
         """
         super().__init__()
         self._settings = settings
         if isinstance(settings.method, str):
-            self._settings.method = NormalizationTargets(settings.method.lower())
+            self._settings.method = DataNormalizationTargets(settings.method.lower())
         self.__list_norm_methods = {
-            NormalizationTargets.Zeroone: self._normalize_zeroone,
-            NormalizationTargets.Minmax: self._normalize_minmax,
-            NormalizationTargets.Norm: self._normalize_norm,
-            NormalizationTargets.Zscore: self._normalize_zscore,
-            NormalizationTargets.MedinanMAD: self._normalize_medianmad,
-            NormalizationTargets.MeanMAD: self._normalize_meanmad,
+            DataNormalizationTargets.Zeroone: self._normalize_zeroone,
+            DataNormalizationTargets.Minmax: self._normalize_minmax,
+            DataNormalizationTargets.Norm: self._normalize_norm,
+            DataNormalizationTargets.Zscore: self._normalize_zscore,
+            DataNormalizationTargets.MedinanMAD: self._normalize_medianmad,
+            DataNormalizationTargets.MeanMAD: self._normalize_meanmad,
         }
 
     def _list_normalization_methods(self) -> list:
@@ -118,16 +118,19 @@ class DataNormalization(PreprocessingModule[DataTransient, DataTransient]):
         from elasticai.creator_plugins.normalization.src import c_compile
 
         method = self._settings.method
-        if method not in (NormalizationTargets.Minmax, NormalizationTargets.Zscore):
+        if method not in (DataNormalizationTargets.Minmax, DataNormalizationTargets.Zscore):
             raise NotImplementedError(
                 "C generation currently supports only minmax and zscore normalization"
             )
-        if method == NormalizationTargets.Minmax and self._settings.peak_mode != PeakMode.AbsMax:
+        if (
+            method == DataNormalizationTargets.Minmax
+            and self._settings.peak_mode != DataNormalizationPeakMode.AbsMax
+        ):
             raise NotImplementedError("C generation currently supports only peak_mode=AbsMax")
 
         builders = {
-            NormalizationTargets.Minmax: c_compile.build_normalization_minmax,
-            NormalizationTargets.Zscore: c_compile.build_normalization_zscore,
+            DataNormalizationTargets.Minmax: c_compile.build_normalization_minmax,
+            DataNormalizationTargets.Zscore: c_compile.build_normalization_zscore,
         }
         builders[method](
             bitwidth=bitwidth,
@@ -178,7 +181,7 @@ class DataNormalization(PreprocessingModule[DataTransient, DataTransient]):
 
     ################################ IMPLEMENTED METHODS ################################
     def _normalize_zeroone(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
-        self._settings.peak_mode = PeakMode.AbsMax
+        self._settings.peak_mode = DataNormalizationPeakMode.AbsMax
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(2 * self.__params["scale_used"], dataset.shape[-1])
@@ -189,7 +192,7 @@ class DataNormalization(PreprocessingModule[DataTransient, DataTransient]):
         return dataset_norm
 
     def _normalize_minmax(self, dataset: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
-        self._settings.peak_mode = PeakMode.AbsMax
+        self._settings.peak_mode = DataNormalizationPeakMode.AbsMax
         self._get_scaling_value_minmax(dataset)
         if isinstance(dataset, np.ndarray):
             scale_norm = self._generate_numpy_full(self.__params["scale_used"], dataset.shape[-1])

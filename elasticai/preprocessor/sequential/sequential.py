@@ -28,7 +28,7 @@ class CreateSequentialSettings:
         path2build:     Path to build output directory
     """
 
-    target: BuildPlatformTargets
+    target: str | BuildPlatformTargets
     total_bitwidth: int
     frac_bitwidth: int
     do_signed: bool
@@ -102,6 +102,8 @@ class PreprocessingSequential:
         """
         if not len(self):
             raise AttributeError("No pipelines are loaded")
+        if isinstance(settings.target, str):
+            settings.target = BuildPlatformTargets(settings.target.lower())
 
         self._logger.debug("\nCreate hardware designs")
         self._create_sequential(settings=settings, num_inputs=1, num_outputs=1)

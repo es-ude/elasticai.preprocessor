@@ -8,8 +8,8 @@ from elasticai.equichecker import CompileLoader, compare_values
 
 from elasticai.preprocessor.normalization import (
     DataNormalization,
-    NormalizationSettings,
-    NormalizationTargets,
+    DataNormalizationSettings,
+    DataNormalizationTargets,
 )
 
 pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compiler")
@@ -22,7 +22,7 @@ INTEGER_CONFIGS = [
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     normalizer.create_design(target=target, total_bitwidth=8, id="0", path2save=tmp_path, is_signed=True)
 
@@ -33,7 +33,7 @@ def test_create_design_generates_minmax_c_files(tmp_path: Path, target: str) -> 
 
 @pytest.mark.parametrize("target", ["mcu", "pc"])
 def test_create_design_generates_zscore_c_files(tmp_path: Path, target: str) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     normalizer.create_design(target=target, total_bitwidth=8, id="0", path2save=tmp_path, is_signed=True)
 
@@ -43,7 +43,7 @@ def test_create_design_generates_zscore_c_files(tmp_path: Path, target: str) -> 
 
 
 def test_create_design_rejects_unknown_target(tmp_path: Path) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
 
     with pytest.raises(ValueError, match="Target unknown is not supported"):
@@ -51,7 +51,7 @@ def test_create_design_rejects_unknown_target(tmp_path: Path) -> None:
 
 
 def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
 
     try:
@@ -63,7 +63,7 @@ def test_create_design_rejects_fpga_target(tmp_path: Path) -> None:
 
 
 def test_create_design_rejects_other_normalization_methods(tmp_path: Path) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("norm"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("norm"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
 
     try:
@@ -75,7 +75,7 @@ def test_create_design_rejects_other_normalization_methods(tmp_path: Path) -> No
 
 
 def test_create_design_rejects_other_peak_modes(tmp_path: Path) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=1)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=1)
     normalizer = DataNormalization(settings=sets)
 
     try:
@@ -94,7 +94,7 @@ def test_generated_minmax_c_matches_python_frames(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design(
@@ -146,7 +146,7 @@ def test_generated_zscore_c_matches_python_frames(
     numpy_dtype: type[np.generic],
     c_type: str,
 ) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design(
@@ -198,7 +198,7 @@ def test_generated_minmax_c_accepts_empty_frame(
     _: type[np.generic],
     c_type: str,
 ) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("minmax"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("minmax"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design(
@@ -232,7 +232,7 @@ def test_generated_zscore_c_accepts_empty_frame(
     _: type[np.generic],
     c_type: str,
 ) -> None:
-    sets = NormalizationSettings(method=NormalizationTargets("zscore"), peak_mode=2)
+    sets = DataNormalizationSettings(method=DataNormalizationTargets("zscore"), peak_mode=2)
     normalizer = DataNormalization(settings=sets)
     output_dir = tmp_path / "src"
     normalizer.create_design(
