@@ -63,6 +63,12 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
             )
         )
 
+    def apply_params(self, scaling: float, bias: float) -> None:
+        """Applying custom params for rescaling"""
+        self._scaling_factor = scaling
+        self._zero_point = bias
+        self._update = False
+
     def __call__(self, x: DataTransient) -> DataTransient:
         return DataTransient(
             data=self.forward(x.data),

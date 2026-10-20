@@ -41,8 +41,8 @@ class ConversionResamplerSettings:
     is_int_output: bool
     srate_orig: float
     srate_new: float
-    vneg: float
-    vpos: float
+    vneg: float = -1.0
+    vpos: float = 1.0
 
     @property
     def vcm(self) -> float:
@@ -122,7 +122,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             xout = list(map(self._arith.round_to_integer, data))
             shape = _get_dtype(total_bits=self._settings.total_bits, is_signed=self._settings.is_signed)
         else:
-            xout = [self._arith.round_to_rational(val) for val in data]
+            xout = [self._arith.round_to_rational(float(val)) for val in data]
             shape = np.float32
         return np.asarray(xout, dtype=shape)
 
@@ -254,7 +254,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             case ConversionResamplerTargets.FromInteger:
                 self._data = self._redefine_from_int(xin)
             case ConversionResamplerTargets.FromVoltage:
-                self._data = self._redefine_from_voltage(x)
+                self._data = self._redefine_from_voltage(xin)
             case _:
                 raise AttributeError
         return self._data
