@@ -5,7 +5,7 @@ Afterwards, the used methods with its configuration can be deployed on hardware 
 # Table of Content
 1. [Installation guide](#installation-guide)
 2. [Third-party Tools](#third-party-tools)
-3. [Supporting layers](#supporting layers)
+3. [Supporting layers](#supporting-layers)
 3. [Citation](#citation--documentation)
 
 ## Installation guide
