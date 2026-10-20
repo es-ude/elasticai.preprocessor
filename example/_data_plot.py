@@ -5,11 +5,6 @@ from dataclasses import dataclass
 from pyxdf import load_xdf
 from matplotlib import pyplot as plt
 
-from elasticai.preprocessor import get_path_to_project, PreprocessingSequential
-from elasticai.preprocessor.sequential import DataTransient, CreateSequentialSettings
-from elasticai.preprocessor.downsampling import DownSamplingSettings, DownSampling, DownSamplingTargets
-from elasticai.preprocessor.filter import FilterSettings, Filtering, FilterTargets
-
 
 @dataclass
 class Data:
@@ -39,58 +34,6 @@ def load_smatable_data(path2data: Path) -> Data:
         channel_id=used_channels,
         time=np.asarray(stream["time_stamps"]-stream["time_stamps"][0], dtype=np.float32),
         data=scaling * np.asarray(stream["time_series"][:, used_channels], dtype=np.float32).T
-    )
-
-
-def process_data(data: Data) -> Data:
-    sets_filt = FilterSettings(
-        method=FilterTargets.IIR,
-        gain=1.0,
-        fs=data.sampling_rate,
-        n_order=1,
-        f_filt=[100., 300.],
-        f_type="butter",
-        b_type="bandpass"
-    )
-    sets_down = DownSamplingSettings(
-        method=DownSamplingTargets.Polyphase,
-        num_stages=5,
-        sampling_rate=data.sampling_rate,
-        dsr=8
-    )
-
-    dut = PreprocessingSequential(
-        Filtering(settings=sets_filt),
-        DownSampling(settings=sets_down)
-    )
-    data = dut(
-        x=data.data,
-        fs=data.sampling_rate,
-    )
-    dut.create_design(
-        settings=CreateSequentialSettings(
-            target="fpga",
-            total_bitwidth=8,
-            frac_bitwidth=5,
-            do_signed=True,
-            path2build=Path("build")
-        )
-    )
-
-    data0 = list()
-    for idx, xraw in enumerate(data.data):
-        data0.append(
-            dut(
-                x=xraw,
-                fs=data.sampling_rate,
-            )
-        )
-
-    return Data(
-        sampling_rate=data0[-1].sampling_rate,
-        time=np.arange(start=0, stop=data0[0].data.size, step=1) / data0[-1].sampling_rate,
-        data=np.asarray([data.data for data in data0]),
-        channel_id=data.channel_id
     )
 
 
@@ -142,11 +85,3 @@ def plot_data(data_orig: Data, data_filt: Data) -> None:
     axs[0,0].set_yticks(yticks)
     plt.tight_layout()
     plt.show()
-
-
-if __name__ == "__main__":
-    data_orig = load_smatable_data(
-        path2data=get_path_to_project() / "smatable-data" / "raw-data" / "sub-P001" / "ses-S001/knock/sub-P001_ses-S001_task-Default_run-001_knock.xdf"
-    )
-    data_proc = process_data(data_orig)
-    plot_data(data_orig=data_orig, data_filt=data_proc)

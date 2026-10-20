@@ -33,7 +33,7 @@ def test_path_to_project_ref() -> None:
     ids=["labeled", "single", "partly_unlabeled", "all_unlabeled", "empty"],
 )
 def test_data_waveform_properties(waveform, xpos, label, length, num_samples, is_labeled):
-    data = DataWaveform(waveform=waveform, xpos=xpos, label=label, sampling_rate=1000.0)
+    data = DataWaveform(data=waveform, xpos=xpos, label=label, sampling_rate=1000.0)
 
     assert data.length == length
     assert data.num_samples == num_samples

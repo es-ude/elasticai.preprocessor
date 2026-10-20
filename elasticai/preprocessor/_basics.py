@@ -57,20 +57,20 @@ class DataSpectral:
 class DataWaveform:
     """Dataclass for handling the waveform data inside the pipeline
     Attributes:
-        waveform:       Numpy array of the data
+        data:       Numpy array of the data
         xpos:           Numpy array with positions which an event is detected
         label:          Numpy array with labels for each event
         sampling_rate:  Float with sampling rate [Hz]
     """
 
-    waveform: np.ndarray
+    data: np.ndarray
     xpos: np.ndarray
     label: np.ndarray
     sampling_rate: float
 
     @property
     def length(self) -> int:
-        return self.waveform.shape[1]
+        return self.data.shape[1]
 
     @property
     def num_samples(self) -> int:
