@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
+from logging import Logger, getLogger
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -34,22 +36,44 @@ class CreateSequentialSettings:
 
 
 class PreprocessingSequential:
+    _logger: Logger
     modules: list[PreprocessingModule]
 
     def __init__(self, *modules: PreprocessingModule):
+        self._logger = getLogger(__name__)
         self.modules = list(modules)
 
-    def __call__(self, x: np.ndarray, fs: float) -> DataTransient | DataWaveform:
+    def __call__(self, x: np.ndarray, fs: float) -> Any:
+        def prozess_data(x: np.ndarray, fs: float) -> DataTransient | DataWaveform:
+            data = DataTransient(
+                data=x,
+                sampling_rate=fs,
+            )
+            for module in self.modules:
+                data = module(data)
+            return data
+
         if not len(self):
             raise AttributeError("No pipelines are loaded")
 
-        data = DataTransient(
-            data=x,
-            sampling_rate=fs,
-        )
-        for module in self.modules:
-            data = module(data)
-        return data
+        if len(x.shape) == 1:
+            self._logger.debug("Data is only single channel")
+            return prozess_data(x=x, fs=fs)
+        elif len(x.shape) == 2:
+            if x.shape[1] <= x.shape[0]:
+                raise ValueError("Please adapt the input data structure to (num_channels, num_samples)")
+            self._logger.debug("Data is multi-channel")
+
+            data0 = list()
+            fs0 = list()
+            for xraw in x:
+                out = prozess_data(
+                    x=xraw,
+                    fs=fs,
+                )
+                data0.append(out.data)
+                fs0.append(out.sampling_rate)
+            return DataTransient(data=np.asarray(data0), sampling_rate=fs0[-1])
 
     def __getitem__(self, idx):
         return self.modules[idx]
@@ -59,6 +83,7 @@ class PreprocessingSequential:
 
     def append(self, module: PreprocessingModule):
         self.modules.append(module)
+        self._logger.debug(f"Add {module} to processing pipeline")
         return self
 
     def __repr__(self):
@@ -78,12 +103,14 @@ class PreprocessingSequential:
         if not len(self):
             raise AttributeError("No pipelines are loaded")
 
+        self._logger.debug("\nCreate hardware designs")
         self._create_sequential(settings=settings, num_inputs=1, num_outputs=1)
         path2src = settings.path2build / "src"
         path2src.mkdir(exist_ok=True, parents=True)
         for idx, module in enumerate(self.modules):
             if not hasattr(module, "create_design"):
                 raise AttributeError(f"module {module} has no `create_design` method")
+            self._logger.debug(f"\nCreate hardware design for {module}")
             module.create_design(
                 id=f"{idx}",
                 target=settings.target.value,
@@ -96,6 +123,12 @@ class PreprocessingSequential:
     def _create_sequential(
         self, settings: CreateSequentialSettings, num_inputs: int, num_outputs: int
     ) -> None:
+        self._logger.debug("\nCreate sequential for doing the pre-processing")
+        if isinstance(settings.target, str):
+            settings.target = BuildPlatformTargets(settings.target.lower())
+        else:
+            settings.target = settings.target
+
         match settings.target:
             case BuildPlatformTargets.Workstation:
                 self._create_sequential_c(

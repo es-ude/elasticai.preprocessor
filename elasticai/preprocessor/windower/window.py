@@ -183,7 +183,7 @@ class WindowSequencer(PreprocessingModule[DataTransient, DataWaveform]):
     def __call__(self, x: DataTransient) -> DataWaveform:
         self._settings.sampling_rate = x.sampling_rate
         return DataWaveform(
-            waveform=self.forward(x=x.data),
+            data=self.forward(x=x.data),
             xpos=np.asarray([0]),
             label=np.asarray([255]),
             sampling_rate=self._settings.sampling_rate,

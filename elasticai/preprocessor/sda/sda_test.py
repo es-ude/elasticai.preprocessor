@@ -137,8 +137,8 @@ class TestSpikeDetection(TestCase):
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[0], self.signal_eap[1].size)
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[0], self.signal_eap[1].size)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreater(rslt_pos.f1_score, 0.95)
 
     def test_position_align_min(self):
@@ -151,12 +151,12 @@ class TestSpikeDetection(TestCase):
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[0], self.signal_eap[1].size)
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[0], self.signal_eap[1].size)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreater(rslt_pos.f1_score, 0.95)
         self.assertEqual(
-            np.argmin(rslt.waveform, axis=1).tolist(),
-            [self.set0.get_integer_spike_start for _ in range(rslt.waveform.shape[0])],
+            np.argmin(rslt.data, axis=1).tolist(),
+            [self.set0.get_integer_spike_start for _ in range(rslt.data.shape[0])],
         )
 
     def test_frame_normal_const(self):
@@ -168,13 +168,13 @@ class TestSpikeDetection(TestCase):
         dut.apply_threshold(thr=-40e-6)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=12,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreater(rslt_pos.f1_score, 0.95)
 
     def test_spike_transient_min_const(self):
@@ -186,17 +186,17 @@ class TestSpikeDetection(TestCase):
         dut.apply_threshold(thr=-40e-6)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=16,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.f1_score, 0.95)
         self.assertEqual(
-            np.argmin(rslt.waveform, axis=1).tolist(),
-            [self.set0.get_integer_spike_start for _ in range(rslt.waveform.shape[0])],
+            np.argmin(rslt.data, axis=1).tolist(),
+            [self.set0.get_integer_spike_start for _ in range(rslt.data.shape[0])],
         )
 
     def test_spike_transient_neo(self):
@@ -208,16 +208,16 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
-        min0 = np.argmin(rslt.waveform, axis=1).tolist()
-        min1 = [self.set0.get_integer_spike_start for _ in range(rslt.waveform.shape[0])]
+        min0 = np.argmin(rslt.data, axis=1).tolist()
+        min1 = [self.set0.get_integer_spike_start for _ in range(rslt.data.shape[0])]
         matches = sum(a == b for a, b in zip(min0, min1))
         self.assertGreaterEqual(matches, 15)
 
@@ -230,13 +230,13 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
 
     def test_spike_transient_absolute(self):
@@ -248,13 +248,13 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
         self.assertGreaterEqual(rslt_pos.f1_score, 0.75)
 
@@ -267,13 +267,13 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 14)
         self.assertGreaterEqual(rslt_pos.f1_score, 0.6)
 
@@ -286,13 +286,13 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
 
     def test_spike_transient_eed(self):
@@ -305,13 +305,13 @@ class TestSpikeDetection(TestCase):
         dut = SpikeDetection(self.set0)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 16)
 
     def test_spike_transient_sbp(self):
@@ -325,11 +325,11 @@ class TestSpikeDetection(TestCase):
         dut.apply_threshold(thr=60e-6)
         rslt = dut(x=DataTransient(data=self.signal_eap[0], sampling_rate=self.set0.sampling_rate))
         rsltf = dut.forward(x=self.signal_eap[0])
-        assert rslt.waveform.tolist() == rsltf.tolist()
+        assert rslt.data.tolist() == rsltf.tolist()
         rslt_pos = compare_timestamps(
             true_labels=self.signal_eap[1].tolist(),
             pred_labels=rslt.xpos.tolist(),
             window=20,
         )
-        self.assertEqual(rslt.waveform.shape[1], self.set0.get_integer_spike_frame)
+        self.assertEqual(rslt.data.shape[1], self.set0.get_integer_spike_frame)
         self.assertGreaterEqual(rslt_pos.TP, 18)

@@ -189,7 +189,7 @@ class SpikeDetection(PreprocessingModule[DataTransient, DataWaveform]):
             alig_frames.append(frame1)
             alig_xpos.append(x_neg1)
         return DataWaveform(
-            waveform=np.array(alig_frames),
+            data=np.array(alig_frames),
             xpos=np.array(alig_xpos),
             label=np.full(len(alig_xpos), 255, dtype=np.uint8),
             sampling_rate=self._settings.sampling_rate,
@@ -202,7 +202,7 @@ class SpikeDetection(PreprocessingModule[DataTransient, DataWaveform]):
         return self.__frame_extraction(xraw=x, xpos=xpos, xoffset=0)
 
     def forward(self, x: np.ndarray) -> np.ndarray:
-        return self._forward_full(x=x).waveform
+        return self._forward_full(x=x).data
 
     def __call__(self, x: DataTransient) -> DataWaveform:
         self._settings.sampling_rate = x.sampling_rate
