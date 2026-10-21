@@ -179,7 +179,7 @@ def test_create_design_wrong_target(target: str, tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("target", [BuildPlatformTargets.MCU, BuildPlatformTargets.Workstation])
 def test_create_design_c(target: BuildPlatformTargets, tmp_path: Path) -> None:
-    make_rescaler().create_design(id="1", target=target.value, **design_kwargs(tmp_path))
+    make_rescaler().create_design(id="1", target=target, **design_kwargs(tmp_path))
 
     files_check = ["rescaler_1.c", "rescaler_1.h", "rescaler_template.h"]
     files_check.sort()
@@ -192,5 +192,12 @@ def test_create_design_c(target: BuildPlatformTargets, tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("target", [BuildPlatformTargets.FPGA])
 def test_create_design_verilog(target: BuildPlatformTargets, tmp_path: Path) -> None:
-    with pytest.raises(NotImplementedError):
-        make_rescaler().create_design(id="1", target=target.value, **design_kwargs(tmp_path))
+    make_rescaler().create_design(id="2", target=target, **design_kwargs(tmp_path))
+
+    files_check = ["rescaler_2.v"]
+    files_check.sort()
+    files_avai = [file.name for file in tmp_path.glob("*.*")]
+    files_avai.sort()
+
+    assert len(files_check) == len(files_avai)
+    assert files_check == files_avai

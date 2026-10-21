@@ -58,7 +58,7 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
         self._arith = FxpArithmetic(
             FxpParams(
                 total_bits=self._settings.total_bits,
-                frac_bits=self._settings.frac_bits,
+                frac_bits=self._settings.frac_bits if self._settings.method == RescalerTargets.FxP else 0,
                 signed=self._settings.is_signed,
             )
         )
@@ -122,6 +122,9 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
             case _:
                 raise AttributeError
 
+    def _get_data_statistics(self, x: np.ndarray) -> tuple[float, float, float]:
+        return float(np.max(x)), float(np.min(x)), float(np.mean(x))
+
     def _get_int_range_and_dtype(self) -> tuple[int, int, np.dtype]:
         total_bits = self._settings.total_bits
         is_signed = self._settings.is_signed
@@ -133,29 +136,45 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
         raise AttributeError(f"Unknown datatype for total_bits = {total_bits}")
 
     def _rescale_fxp(self, x: np.ndarray) -> np.ndarray:
-        return self._quantize_digital(data=x, is_int_input=True, is_int_output=True)
+        qmin, qmax, dtype = self._get_int_range_and_dtype()
+        xmax, xmin, xmean = self._get_data_statistics(x)
+        scale = (xmax - xmin) / (qmax - qmin)
+        offset = xmean / scale
+
+        if self._update:
+            self._scaling_factor = scale
+            self._zero_point = offset
+
+        x0 = (x - xmean) / scale + +(0 if self._settings.is_signed else qmax / 2)
+        return self._quantize_digital(data=x0, is_int_input=True, is_int_output=True)
 
     def _rescale_int_sym(self, x: np.ndarray) -> np.ndarray:
-        _, qmax, dtype = self._get_int_range_and_dtype()
-        qmin_sym = -qmax if self._settings.is_signed else 0
+        qmin, qmax, dtype = self._get_int_range_and_dtype()
+        xmax, xmin, xmean = self._get_data_statistics(x)
+        scale = (xmax - xmin) / (qmax - qmin)
+        offset = xmean / scale
 
-        xf = x.astype(float)
-        max_abs = np.max(np.abs(xf)) if xf.size else 0.0
         if self._update:
-            self._scaling_factor = float(max_abs / qmax) if max_abs > 0 else 1.0
-            self._zero_point = 0.0
-        xq = np.clip(np.round(xf / self._scaling_factor), qmin_sym, qmax)
+            self._scaling_factor = scale
+            self._zero_point = offset
+
+        x0 = (x - xmean) / scale + (0 if self._settings.is_signed else qmax / 2)
+        xq = np.clip(np.round(x0), a_min=qmin, a_max=qmax)
         return xq.astype(dtype)
 
     def _rescale_int_asym(self, x: np.ndarray) -> np.ndarray:
         qmin, qmax, dtype = self._get_int_range_and_dtype()
+        xmax, xmin, xmean = self._get_data_statistics(x)
+        scale = (xmax - xmin) / (qmax - qmin)
+        offset = xmean / scale
 
-        xf = x.astype(np.float64)
-        xmin, xmax = (xf.min(), xf.max()) if xf.size else (0.0, 0.0)
         if self._update:
-            self._scaling_factor = (xmax - xmin) / (qmax - qmin) if xmax > xmin else 1.0
-            self._zero_point = np.round(qmin - xmin / self._scaling_factor)
-        xq = np.clip(np.round(xf / self._scaling_factor) + self._zero_point, qmin, qmax)
+            self._scaling_factor = scale
+            self._zero_point = offset
+
+        xq = np.clip(
+            np.round((x - xmean) / self._scaling_factor) + self._zero_point, a_min=qmin, a_max=qmax
+        )
         return xq.astype(dtype)
 
     def create_design(
@@ -194,4 +213,11 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
         )
 
     def _create_design_verilog(self, id: str, path2save: Path, bitwidth_input: int) -> None:
-        raise NotImplementedError("FPGA design is not implemented yet")
+        from elasticai.creator_plugins.adc.utils import load_and_plugin
+
+        load_and_plugin(
+            type="rescaler",
+            id=id,
+            params={"BITWIDTH_IN": bitwidth_input, "BITWIDTH_OUT": bitwidth_input, "NUM_SAMPLES": 1},
+            path2save=path2save,
+        )
