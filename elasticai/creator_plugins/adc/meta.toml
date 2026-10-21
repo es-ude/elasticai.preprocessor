@@ -4,5 +4,5 @@ version = "0.1"
 api_version = "0.1"
 target_runtime = "verilog"
 target_platform = "FPGA"
-generated = ["replayer"]
+generated = ["replayer", "rescaler_pow2", "rescaler_mult"]
 static_files = []

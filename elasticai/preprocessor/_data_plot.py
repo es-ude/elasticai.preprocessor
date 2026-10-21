@@ -14,7 +14,7 @@ class Data:
     data: np.ndarray
 
 
-def load_smatable_data(path2data: Path) -> Data:
+def load_smatable_data(path2data: Path, scale = 1.65 / 2 ** 17 / 40, offset: float = 0.) -> Data:
     # Download the data here to local folder: https://zenodo.org/records/20408458
     used_channels = [1, 4, 6, 8]
     streams, _ = load_xdf(
@@ -27,12 +27,11 @@ def load_smatable_data(path2data: Path) -> Data:
         for stream in streams
         if np.asarray(stream["time_series"]).ndim == 2 and np.asarray(stream["time_series"]).shape[1] >= 9
     )
-    scaling = 3.3 / 2**17 / 40
     return Data(
         sampling_rate=float(stream["info"]["nominal_srate"][0]),
         channel_id=used_channels,
         time=np.asarray(stream["time_stamps"] - stream["time_stamps"][0], dtype=np.float32),
-        data=scaling * np.asarray(stream["time_series"][:, used_channels], dtype=np.float32).T,
+        data=offset + scale * np.asarray(stream["time_series"][:, used_channels], dtype=np.float32).T,
     )
 
 
@@ -66,7 +65,7 @@ def plot_data(
     num_rows = 2
     num_cols = 4
     scaley = 1e3
-    _, axs = plt.subplots(num_rows, num_cols, sharex=True, sharey=True)
+    _, axs = plt.subplots(num_rows, num_cols, sharex=True, sharey="row")
 
     for idx, (raw_orig, raw_filt) in enumerate(zip(data_orig.data, data_filt.data)):
         ysel = idx % num_cols
