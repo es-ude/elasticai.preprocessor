@@ -8,14 +8,14 @@
 // ReplayerTrggState  — replayer with parallel trigger channel
 
 typedef struct {
-    uint16_t pos;         // current read position
-    uint16_t num_values;  // total number of stored values
+    uint32_t pos;         // current read position
+    uint32_t num_values;  // total number of stored values
     void    *data;        // pointer to the data array
 } ReplayerState;
 
 typedef struct {
-    uint16_t  pos;
-    uint16_t  num_values;
+    uint32_t  pos;
+    uint32_t  num_values;
     void     *data;
     uint8_t  *trgg;       // pointer to the trigger array
 } ReplayerTrggState;
