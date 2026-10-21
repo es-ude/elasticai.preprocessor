@@ -16,7 +16,9 @@ pytestmark = pytest.mark.skipif(which("cc") is None, reason="requires a C compil
 
 ADC_CONFIGS = [
     pytest.param(
-        RescalerSettings(method=RescalerTargets.FxP, total_bits=8, frac_bits=0, is_signed=True),
+        RescalerSettings(
+            method=RescalerTargets.FxP, total_bits=8, frac_bits=0, is_signed=True, scale_safe=1.0
+        ),
         "signed char",
         id="int8_signed",
     ),
@@ -26,6 +28,8 @@ ADC_CONFIGS = [
             total_bits=8,
             frac_bits=0,
             is_signed=False,
+            scale_safe=1.0,
+            scale_pow2=False,
         ),
         "unsigned char",
         id="uint8_unsigned",
@@ -36,6 +40,8 @@ ADC_CONFIGS = [
             total_bits=12,
             frac_bits=0,
             is_signed=True,
+            scale_safe=1.0,
+            scale_pow2=False,
         ),
         "signed short",
         id="int16_12bit",
@@ -56,10 +62,7 @@ def _py_adc(settings: RescalerSettings) -> int:
 
 def test_build_adc_quant_generates_c_files(tmp_path: Path) -> None:
     settings = RescalerSettings(
-        method=RescalerTargets.FxP,
-        total_bits=12,
-        frac_bits=0,
-        is_signed=True,
+        method=RescalerTargets.FxP, total_bits=12, frac_bits=0, is_signed=True, scale_safe=1.0
     )
     build_rescaler(settings=settings, path2save=tmp_path, id="0", bitwidth_input=8)
     assert (tmp_path / "rescaler_template.h").exists()
