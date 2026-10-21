@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from fractions import Fraction
 from logging import Logger, getLogger
@@ -94,8 +94,8 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
                 total_bits=settings.total_bits, frac_bits=settings.frac_bits, signed=settings.is_signed
             )
         )
+        self._settings = replace(settings)
         self._trgg = []
-        self._settings = settings
         if isinstance(settings.method, str):
             self._settings.method = ConversionResamplerTargets(settings.method.lower())
 
@@ -140,6 +140,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
         xmin = self._settings.vneg
 
         xin = np.round((self._clamp_analog(data) - xmin) / xlsb)
+        xin = np.clip(xin, 0, 2**self._settings.total_bits - 1)
         xin = (xin + self._arith.minimum_as_integer) * self._arith._config.minimum_step_as_rational
         return self._quantize(data=xin, is_int_output=is_int_output)
 
@@ -262,7 +263,8 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
 
     def __call__(self, data: DataTransient) -> DataTransient:
         self._settings.srate_orig = data.sampling_rate
-        return DataTransient(data=self.forward(x=data.data), sampling_rate=self._settings.srate_new)
+        srate_out = self._settings.srate_new or self._settings.srate_orig
+        return DataTransient(data=self.forward(x=data.data), sampling_rate=srate_out)
 
     def add_trigger_list(self, trgg: list) -> None:
         """Add trigger list for the hardware design
@@ -279,14 +281,15 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
         frac_bitwidth: int = 0,
         is_signed: bool = False,
     ):
-        if self._data is None:
+        if self._data is None:  # pragma: no branch
             raise ValueError("No data is available - Please apply data to the forward func")
-        if not self._settings.is_int_output:
-            self._settings.is_int_output = True
-            self._data = self._redefine_from_fxp(self._data)
-        if "int" not in self._data.dtype.name:  # pragma: no branch
+        if self._settings.is_int_output:
+            data = self._data
+        else:
+            data = self._quantize_digital(self._data, is_int_input=False, is_int_output=True)
+        if "int" not in data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
-        if self._data.shape not in ((self._data.size,), (1, self._data.size)):  # pragma: no branch
+        if self._data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
             raise ValueError("shape")
 
         supported_targets = ["mcu", "pc", "fpga"]
@@ -296,11 +299,12 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             self._create_design_c(
                 id=id,
                 path2save=path2save,
+                data=data,
             )
         else:
-            self._create_design_verilog(id=id, path2save=path2save)
+            self._create_design_verilog(id=id, path2save=path2save, data=data)
 
-    def _create_design_c(self, id: str, path2save: Path, define_path: str = "src"):
+    def _create_design_c(self, id: str, path2save: Path, data: np.ndarray, define_path: str = "src"):
         from elasticai.creator_plugins.player.src import c_compile
 
         use_trgg = len(self._trgg) > 0
@@ -308,7 +312,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             c_compile.build_replayer_with_trigger(
                 replayer_id=id,
                 define_path=define_path,
-                data=self._data.tolist(),
+                data=data.tolist(),
                 trigger=self._trgg,
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
@@ -318,19 +322,19 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             c_compile.build_replayer(
                 replayer_id=id,
                 define_path=define_path,
-                data=self._data.tolist(),
+                data=data.tolist(),
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
                 path2save=path2save,
             )
 
-    def _create_design_verilog(self, id: str, path2save: Path) -> None:
+    def _create_design_verilog(self, id: str, path2save: Path, data: np.ndarray) -> None:
         from elasticai.creator_plugins.player.utils import load_and_plugin
 
         use_trgg = len(self._trgg) > 0
 
         path2data = path2save / f"replayer_{id}_data.mem"
-        write_mem_file(path=path2data, data=self._data.tolist(), bitwidth=self._settings.total_bits)
+        write_mem_file(path=path2data, data=data.tolist(), bitwidth=self._settings.total_bits)
         path2trgg = path2save / f"replayer_{id}_trgg.mem"
         if use_trgg:
             write_mem_file(path=path2trgg, data=self._trgg, bitwidth=1)
@@ -340,7 +344,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             id=id,
             params={
                 "BITWIDTH": self._settings.total_bits,
-                "NUM_VALUES": self._data.size,
+                "NUM_VALUES": data.size,
                 "PATH2DATA": translate_path_to_int(path2data),
                 "PATH2TRGG": translate_path_to_int(path2trgg),
                 "ADD_TRIGGER": use_trgg,
