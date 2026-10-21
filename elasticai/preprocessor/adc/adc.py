@@ -70,11 +70,11 @@ ConversionResamplerSettingsDefault = ConversionResamplerSettings(
 
 class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
     _logger: Logger
-    _funcs = CommonDigitalFunctions
-    _arith = FxpArithmetic
+    _funcs: CommonDigitalFunctions
+    _arith: FxpArithmetic
     _settings: ConversionResamplerSettings
     _data: np.ndarray
-    _trgg: list = []
+    _trgg: list[int]
 
     def __init__(self, settings: ConversionResamplerSettings) -> None:
         """Class for resampling pre-recorded transient data to get a new data stream output with adapted characteristics
@@ -94,6 +94,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
                 total_bits=settings.total_bits, frac_bits=settings.frac_bits, signed=settings.is_signed
             )
         )
+        self._trgg = []
         self._settings = settings
         if isinstance(settings.method, str):
             self._settings.method = ConversionResamplerTargets(settings.method.lower())
@@ -151,7 +152,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             self._logger.debug("No resampling necessary")
             return data
         else:
-            frac = Fraction(self._settings.srate_new / self._settings.srate_orig)
+            frac = Fraction(int(self._settings.srate_new) / int(self._settings.srate_orig))
             p_ratio = frac.numerator
             q_ratio = frac.denominator
 
