@@ -31,54 +31,60 @@ module BIQUAD_DF1#(
     input wire DO_CALC,
 	`ifdef USE_EXT_WEIGHTS
 	    // Filter coefficients input (b0, b1, b2, -a1, -a2)
-		input wire signed ['d5* BITWIDTH-'d1:0] FILT_WEIGHTS,
+		input wire signed [5* BITWIDTH-1:0] FILT_WEIGHTS,
 	`endif
 	`ifdef USE_EXT_MAC
-	    output wire signed ['d5* BITWIDTH-'d1:0] MAC_INPUT_A,   
-	    output wire signed ['d5* BITWIDTH-'d1:0] MAC_INPUT_B,
+	    output wire signed [5* BITWIDTH-1:0] MAC_INPUT_A,
+	    output wire signed [5* BITWIDTH-1:0] MAC_INPUT_B,
 	    output wire MAC_START_FLAG,
-	    input wire signed ['d2* BITWIDTH-'d1:0] MAC_OUTPUT,
+	    input wire signed [BITWIDTH-1:0] MAC_OUTPUT,
 	    input wire MAC_DVALID,
 	`endif
-    input wire signed [BITWIDTH-'d1:0] DATA_IN,
-    output wire signed [BITWIDTH-'d1:0] DATA_OUT,
+    input wire signed [BITWIDTH-1:0] DATA_IN,
+    output wire signed [BITWIDTH-1:0] DATA_OUT,
     output wire DVALID
 );
-    localparam UPPER_MASK = 2*BITWIDTH - 'd3;
     localparam STATE_IDLE = 2'd0, STATE_MAC = 2'd1, STATE_CALC = 2'd2, STATE_TAPS = 2'd3;
     // --- Filter coefficients input (b0, b1, b2, -a1, -a2), a0 is ignored due to 1
-    localparam signed ['d5* BITWIDTH-'d1:0] FILT_COEFFS = { 8'sd19 , 8'sd37, 8'sd19, 8'sd0 , -8'sd11 };
+    localparam signed [5* BITWIDTH-1:0] FILT_COEFFS = { 8'sd19 , 8'sd37, 8'sd19, 8'sd0 , -8'sd11 };
 
     //################## Internal signals ##################
     reg first_run_done;
     reg do_calc_dly;
     reg [1:0] state;
-    reg signed [BITWIDTH-'d1:0] tap_input [1:0], tap_output [1:0];
+    reg signed [BITWIDTH-1:0] tap_input [1:0], tap_output [1:0];
 
     wire mac_dvalid_int;
-    wire ['d5* BITWIDTH-'d1:0] filt_data, filt_coeff;
-    wire signed [2* BITWIDTH-'d1:0] mac_out;
+    wire [5* BITWIDTH-1:0] filt_data, filt_coeff;
+    wire signed [BITWIDTH-1:0] mac_out;
     
     assign DATA_OUT = tap_output[0];
     assign DVALID = mac_dvalid_int && first_run_done;
    
     //################## Choosing the multiplier module ##################
     // --- Control signals and data flow to Multiplier
-    //assign filt_data = {tap_output[1], tap_output[0], tap_input[1], tap_input[0], DATA_IN[BITWIDTH-'d1:0]};
-    assign filt_data = {DATA_IN[BITWIDTH-'d1:0], tap_input[0], tap_input[1], tap_output[0], tap_output[1]};
+    //assign filt_data = {tap_output[1], tap_output[0], tap_input[1], tap_input[0], DATA_IN[BITWIDTH-1:0]};
+    assign filt_data = {DATA_IN[BITWIDTH-1:0], tap_input[0], tap_input[1], tap_output[0], tap_output[1]};
     `ifdef USE_EXT_WEIGHTS
         assign filt_coeff = FILT_WEIGHTS;
     `else
         assign filt_coeff = FILT_COEFFS;
     `endif
 
-    //Choicing the multiplier module
+    // Selecting the multiplier module
     // Using DSP-based MAC Operator (incl. Pipelining and Parallelisation)
     `ifndef USE_EXT_MAC
-        MAC#(BITWIDTH, 'd5, NUM_MULT) MAC(
+        MAC#(
+            .BITWIDTH(BITWIDTH),
+            .NUM_MULT(NUM_MULT),
+            .SIZE_INPUT(5),
+            .BITS_SCALE_BIAS(0),
+            .BITS_SCALE_DOUT(BITWIDTH-2)
+        ) MAC (
             .CLK_SYS(CLK_SYS),
             .RSTN(RSTN),
             .EN(EN),
+            .DO_CLEAR(1'b0),
             .DO_CALC(state == STATE_MAC),
             .IN_BIAS({(BITWIDTH){1'b0}}),
             .IN_WEIGHTS(filt_coeff),
@@ -101,7 +107,7 @@ module BIQUAD_DF1#(
             do_calc_dly <= 1'd0;
             state <= STATE_IDLE;
             first_run_done <= 1'd0;
-            for(i0 = 'd0; i0 < 'd2; i0 = i0 + 'd1) begin
+            for(i0 = 0; i0 < 2; i0 = i0 + 1) begin
                 tap_input[i0] <= 'd0;
                 tap_output[i0] <= 'd0;
             end
@@ -118,9 +124,9 @@ module BIQUAD_DF1#(
                     state <= (mac_dvalid_int) ? STATE_TAPS : STATE_CALC;
                 end
                 STATE_TAPS: begin
-                    tap_input[0] <= DATA_IN[BITWIDTH-'d1:0];
+                    tap_input[0] <= DATA_IN[BITWIDTH-1:0];
                     tap_input[1] <= tap_input[0];
-                    tap_output[0] <= mac_out[UPPER_MASK-:BITWIDTH];
+                    tap_output[0] <= mac_out;
                     tap_output[1] <= tap_output[0];
                     first_run_done <= 1'd1;
                     state <= STATE_IDLE;

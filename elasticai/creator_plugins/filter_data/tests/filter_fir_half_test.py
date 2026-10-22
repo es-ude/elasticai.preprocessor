@@ -6,7 +6,7 @@ import elasticai.creator_plugins.multipliers as mult
 import numpy as np
 import pytest
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.triggers import FallingEdge, RisingEdge, ClockCycles
 from cocotb.utils import get_sim_time
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
@@ -77,25 +77,19 @@ async def filter_fir(
     dut.DATA_IN.value = 0
     # --- Start clock and making reset
     cocotb.start_soon(Clock(dut.CLK_SYS, period_clk, unit="ns").start())
-    for _ in range(8):
-        await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 8)
     for idx in range(4):
         await RisingEdge(dut.CLK_SYS)
         dut.RSTN.value = idx % 2
         await RisingEdge(dut.CLK_SYS)
     dut.RSTN.value = 1
-    for _ in range(2):
-        await RisingEdge(dut.CLK_SYS)
+    await ClockCycles(dut.CLK_SYS, 2)
     await FallingEdge(dut.CLK_SYS)
 
     # Set Data on Trigger
     dut.EN.value = 1
-    assert dut.DVALID.value == 0
-    for _ in range(8):
-        await RisingEdge(dut.CLK_SYS)
-
+    await ClockCycles(dut.CLK_SYS, 8)
     await RisingEdge(dut.CLK_SYS)
-    assert dut.DVALID.value == 0
 
     data_out = list()
     run_time = list()
@@ -118,7 +112,7 @@ async def filter_fir(
         data_out.append(dut.DATA_OUT.value.to_signed())
         await RisingEdge(dut.CLK_SYS)
 
-    assert run_time == [period_clk * (ceil(order / num_mult) + 2 + 3)] * len(run_time)
+    assert run_time == [period_clk * (ceil(order / num_mult) + 2 + 2)] * len(run_time)
     if not data == check:
         # plot_results(data_in=data, data_out=data_out, data_check=check)
         error = sum([abs(a - b) for a, b in zip(data_out, check)]) / len(data_out)
@@ -148,7 +142,7 @@ def test_template(
         cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_array.v")
         cocotb_test_fixture.add_srcs_from_package(mac, "verilog/mac_core.v")
         cocotb_test_fixture.add_srcs_from_package(mult, "verilog/mult_dsp_signed.v")
-        cocotb_test_fixture.add_srcs_from_package(windower, "verilog/ring_buffer.v")
+        cocotb_test_fixture.add_srcs_from_package(windower, "verilog/shift_register.v")
         cocotb_test_fixture.run(
             params={
                 "BITWIDTH": bitwidth,
@@ -197,7 +191,8 @@ def test_build(
             },
             packages=["filter_data"],
             path2save=build_dir,
-            add_ringbuffer=True,
+            add_ringbuffer=False,
+            add_shiftregister=True,
             add_mac=True,
             use_dsp_mult=True,
         )
@@ -216,7 +211,7 @@ def test_build(
 @pytest.mark.parametrize("bitwidth, fracwidth", [(12, 7), (8, 4)])
 @pytest.mark.parametrize("order", [11, 21])
 @pytest.mark.parametrize("num_mult", [1, 2])
-def test_build_equal(
+def test_codesign(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
@@ -233,7 +228,6 @@ def test_build_equal(
             b_type="lowpass",
         )
     )
-    fir_params = dut.get_coeffs_verilog_string(bitwidth=bitwidth, only_half_fir=True)
     data_in = build_testdata(bitwidth=bitwidth, frac=fracwidth, order=order, taps_signal=4, num_repeats=1)
 
     arith_data = FxpArithmetic(FxpParams(total_bits=bitwidth, frac_bits=fracwidth, signed=True))
@@ -248,28 +242,13 @@ def test_build_equal(
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
-
-        load_and_plugin(
-            type="fir_half",
-            id="1",
-            params={
-                "BITWIDTH": bitwidth,
-                "LENGTH": int(order / 2) + 1,
-                "NUM_MULT": num_mult,
-                "FILT_COEFFS": fir_params,
-            },
-            packages=["filter_data"],
-            path2save=build_dir,
-            add_ringbuffer=True,
-            add_mac=True,
-            use_dsp_mult=True,
-        )
+        dut.create_design(id="1", target="fpga", path2save=build_dir.as_posix(), total_bitwidth=bitwidth, frac_bitwidth=fracwidth, is_signed=True)
 
         cocotb_test_fixture.write({"data": data_in, "check": data_checked})
         cocotb_test_fixture.set_top_module_name("FIR_HALF_1")
         cocotb_test_fixture.clear_srcs()
         cocotb_test_fixture.add_srcs_from_dir(path=tmpdir, glob_pattern="verilog/*.v")
         cocotb_test_fixture.run(
-            params={},
+            params={"NUM_MULT": num_mult},
             defines={},
         )

@@ -14,11 +14,12 @@ def load_and_plugin(
     use_dsp_mult: bool = True,
     add_mac: bool = True,
     add_ringbuffer: bool = False,
+    add_shiftregister: bool = False,
 ) -> None:
     load_and_build_form_plugin(type, id, params, packages, path2save)
-    if add_ringbuffer:
+    if add_ringbuffer or add_shiftregister:
         load_and_build_form_plugin(
-            "ring_buffer",
+            "shift_register" if add_shiftregister else "ring_buffer",
             "",
             params={"BITWIDTH": params["BITWIDTH"], "SAMPLES": params["LENGTH"]},
             packages=["windower"],
@@ -29,9 +30,11 @@ def load_and_plugin(
             "mac_array",
             "",
             params={
-                "INPUT_BITWIDTH": params["BITWIDTH"],
-                "INPUT_NUM_DATA": params["LENGTH"],
-                "NUM_MULT_PARALLEL": 1,
+                "BITWIDTH": params["BITWIDTH"],
+                "SIZE_INPUT": params["LENGTH"],
+                "NUM_MULT": 1,
+                "BITS_SCALE_BIAS": 0,
+                "BITS_SCALE_DOUT": 0
             },
             packages=["mac"],
             path2save=path2save,

@@ -112,9 +112,9 @@ async def filter_biquad(
         await RisingEdge(dut.CLK_SYS)
         run_time = t2 - t1
         assert run_time in [
-            period_clk * (ceil(5 / num_mult) + 6),
-            period_clk * (ceil(5 / num_mult) + 4),
+            period_clk * (ceil(5 / num_mult) + 5),
             period_clk * (ceil(5 / num_mult) + 3),
+            period_clk * (ceil(5 / num_mult) + 2),
         ]
         data_out.append(dut.DATA_OUT.value.to_signed())
         await RisingEdge(dut.CLK_SYS)
@@ -216,7 +216,7 @@ def test_build(
 @pytest.mark.parametrize("bitwidth, fracwidth", [(12, 7), (8, 4)])
 @pytest.mark.parametrize("order", [2])
 @pytest.mark.parametrize("num_mult", [1])
-def test_build_equal(
+def test_codesign(
     cocotb_test_fixture: CocotbTestFixture,
     bitwidth: int,
     fracwidth: int,
