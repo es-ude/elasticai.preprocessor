@@ -5,7 +5,7 @@ from cocotb.triggers import FallingEdge, RisingEdge
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
 from elasticai.creator_plugins.bram.utils import translate_path_to_int, write_mem_file
 
-from elasticai.creator_plugins.player.utils import load_and_plugin
+from elasticai.creator_plugins.adc.utils import load_and_plugin
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
 
 
@@ -87,7 +87,7 @@ def test_replay_only_data(
         cocotb_test_fixture.write({"check": data, "trgg": data})
         cocotb_test_fixture.set_top_module_name("REPLAYER")
         cocotb_test_fixture.clear_srcs()
-        cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
+        cocotb_test_fixture.add_srcs_from_package("adc", "verilog/replayer.v")
         cocotb_test_fixture.run(
             params={
                 "BITWIDTH": bitwidth,
@@ -125,7 +125,7 @@ def test_replay_data_trgg(
 
         cocotb_test_fixture.set_top_module_name("REPLAYER")
         cocotb_test_fixture.clear_srcs()
-        cocotb_test_fixture.add_srcs_from_package("player", "verilog/replayer.v")
+        cocotb_test_fixture.add_srcs_from_package("adc", "verilog/replayer.v")
         cocotb_test_fixture.run(
             params={
                 "BITWIDTH": bitwidth,
@@ -170,7 +170,7 @@ def test_replay_data_trgg_build(
                 "PATH2TRGG": translate_path_to_int(path2trgg),
                 "ADD_TRIGGER": True,
             },
-            packages=["player"],
+            packages=["adc"],
             path2save=build_dir,
         )
 

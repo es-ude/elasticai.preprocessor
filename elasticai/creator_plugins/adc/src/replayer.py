@@ -13,7 +13,7 @@ from elasticai.creator.ir2verilog import (
 
 @type_handler_iterable()
 def replayer(impl: DataGraph, _: Registry) -> Iterable[Code]:
-    package_path = "elasticai.creator_plugins.player"
+    package_path = "elasticai.creator_plugins.adc"
     path2file = "verilog/replayer.v"
 
     _template = (

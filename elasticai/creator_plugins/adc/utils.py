@@ -9,7 +9,7 @@ def load_and_plugin(
     type: str,
     id: str,
     params: dict[str, Any],
-    packages: list = ["player"],
+    packages: list = ["adc"],
     path2save: Path = get_path_to_project() / "build",
 ) -> None:
     load_and_build_form_plugin(type, id, params, packages, path2save)
