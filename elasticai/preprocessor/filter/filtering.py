@@ -426,6 +426,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
                 "FILT_COEFFS": filt_params,
             },
             "add_ringbuffer": False,
+            "add_shiftregister": False,
             "add_mac": True,
             "use_dsp_mult": use_dsp_mult,
         }
@@ -439,6 +440,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
                 "LENGTH": self._settings._num_delay_taps,
             },
             "add_ringbuffer": True,
+            "add_shiftregister": False,
             "add_mac": False,
             "use_dsp_mult": False,
         }
@@ -456,7 +458,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
                 "NUM_MULT": num_mult,
                 "FILT_COEFFS": filt_params,
             },
-            "add_ringbuffer": True,
+            "add_ringbuffer": False,
+            "add_shiftregister": True,
             "add_mac": True,
             "use_dsp_mult": use_dsp_mult,
         }
@@ -474,7 +477,8 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
                 "NUM_MULT": num_mult,
                 "FILT_COEFFS": filt_params,
             },
-            "add_ringbuffer": True,
+            "add_ringbuffer": False,
+            "add_shiftregister": True,
             "add_mac": True,
             "use_dsp_mult": use_dsp_mult,
         }
@@ -485,6 +489,7 @@ class Filtering(CommonDigitalFunctions, PreprocessingModule[DataTransient, DataT
             "id": id,
             "params": {"BITWIDTH": bitwidth},
             "add_ringbuffer": False,
+            "add_shiftregister": False,
             "add_mac": False,
             "use_dsp_mult": False,
         }

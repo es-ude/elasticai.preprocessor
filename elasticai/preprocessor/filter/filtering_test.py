@@ -603,7 +603,7 @@ class TestDigitalFilters(TestCase):
                 "mac_array.v",
                 "mac_core.v",
                 "mult_dsp_signed.v",
-                "ring_buffer.v",
+                "shift_register.v",
             ]
             for file in path2save.glob("*.v"):
                 assert file.exists()
@@ -625,7 +625,7 @@ class TestDigitalFilters(TestCase):
                 "mac_array.v",
                 "mac_core.v",
                 "mult_dsp_signed.v",
-                "ring_buffer.v",
+                "shift_register.v",
             ]
             for file in path2save.glob("*.v"):
                 assert file.exists()

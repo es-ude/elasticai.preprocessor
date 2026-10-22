@@ -37,26 +37,26 @@ module FIR_FULL#(
 		input wire signed [LENGTH * BITWIDTH-'d1:0] FILT_WEIGHTS,
 	`endif
     `ifdef USE_EXT_MAC
-        output wire signed [LENGTH* BITWIDTH-'d1:0] MAC_INPUT_A,   
-	    output wire signed [LENGTH* BITWIDTH-'d1:0] MAC_INPUT_B,
+        output wire signed [LENGTH* BITWIDTH-1:0] MAC_INPUT_A,
+	    output wire signed [LENGTH* BITWIDTH-1:0] MAC_INPUT_B,
 	    output wire MAC_START_FLAG,
-	    input wire signed [2* BITWIDTH-'d1:0] MAC_OUTPUT,
+	    input wire signed [BITWIDTH-1:0] MAC_OUTPUT,
 	    input wire MAC_DVALID,
     `endif
-    input wire signed [BITWIDTH-'d1:0] DATA_IN,
-    output wire signed [BITWIDTH-'d1:0] DATA_OUT,
+    input wire signed [BITWIDTH-1:0] DATA_IN,
+    output wire signed [BITWIDTH-1:0] DATA_OUT,
     output wire DVALID
 );
     // --- Control signals
     // Used filter coefficients
-    localparam signed [LENGTH* BITWIDTH-'d1:0] FILT_COEFFS = {8'sd1, 8'sd4, 8'sd11, 8'sd23, 8'sd38, 8'sd50, 8'sd38, 8'sd23, 8'sd11, 8'sd4, 8'sd1};
+    localparam signed [LENGTH* BITWIDTH-1:0] FILT_COEFFS = {8'sd1, 8'sd4, 8'sd11, 8'sd23, 8'sd38, 8'sd50, 8'sd38, 8'sd23, 8'sd11, 8'sd4, 8'sd1};
 
     // Data flow to MAC operator
     wire dvalid_buffer, dvalid_mac;
-    wire [LENGTH* BITWIDTH -'d1:0] mac_ina, mac_inb;
-    wire signed [2* BITWIDTH-'d1:0] mac_out;
-    assign DVALID = dvalid_mac && dvalid_buffer;
-    assign DATA_OUT = (DVALID) ? mac_out[(2*BITWIDTH-'d2)-:BITWIDTH] : DATA_OUT;
+    wire [LENGTH* BITWIDTH-1:0] mac_ina, mac_inb;
+    wire signed [BITWIDTH-1:0] mac_out;
+    assign DVALID = dvalid_mac;
+    assign DATA_OUT = (DVALID) ? mac_out : DATA_OUT;
 
     // Filter coefficients
     `ifdef USE_EXT_WEIGHTS
@@ -67,7 +67,10 @@ module FIR_FULL#(
 
     // --- Implementation of modules
     // Data buffer
-    RING_BUFFER#(BITWIDTH, LENGTH) BUFFER(
+    SHIFT_REGISTER#(
+        .BITWIDTH(BITWIDTH),
+        .SAMPLES(LENGTH)
+    ) BUFFER (
         .CLK_SYS(CLK_SYS),
         .RSTN(RSTN),
         .EN(EN),
@@ -86,10 +89,17 @@ module FIR_FULL#(
         assign dvalid_mac = MAC_DVALID;
     `else
         // Handling MAC operator (incl. Pipelining and Parallelisation)
-        MAC#(BITWIDTH, LENGTH, NUM_MULT) MAC(
+        MAC#(
+            .BITWIDTH(BITWIDTH),
+            .NUM_MULT(NUM_MULT),
+            .SIZE_INPUT(LENGTH),
+            .BITS_SCALE_BIAS(0),
+            .BITS_SCALE_DOUT(BITWIDTH-1)
+        ) MAC (
             .CLK_SYS(CLK_SYS),
             .RSTN(RSTN),
             .EN(EN),
+            .DO_CLEAR(1'b0),
             .DO_CALC(dvalid_buffer),
             .IN_BIAS({(BITWIDTH){1'b0}}),
             .IN_WEIGHTS(mac_inb),
