@@ -54,7 +54,7 @@ test = [
 ]
 
 [build-system]
-requires = ["hatch-vcs", "hatchling", "wheel"]
+requires = ["hatch-vcs", "hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [tool.coverage.run]
@@ -140,9 +140,3 @@ default-groups = ["dev", "docs", "test", "lint", "example"]
 [tool.uv.sources]
 elasticai-creator = { git = "https://github.com/es-ude/elastic-ai.creator.git", branch = "main" }
 elasticai-equi-checker = { git = "https://github.com/es-ude/elasticai.equi-checker.git", branch = "main" }
-torch = { index = "pytorch-cpu" }
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
