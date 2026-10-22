@@ -81,11 +81,11 @@ source = "vcs"
 
 [tool.hatch.build.targets.sdist]
 include = ["elasticai"]
-exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py"]
+exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py", "**/docu/*", "**/README.md"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["elasticai"]
-exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py"]
+exclude = [".venv", "build*", "equi_checker", "plugins_c", "**/*_test.py", "**/docu/*", "**/README.md"]
 
 [tool.pytest]
 markers = ["hardware: a hardware test to validate func", "simulation: a slow simulation test"]
