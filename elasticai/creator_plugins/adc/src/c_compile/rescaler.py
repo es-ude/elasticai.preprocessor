@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-import elasticai.creator_plugins.rescaler as design_plugin
+import elasticai.creator_plugins.adc as design_plugin
 from elasticai.preprocessor.adc import RescalerSettings
 from elasticai.preprocessor.translation.ir2c import (
     generate_c_files,

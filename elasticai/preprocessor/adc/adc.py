@@ -96,6 +96,7 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
         )
         self._settings = replace(settings)
         self._trgg = []
+        self._settings = settings
         if isinstance(settings.method, str):
             self._settings.method = ConversionResamplerTargets(settings.method.lower())
 
@@ -136,12 +137,12 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
         return self._quantize(data=xin, is_int_output=is_int_output)
 
     def _quantize_voltage(self, data: np.ndarray, is_int_output: bool) -> np.ndarray:
-        xlsb = self._settings.lsb
+        xlsb_ana = self._settings.lsb
+        xlsb_fxp = self._arith._config.minimum_step_as_rational
         xmin = self._settings.vneg
 
-        xin = np.round((self._clamp_analog(data) - xmin) / xlsb)
-        xin = np.clip(xin, 0, 2**self._settings.total_bits - 1)
-        xin = (xin + self._arith.minimum_as_integer) * self._arith._config.minimum_step_as_rational
+        xin = np.round((self._clamp_analog(data) - xmin) / xlsb_ana) + self._arith.minimum_as_integer
+        xin = self._clamp_digital(xin, use_integer=True) * xlsb_fxp
         return self._quantize(data=xin, is_int_output=is_int_output)
 
     def _do_resample(self, data: np.ndarray) -> np.ndarray:
@@ -289,31 +290,29 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             data = self._quantize_digital(self._data, is_int_input=False, is_int_output=True)
         if "int" not in data.dtype.name:  # pragma: no branch
             raise ValueError("Type of input data is not 'int'")
-        if self._data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
+        if data.shape not in ((data.size,), (1, data.size)):  # pragma: no branch
             raise ValueError("shape")
 
         supported_targets = ["mcu", "pc", "fpga"]
         if target.lower() not in supported_targets:
             raise ValueError(f"Target {target} is not supported: only {supported_targets}")
         if target.lower() in ["mcu", "pc"]:
-            self._create_design_c(
-                id=id,
-                path2save=path2save,
-                data=data,
-            )
+            self._create_design_c(id=id, path2save=path2save, data=data.tolist(), trgg=self._trgg)
         else:
-            self._create_design_verilog(id=id, path2save=path2save, data=data)
+            self._create_design_verilog(id=id, path2save=path2save, data=data.tolist(), trgg=self._trgg)
 
-    def _create_design_c(self, id: str, path2save: Path, data: np.ndarray, define_path: str = "src"):
-        from elasticai.creator_plugins.player.src import c_compile
+    def _create_design_c(
+        self, id: str, path2save: Path, data: list, trgg: list, define_path: str = "src"
+    ):
+        from elasticai.creator_plugins.adc.src import c_compile
 
         use_trgg = len(self._trgg) > 0
         if use_trgg:
             c_compile.build_replayer_with_trigger(
                 replayer_id=id,
                 define_path=define_path,
-                data=data.tolist(),
-                trigger=self._trgg,
+                data=data,
+                trigger=trgg,
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
                 path2save=path2save,
@@ -322,33 +321,33 @@ class ConversionResampler(PreprocessingModule[DataTransient, DataTransient]):
             c_compile.build_replayer(
                 replayer_id=id,
                 define_path=define_path,
-                data=data.tolist(),
+                data=data,
                 bitwidth=self._settings.total_bits,
                 signed=self._settings.is_signed,
                 path2save=path2save,
             )
 
-    def _create_design_verilog(self, id: str, path2save: Path, data: np.ndarray) -> None:
-        from elasticai.creator_plugins.player.utils import load_and_plugin
+    def _create_design_verilog(self, id: str, path2save: Path, data: list, trgg: list) -> None:
+        from elasticai.creator_plugins.adc.utils import load_and_plugin
 
         use_trgg = len(self._trgg) > 0
 
         path2data = path2save / f"replayer_{id}_data.mem"
-        write_mem_file(path=path2data, data=data.tolist(), bitwidth=self._settings.total_bits)
+        write_mem_file(path=path2data, data=data, bitwidth=self._settings.total_bits)
         path2trgg = path2save / f"replayer_{id}_trgg.mem"
         if use_trgg:
-            write_mem_file(path=path2trgg, data=self._trgg, bitwidth=1)
+            write_mem_file(path=path2trgg, data=trgg, bitwidth=1)
 
         load_and_plugin(
             type="replayer",
             id=id,
             params={
                 "BITWIDTH": self._settings.total_bits,
-                "NUM_VALUES": data.size,
+                "NUM_VALUES": len(data),
                 "PATH2DATA": translate_path_to_int(path2data),
                 "PATH2TRGG": translate_path_to_int(path2trgg),
                 "ADD_TRIGGER": use_trgg,
             },
-            packages=["player"],
+            packages=["adc"],
             path2save=path2save,
         )

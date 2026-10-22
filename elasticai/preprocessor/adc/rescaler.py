@@ -181,7 +181,7 @@ class Rescaler(PreprocessingModule[DataTransient, DataTransient]):
     def _create_design_c(
         self, id: str, path2save: Path, bitwidth_input: int, define_path: str = "src"
     ) -> None:
-        from elasticai.creator_plugins.rescaler.src import c_compile
+        from elasticai.creator_plugins.adc.src import c_compile
 
         c_compile.build_rescaler(
             id=id,

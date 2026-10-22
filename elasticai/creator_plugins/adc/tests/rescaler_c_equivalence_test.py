@@ -7,7 +7,7 @@ import pytest
 from elasticai.creator.arithmetic import int_arithmetic
 from elasticai.equichecker import CompileLoader, compare_values
 
-from elasticai.creator_plugins.rescaler.src.c_compile import build_rescaler
+from elasticai.creator_plugins.adc.src.c_compile import build_rescaler
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.adc import Rescaler, RescalerSettings, RescalerTargets
 from elasticai.preprocessor.translation.cocotb_tmp import temporary_directory
