@@ -15,13 +15,14 @@ def pytest_sessionfinish(session, exitstatus):
     from elasticai.preprocessor import get_path_to_project
     from pathlib import Path
 
-    path2check = get_path_to_project("build_test")
     def remove_empty_dirs(path: Path) -> None:
         if not path.exists():
             return
-        for dirpath in path2check.iterdir():
+        for dirpath in path.iterdir():
             try:
                 dirpath.rmdir()
             except:
                 pass
+
+    path2check = get_path_to_project("build_test")
     remove_empty_dirs(path2check)
