@@ -15,13 +15,22 @@ def pytest_sessionfinish(session, exitstatus):
     from elasticai.preprocessor import get_path_to_project
     from pathlib import Path
 
-    def remove_empty_dirs(path: Path) -> None:
+    def remove_empty_dirs(path, min_level: int = 3) -> None:
+        from os import walk
+
+        path = Path(path)
         if not path.exists():
             return
-        for dirpath in path.iterdir():
+
+        root_depth = len(path.parts)
+        for dirpath, _, _ in walk(path, topdown=False):
+            folder = Path(dirpath)
+            level = len(folder.parts) - root_depth
+            if level < min_level:
+                continue
             try:
-                dirpath.rmdir()
-            except:
+                folder.rmdir()
+            except OSError:
                 pass
 
     path2check = get_path_to_project("build_test")
