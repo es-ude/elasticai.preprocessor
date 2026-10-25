@@ -12,7 +12,7 @@ tags
 **/.env
 **/.devenv
 **/dist
-*data
+**/smatable-data
 
 .coverage
 coverage.xml
