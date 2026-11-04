@@ -159,7 +159,7 @@ def test_build(
 
 
 @pytest.mark.simulation
-@pytest.mark.parametrize("bitwidth, fracwidth", [(4,4), (8, 6), (12, 4)])
+@pytest.mark.parametrize("bitwidth, fracwidth", [(4, 4), (8, 6), (12, 4)])
 @pytest.mark.parametrize("length", [11, 20, 40])
 def test_codesign(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwidth: int, length: int):
     dut = Filtering(
@@ -189,7 +189,9 @@ def test_codesign(cocotb_test_fixture: CocotbTestFixture, bitwidth: int, fracwid
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
 
-        dut.create_design(target="fpga", total_bitwidth=bitwidth, id="0", path2save=build_dir, is_signed=True)
+        dut.create_design(
+            target="fpga", total_bitwidth=bitwidth, id="0", path2save=build_dir, is_signed=True
+        )
         assert (build_dir / "*.v").exists
 
         cocotb_test_fixture.write({"data": data_in, "check": data_checked})

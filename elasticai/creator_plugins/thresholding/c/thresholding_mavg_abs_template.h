@@ -8,14 +8,14 @@ typedef struct {
     uint16_t tap_start;
     uint16_t tap_length;
     void    *taps;
-    int32_t *tap_sum;
+    int64_t *tap_sum;
 } MavgAbsWindow;
 
 #ifndef DEF_CALC_MAVG_ABS_THR
 #define DEF_CALC_MAVG_ABS_THR(id, input_type) \
 float calc_next_datum_moving_window_average_abs_ ##id(input_type data, MavgAbsWindow *window) { \
     input_type *win_tap = (input_type *) window->taps; \
-    int32_t *sum = window->tap_sum; \
+    int64_t *sum = window->tap_sum; \
     \
     *sum -= win_tap[window->tap_start]; \
     win_tap[window->tap_start] = (data < 0) ? -data : data; \
@@ -30,7 +30,7 @@ float calc_next_datum_moving_window_average_abs_ ##id(input_type data, MavgAbsWi
 #define DEF_NEW_MAVG_ABS_WINDOW_IMPL(id, input_type, size) \
 bool calc_thresholding_mavg_abs_ ## id(input_type data, input_type *out) { \
     static input_type window_taps[size] = {0}; \
-    static int32_t sum = 0; \
+    static int64_t sum = 0; \
     static MavgAbsWindow win_params = { \
         .tap_start = 0, \
         .tap_length = size, \

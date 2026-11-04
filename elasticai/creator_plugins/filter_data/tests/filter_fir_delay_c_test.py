@@ -86,7 +86,7 @@ def test_build(tmp_path: Path, target: str) -> None:
         n_order=4,
         f_filt=[50.0],
         f_type="butter",
-        b_type="allpass"
+        b_type="allpass",
     )
 
     backup = tmp_path / f"build_{target}"
@@ -112,7 +112,7 @@ def test_build_equal(
         n_order=1,
         f_filt=[1000.0 / 21],
         f_type="butter",
-        b_type="allpass"
+        b_type="allpass",
     )
     check_filter_c_equivalence(
         settings,
