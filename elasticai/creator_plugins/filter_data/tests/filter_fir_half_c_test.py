@@ -64,13 +64,14 @@ def test_build(tmp_path: Path, target: str) -> None:
             n_order=51,
             f_filt=[100.0],
             f_type="butter",
-            b_type="lowpass")
+            b_type="lowpass",
+        )
         Filtering(settings).create_design(
-                target=target,
-                total_bitwidth=8,
-                id="0",
-                path2save=tmpdir,
-                )
+            target=target,
+            total_bitwidth=8,
+            id="0",
+            path2save=tmpdir,
+        )
         assert (tmpdir / "filter_fir_low_0.c").exists()
         assert (tmpdir / "filter_fir_low_0.h").exists()
         assert (tmpdir / "filter_fir_template.h").exists()
@@ -90,7 +91,7 @@ def test_build_equal(
         n_order=51,
         f_filt=[100.0],
         f_type="butter",
-        b_type="lowpass"
+        b_type="lowpass",
     )
     check_filter_c_equivalence(
         settings,

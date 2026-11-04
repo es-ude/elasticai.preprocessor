@@ -34,7 +34,7 @@ def load_and_plugin(
                 "SIZE_INPUT": params["LENGTH"],
                 "NUM_MULT": 1,
                 "BITS_SCALE_BIAS": 0,
-                "BITS_SCALE_DOUT": 0
+                "BITS_SCALE_DOUT": 0,
             },
             packages=["mac"],
             path2save=path2save,

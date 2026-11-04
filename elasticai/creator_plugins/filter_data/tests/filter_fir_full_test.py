@@ -6,7 +6,7 @@ import elasticai.creator_plugins.multipliers as mult
 import numpy as np
 import pytest
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge, ClockCycles
+from cocotb.triggers import ClockCycles, FallingEdge, RisingEdge
 from cocotb.utils import get_sim_time
 from elasticai.creator.arithmetic import FxpArithmetic, FxpParams
 from elasticai.creator.testing import CocotbTestFixture, eai_testbench
@@ -238,7 +238,14 @@ def test_codesign(
     backup = cocotb_test_fixture.get_artifact_dir()
     with temporary_directory(backup) as tmpdir:
         build_dir = tmpdir / "verilog"
-        dut.create_design(id="1", target="fpga", path2save=build_dir, total_bitwidth=bitwidth, frac_bitwidth=fracwidth, is_signed=True)
+        dut.create_design(
+            id="1",
+            target="fpga",
+            path2save=build_dir,
+            total_bitwidth=bitwidth,
+            frac_bitwidth=fracwidth,
+            is_signed=True,
+        )
 
         cocotb_test_fixture.write({"data": data_in, "check": data_checked})
         cocotb_test_fixture.set_top_module_name("FIR_FULL_1")

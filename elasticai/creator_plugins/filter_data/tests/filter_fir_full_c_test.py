@@ -61,7 +61,7 @@ def test_build(tmp_path: Path, target: str) -> None:
         n_order=6,
         f_filt=[100.0],
         f_type="butter",
-        b_type="lowpass"
+        b_type="lowpass",
     )
     Filtering(settings).create_design(target=target, total_bitwidth=8, id="0", path2save=tmp_path)
     assert (tmp_path / "filter_fir_low_0.c").exists()
@@ -83,7 +83,8 @@ def test_build_equal(
         n_order=50,
         f_filt=[100.0],
         f_type="butter",
-        b_type="lowpass")
+        b_type="lowpass",
+    )
     check_filter_c_equivalence(
         settings,
         tmp_path,
