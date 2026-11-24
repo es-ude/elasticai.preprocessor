@@ -1,4 +1,10 @@
+from hypothesis import HealthCheck, settings
+
 pytest_plugins = ["elasticai.creator.testing"]
+
+# numpy-heavy tests have a varying runtime, therefore no per-example deadline
+settings.register_profile("default", deadline=None, suppress_health_check=[HealthCheck.too_slow])
+settings.load_profile("default")
 
 
 def pytest_sessionstart(session):

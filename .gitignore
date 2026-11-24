@@ -19,3 +19,4 @@ coverage.xml
 .testmondata*
 
 **/my_notes.md
+.hypothesis

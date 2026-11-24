@@ -540,6 +540,7 @@ lint = [
 test = [
     { name = "cocotb" },
     { name = "elasticai-equi-checker" },
+    { name = "hypothesis" },
     { name = "pytest" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-testmon" },
@@ -584,6 +585,7 @@ lint = [
 test = [
     { name = "cocotb", specifier = ">=2.0.1" },
     { name = "elasticai-equi-checker", git = "https://github.com/es-ude/elasticai.equi-checker.git?branch=main" },
+    { name = "hypothesis", specifier = ">=6.150.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-rerunfailures", specifier = ">=16.3" },
     { name = "pytest-testmon", specifier = ">=2.2.0" },

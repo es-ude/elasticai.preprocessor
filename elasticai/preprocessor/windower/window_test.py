@@ -5,6 +5,9 @@ from unittest import TestCase, main
 
 import numpy as np
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis.extra.numpy import arrays
 
 from elasticai.preprocessor import get_path_to_project
 from elasticai.preprocessor.thresholding import (
@@ -66,16 +69,31 @@ class TestWindowSettingsSequencer(TestCase):
         self.assertEqual(self.sets.overlap_length, 1)
 
 
+def stimuli_strategy(num_samples: int):
+    """Random stimulus in the range [-1, 1] with a fixed number of samples"""
+    return arrays(
+        dtype=np.float64,
+        shape=num_samples,
+        elements=st.floats(min_value=-1.0, max_value=1.0, allow_nan=False, allow_infinity=False),
+    )
+
+
+def trials_with_stimuli(window_length: int, max_trials: int = 9):
+    """Random number of full windows (1..max_trials) together with a matching random stimulus"""
+    return st.integers(min_value=1, max_value=max_trials).flatmap(
+        lambda num_trials: st.tuples(st.just(num_trials), stimuli_strategy(num_trials * window_length))
+    )
+
+
 class TestWindowSequencer(TestCase):
     sets = WindowSettings(
         method_window=WindowerTargets.Sequence, sampling_rate=10e3, window_sec=10e-3, overlap_sec=0.1e-3
     )
 
-    def test_window_sequence_match_full(self):
+    @given(data=trials_with_stimuli(window_length=sets.window_length))
+    def test_window_sequence_match_full(self, data):
+        num_trials, stimuli = data
         set0 = deepcopy(self.sets)
-        num_trials = np.random.randint(1, 10)
-        num_samples = int(num_trials * set0.window_length)
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
         rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (int(num_trials), set0.window_length)
@@ -84,27 +102,30 @@ class TestWindowSequencer(TestCase):
             chck = stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
-    def test_window_sequence_match_not_full(self):
+    @given(
+        stimuli=st.integers(
+            min_value=sets.window_length // 2, max_value=10 * sets.window_length - 1
+        ).flatmap(stimuli_strategy)
+    )
+    def test_window_sequence_match_not_full(self, stimuli):
         set0: WindowSettings = deepcopy(self.sets)
         set0.method_window = WindowerTargets.Sequence
-        num_trials = np.random.randint(1, 10) + np.random.random(1)[0] - 0.5
-        num_samples = int(num_trials * set0.window_length)
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
+        num_trials = stimuli.size // set0.window_length
         rslt = WindowSequencer(set0).forward(stimuli)
 
-        assert rslt.shape == (int(num_trials), set0.window_length)
+        assert rslt.shape == (num_trials, set0.window_length)
         for idx, sequence in enumerate(rslt):
             start_point = idx * set0.window_length
             chck = stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
-    def test_window_slide_max_overlapping(self):
+    @given(data=trials_with_stimuli(window_length=sets.window_length))
+    def test_window_slide_max_overlapping(self, data):
+        num_trials, stimuli = data
         set0: WindowSettings = deepcopy(self.sets)
         set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = set0.window_sec - 1 / set0.sampling_rate
-        num_trials = np.random.randint(1, 10)
-        num_samples = int(num_trials * set0.window_length)
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
+        num_samples = num_trials * set0.window_length
 
         delta_steps = set0.window_length - set0.overlap_length
         padded_stimuli = np.pad(
@@ -125,13 +146,12 @@ class TestWindowSequencer(TestCase):
             chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
-    def test_window_slide_quarter_overlapping(self):
+    @given(data=trials_with_stimuli(window_length=sets.window_length))
+    def test_window_slide_quarter_overlapping(self, data):
+        num_trials, stimuli = data
         set0: WindowSettings = deepcopy(self.sets)
         set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.25 * set0.window_sec
-        num_trials = np.random.randint(1, 10)
-        num_samples = int(num_trials * set0.window_length)
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
 
         delta_steps = set0.window_length - set0.overlap_length
         padded_stimuli = np.pad(
@@ -155,13 +175,12 @@ class TestWindowSequencer(TestCase):
             chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
-    def test_window_slide_half_overlapping(self):
+    @given(data=trials_with_stimuli(window_length=sets.window_length))
+    def test_window_slide_half_overlapping(self, data):
+        num_trials, stimuli = data
         set0: WindowSettings = deepcopy(self.sets)
         set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.5 * set0.window_sec
-        num_trials = np.random.randint(1, 10)
-        num_samples = int(num_trials * set0.window_length)
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
 
         delta_steps = set0.window_length - set0.overlap_length
         padded_stimuli = np.pad(
@@ -185,13 +204,12 @@ class TestWindowSequencer(TestCase):
             chck = padded_stimuli[start_point : start_point + set0.window_length]
             np.testing.assert_array_equal(sequence, chck)
 
-    def test_window_slide_sequence(self):
+    @given(data=trials_with_stimuli(window_length=sets.window_length))
+    def test_window_slide_sequence(self, data):
+        num_trials, stimuli = data
         set0: WindowSettings = deepcopy(self.sets)
         set0.method_window = WindowerTargets.Sliding
         set0.overlap_sec = 0.0
-        num_trials = np.random.randint(1, 10)
-        num_samples = num_trials * set0.window_length
-        stimuli = 2 * (np.random.random(num_samples) - 0.5)
         rslt = WindowSequencer(set0).forward(stimuli)
 
         assert rslt.shape == (num_trials, set0.window_length)
